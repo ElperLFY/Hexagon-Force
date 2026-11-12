@@ -1,4 +1,4 @@
-import {TAU,SIDE,K,TH,RP,PL} from './config.js';
+import {TAU,SIDE,K,TH,RP,PL,VOID} from './config.js';
 
 // Deterministic PRNG: the same level seed produces the same chart.
 const mul=a=>()=>{
@@ -34,8 +34,8 @@ function pointInConvexPolygon(point,poly){
 }
 
 // Restore at least one reachable opening after a randomized phrase change.
-function repairRows(rows,L){
-  let previous=null;
+function repairRows(rows,L,seed=null){
+  let previous=seed; // seed = last row of the previous chunk, so reachability holds across chunk seams
   const turnRate=L.turnRate??6.4;
   const stepTime=SIDE/turnRate;
   const reaction=L.reactionMargin??.04;
@@ -80,11 +80,11 @@ export class Chart{
     return omega*t+amp*Math.sin(t*TAU/(beats*this.beatDur));
   }
 
-  hit(t,phi){
+  hit(t,phi,mapMul=1){
     // Only the sharp tip is lethal. The player's base and flanks may visually
-    // overlap a wall without causing a collision.
+    // overlap a wall without causing a collision. mapMul = ModMenu "map speed".
     const tip=[PL.tip*Math.cos(phi),PL.tip*Math.sin(phi)];
-    const speed=this.speed||1;
+    const speed=(this.speed||1)*mapMul;
     const window=(TH+Math.abs(PL.tip-RP)+.05)/speed+.05;
 
     for(const row of this.rows){
@@ -143,6 +143,34 @@ export class Chart{
 
     const repaired=repairRows(rows,L);
     return new Chart(repaired,this.beatDur,this.tg0,this.bpm,this.dur,L.speed);
+  }
+
+  // Endless "void" phase. From `start` (snapped to the next beat, so the flip lands on the music)
+  // the authored rows are dropped and replaced by generated ones, produced lazily by ensure().
+  endless(L,seed,start){
+    const bd=this.beatDur;
+    this.voidStart=this.tg0+Math.ceil((start-this.tg0)/bd-1e-6)*bd;
+    this.rows=this.rows.filter(r=>r.t<this.voidStart);
+    this.voidSide=mul(seed>>>0)()<.5?-1:1; // which side of the screen the darkness comes from
+    this.gen=new PatternGenerator({...L,seed});
+    this.voidNext=this.voidStart+.1;
+    this.voidPrev=this.rows[this.rows.length-1]||null;
+    this.dur=Infinity; // never "completed"
+    return this;
+  }
+
+  // Keep generated rows VOID.ahead seconds in front of the song clock; drop rows long gone.
+  ensure(t){
+    if(!this.gen)return;
+    while(this.voidNext<t+VOID.ahead){
+      const rows=this.gen.generateVoid(this.voidNext,VOID.chunkBars,this.beatDur,this.tg0,this.voidStart,this.voidPrev);
+      this.voidNext=this.gen.voidNext;
+      if(rows.length){this.rows.push(...rows);this.voidPrev=rows[rows.length-1];}
+    }
+    if(this.rows.length>400){
+      const i=this.rows.findIndex(r=>r.t>t-4);
+      if(i>150)this.rows.splice(0,i);
+    }
   }
 
   toJSON(){
@@ -291,6 +319,30 @@ export class PatternGenerator{
     return this.repair(rows.filter(row=>row.t<dur-1).sort((a,b)=>a.t-b.t));
   }
 
-  repair(rows){
-    return repairRows(rows,this.L);
+  repair(rows,seed=null){
+    return repairRows(rows,this.L,seed);
+  }
+
+  // Endless phase: `bars` four-beat bars from the first bar line at/after `from`, ignoring the music's
+  // intensity and getting harder as (time - t0) grows. Returns the new rows (sorted, repaired against
+  // `prev`) and leaves the next free bar line in this.voidNext, so chunks can be chained seamlessly.
+  generateVoid(from,bars,bd,tg0,t0=from,prev=null){
+    const L=this.L,r=this.rng,rows=[];
+    if(!(bd>0)||!(bars>0)){this.voidNext=from;return rows;}
+    const first=Math.ceil((from-tg0)/(4*bd)-1e-6),stop=tg0+(first+bars)*4*bd;
+    for(let bar=first;;){
+      const tb=tg0+bar*4*bd;
+      if(tb>=stop){this.voidNext=tb;break;}
+      const ramp=Math.min(1,Math.max(0,(tb-t0)/(L.voidRamp||150)));
+      const x=.62+.3*ramp+(L.diff||0)*.5+(r()-.5)*.2;
+      const g=r()*6|0,d=r()<.5?1:-1;
+      const name=this.choose(this.pool(x),r);
+      let end=0;
+      for(const [beat,gaps] of PatternGenerator.PAT[name](g,d,r)){
+        rows.push({t:tb+beat*bd,g:unique(gaps)});
+        end=Math.max(end,beat);
+      }
+      bar+=Math.max(1,Math.ceil((end+.5)/4));
+    }
+    return this.repair(rows.sort((a,b)=>a.t-b.t),prev);
   }}

@@ -3,6 +3,21 @@
 export const TAU=Math.PI*2,SIDE=TAU/6,K=1.1547,RP=.19,HUB=.12,TH=.1,PW=.035;
 export const PL={tip:RP+.045,back:RP-.03,half:.035};
 export const SONG_DIR='MusicData/';
+
+// Endless "void" phase. At START seconds into a run the authored chart is replaced by generated rows
+// (forever), the whole screen inverts and a black gradient slowly creeps in from one side.
+export const VOID={
+  start:60,          // seconds into the run
+  flip:.9,           // seconds for the inversion to sweep out from the centre
+  fade:2,            // pause after the flip before the darkness starts to grow
+  ramp:150,          // seconds for the darkness to reach full strength
+  front:.45,         // final distance of the gradient's start from the centre (arena units, hub is ~.24)
+  width:.6,          // softness of the gradient (arena units)
+  alpha:[.3,.92],    // darkness at the far end: [at the start, at full strength] -> never fully black
+  chunkBars:8,       // rows are generated this many bars at a time...
+  ahead:14,          // ...and always at least this many seconds in advance
+  noise:{file:'wn01.wav',gain:.35,fade:1.5} // looped from the flip until you die (gain is relative to the volume slider)
+};
 const hsl=(h,s,l)=>`hsl(${h},${s}%,${l}%)`;
 
 export const LEVELS=[

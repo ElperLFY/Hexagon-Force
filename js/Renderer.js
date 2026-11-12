@@ -1,4 +1,5 @@
-import {TAU,SIDE,K,RP,HUB,TH,PL} from './config.js';
+import {TAU,SIDE,K,RP,HUB,TH,PL,VOID} from './config.js';
+const lerp=(a,b,k)=>a+(b-a)*k;
 const poly=(c,pts)=>{
   c.beginPath();
   pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));
@@ -14,6 +15,7 @@ export class Renderer{
     this.c=cv.getContext('2d');
     this.p=null;
     this.turnTrail=0;
+    this.mapMul=1; // ModMenu "map speed"
     addEventListener('resize',()=>this.resize());
     this.resize();
   }
@@ -105,7 +107,7 @@ export class Renderer{
       if(walls){
         c.fillStyle=p.w;
         for(const w of ch.rows){
-          const m=RP+(w.t-t)*L.speed;
+          const m=RP+(w.t-t)*L.speed*this.mapMul;
           if(m>5||m+TH<.1)continue;
           for(let s=0;s<6;s++)if(w.w[s]){
             const a=s*SIDE,b=a+SIDE;
@@ -151,9 +153,39 @@ export class Renderer{
     c.globalAlpha=1;
   }
 
+  // Endless "void" phase: the whole frame is colour-inverted (sweeping out from the centre), then a black
+  // gradient creeps in from one side of the screen. It stops short of the hub and never reaches full
+  // black, so the walls close to the arrow stay readable: very hard, not impossible.
+  post(g,t,ch){
+    if(!g.live||ch.voidStart==null)return false;
+    const vt=t-ch.voidStart;
+    if(vt<0)return false;
+    const c=this.c,{W,H,U}=this;
+    const k=Math.min(1,vt/VOID.flip);
+    c.save();
+    if(k<1){c.beginPath();c.arc(W/2,H/2,(1-Math.pow(1-k,3))*Math.hypot(W,H)/2,0,TAU);c.clip();}
+    c.globalCompositeOperation='difference';
+    c.fillStyle='#fff';c.fillRect(0,0,W,H); // |white - pixel| = inverted pixel
+    c.restore();
+
+    let p=Math.min(1,Math.max(0,(vt-VOID.flip-VOID.fade)/VOID.ramp));
+    p=p*p*(3-2*p);
+    const a=lerp(VOID.alpha[0],VOID.alpha[1],p)*(g.fx?Math.max(0,1-g.fx.tau*1.5):1); // darkness lifts on the game-over screen
+    if(p>0&&a>.002){
+      const edge=W/(2*U)+.05,s=ch.voidSide||1; // starts just off-screen
+      const x0=W/2+s*lerp(edge,VOID.front,p)*U,x1=x0+s*VOID.width*U;
+      const gr=c.createLinearGradient(x0,0,x1,0);
+      gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,`rgba(0,0,0,${a.toFixed(3)})`);
+      c.fillStyle=gr;c.fillRect(0,0,W,H);
+    }
+    return true;
+  }
+
   draw(g){
     const L=g.level,t=g.time(),ch=g.chart,{W,H,U}=this;
     const fx=g.fx,c=this.c;
+    c.globalCompositeOperation='source-over';
+    this.mapMul=g.mods?g.mods.mapSpeed:1;
     if(fx){
       const k=Math.exp(-fx.tau*7);
       c.save();c.translate((Math.random()-.5)*U*.06*k,(Math.random()-.5)*U*.06*k);
@@ -165,7 +197,10 @@ export class Renderer{
       c.fillRect(0,0,W,H);c.globalAlpha=1;
     }
 
-    const p=this.p,s=g.state;
+    // In the void the HUD is drawn last, in "difference" mode, so it stays readable on any background.
+    const inverted=this.post(g,t,ch);
+    if(inverted)c.globalCompositeOperation='difference';
+    const p=inverted?{...this.p,p:'#fff',w:'#fff'}:this.p,s=g.state;
     if(g.live){
       this.text((t-L.offset).toFixed(2)+'s',W-U*.12,U*.12,U*.07,p.p,'right');
       this.text('BPM '+ch.bpm.toFixed(1),U*.12,U*.1,U*.035,p.p,'left');
