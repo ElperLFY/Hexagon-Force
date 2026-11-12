@@ -58,10 +58,10 @@ export class Renderer{
     // They are original vector shapes, not copied game assets.
     if(Math.abs(direction)>.015){
       for(let i=3;i>=1;i--){
-        const lag=i*.0025;
+        const lag=i*.00025;
         c.save();
         c.rotate(phi-direction*6.4*lag);
-        c.globalAlpha=.1*i;
+        c.globalAlpha=.055*i;
         c.fillStyle=color;
         poly(c,PLAYER_POINTS);c.fill();
         c.restore();
