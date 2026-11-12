@@ -53,7 +53,7 @@ export class Renderer{
     c.fillStyle='#000';
     poly(c,PLAYER_POINTS);c.fill();
     c.restore();
-  }
+  
      // Motion after-images: previous angular positions trail behind the input.
     // They are original vector shapes, not copied game assets.
     if(Math.abs(direction)>.015){
