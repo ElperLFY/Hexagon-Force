@@ -54,20 +54,6 @@ export class Renderer{
     poly(c,PLAYER_POINTS);c.fill();
     c.restore();
     
-     // Motion after-images: previous angular positions trail behind the input.
-    // They are original vector shapes, not copied game assets.
-    if(Math.abs(direction)>.015){
-      for(let i=3;i>=1;i--){
-        const lag=i*.025;
-        c.save();
-        c.rotate(phi-direction*6.4);
-        c.globalAlpha=.055*i;
-        c.fillStyle=color;
-        poly(c,PLAYER_POINTS);c.fill();
-        c.restore();
-      }
-    }
-
     c.save();
     c.rotate(phi);
     c.shadowColor=color;
