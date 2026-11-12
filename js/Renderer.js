@@ -60,7 +60,7 @@ export class Renderer{
       for(let i=3;i>=1;i--){
         const lag=i*.025;
         c.save();
-        c.rotate(phi-direction*6.4*lag);
+        c.rotate(phi-direction*6.4);
         c.globalAlpha=.055*i;
         c.fillStyle=color;
         poly(c,PLAYER_POINTS);c.fill();
