@@ -1,0 +1,8 @@
+{
+  "name": "hexagon-force",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node smoke-test.mjs"
+  }
+}
