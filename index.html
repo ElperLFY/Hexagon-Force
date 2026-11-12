@@ -83,12 +83,17 @@ function scene(L,t,an,walls){
 }
 function tx(s,x,y,size,col,al='center'){ctx.font=`900 ${size}px Orbitron,'Trebuchet MS',Arial,sans-serif`;ctx.fillStyle=col;ctx.textAlign=al;ctx.textBaseline='middle';ctx.fillText(s,x,y)}
 function arrow(x,y,s,dir,col){ctx.fillStyle=col;poly([[x+dir*s,y-s],[x-dir*s,y],[x+dir*s,y+s]]);ctx.fill()}
+// ===== CARICAMENTO AUDIO: MusicData/songs/<numero>.mp3 =====
+const SONGS='MusicData/songs/';
+async function getAudio(L){
+ const r=await fetch(SONGS+L.file).catch(()=>null);
+ if(!r||!r.ok)throw Error(SONGS+L.file+' non trovato');
+ return r.arrayBuffer()}
 // ===== AUDIO / FLUSSO =====
 async function go(){
  if(st==='load')return;
  try{if(!AC)AC=new AudioContext();await AC.resume();const L=LEVELS[lv];st='load';msg='';
-  if(!AN[lv]){const r=await fetch(L.file);if(!r.ok)throw Error(L.file+' non trovato');
-   BUF[lv]=await AC.decodeAudioData(await r.arrayBuffer());await new Promise(r=>setTimeout(r,60));AN[lv]=analyze(BUF[lv],L)}
+  if(!AN[lv]){BUF[lv]=await AC.decodeAudioData(await getAudio(L));await new Promise(r=>setTimeout(r,60));AN[lv]=analyze(BUF[lv],L)}
   stop();src=AC.createBufferSource();src.buffer=BUF[lv];src.gain=AC.createGain();src.connect(src.gain).connect(AC.destination);
   startAt=AC.currentTime+.2;src.start(startAt,L.offset);phi=0;st='play'
  }catch(e){msg=e.message+' — serve un server (GitHub Pages o python -m http.server)';st='menu'}
