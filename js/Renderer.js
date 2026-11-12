@@ -53,6 +53,7 @@ export class Renderer{
     c.fillStyle='#000';
     poly(c,PLAYER_POINTS);c.fill();
     c.restore();
+  }
 
    
 
