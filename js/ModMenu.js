@@ -21,9 +21,9 @@ export class ModMenu{
         <input data-mod="mapSpeed" type="range" min="0.50" max="2.50" step="0.05" value="1" style="width:100%;margin:0;accent-color:#fff">
         <label style="display:block;margin:14px 0 5px">PLAYER SPEED <output data-value="playerSpeed" style="float:right">1.00×</output></label>
         <input data-mod="playerSpeed" type="range" min="0.50" max="2.50" step="0.05" value="1" style="width:100%;margin:0;accent-color:#fff">
-        <p style="margin:14px 0 0;font-size:9px;line-height:1.6;opacity:.65">WALLS FASTER = HARDER · ARROW FASTER = EASIER<br>SAVED · SPACE TO PLAY</p>
+        <p style="margin:14px 0 0;font-size:9px;line-height:1.6;opacity:.65">wubluh. This is a Difficulty Multiplier.</p>
         <div style="text-align:right;margin-top:8px">
-          <button data-action="reset" style="border:1px solid #aaa;background:#171717;color:#fff;border-radius:7px;padding:6px 10px;font:700 10px Orbitron,Arial;cursor:pointer">RESET</button>
+          <button data-action="reset" style="border:1px solid #aaa;background:#331f1c;color:#fff;border-radius:7px;padding:6px 10px;font:700 10px Orbitron,Arial;cursor:pointer">RESET</button>
         </div>
       </section>
       <button data-action="toggle" style="pointer-events:auto;display:block;margin:0 auto;height:${HANDLE}px;padding:0 18px;border:1px solid rgba(255,255,255,.5);border-top:0;border-radius:0 0 10px 10px;background:rgba(0,0,0,.82);color:#fff;font:900 11px Orbitron,Arial;cursor:pointer"></button>`;
