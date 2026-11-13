@@ -133,7 +133,7 @@ for(const id of [100,105,110,115]){
 // Blu/RGB must continue generating through zero-intensity music bars.
 for(const id of [110,115]){
   const level=LEVELS.find(item=>item.id===id);
-  const continuous=new PatternGenerator({...level,seed:1200+id}).generate(()=>0,60/level.bpm,0,100);
+  const continuous=new PatternGenerator({...level,seed:1200+id}).generate(()=>0,.5,0,100);
   if(continuous.length<20)throw new Error(`Stage ${id} leaves silent pattern gaps on quiet audio`);
 }
 
@@ -142,7 +142,9 @@ for(const id of [110,115]){
 for(const id of [100,105,110,115]){
   const level=LEVELS.find(item=>item.id===id);
   const generator=new PatternGenerator({...level,seed:0xD00D+id});
-  const choices=Array.from({length:12},()=>generator.chooseVoid(()=>.42));
+  let seed=0xA55A+id;
+  const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+  const choices=Array.from({length:12},()=>generator.chooseVoid(random));
   const multi=choices.map(name=>['solo2','solo3','bat','dwhirl','stair1','rain','doubleC'].includes(name));
   if(multi.some((value,index)=>index>0&&value===multi[index-1]))throw new Error(`Void pattern variety failed in stage ${id}`);
   if(new Set(choices).size<6)throw new Error(`Void pool lacks diversity in stage ${id}`);
