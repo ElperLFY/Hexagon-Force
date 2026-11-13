@@ -13,6 +13,11 @@ for(const id of [100,105,110,115]){
 const blocked=new Chart([{t:10,g:[1],w:mask([1])}],.5,0,120,20,1);
 const open=new Chart([{t:10,g:[0],w:mask([0])}],.5,0,120,20,1);
 if(!blocked.hit(10,SIDE/2)||open.hit(10,SIDE/2))throw new Error('Tip hitbox test failed');
+const edgeContact=new Chart([{t:10,g:[0],w:mask([0])}],.5,0,120,20,1);
+// At 59 degrees the tip remains inside open sector 0 while the arrow's flank
+// grazes wall sector 1 just after the wall crosses the player's radial position.
+if(edgeContact.collision(10.01,SIDE-Math.PI/180)!=='side')throw new Error('Side scrape should be non-lethal contact');
+if(edgeContact.hit(10.01,SIDE-Math.PI/180))throw new Error('Side scrape must not kill the player');
 const g=new PatternGenerator({...LEVELS[3],seed:90210,speed:1.7,turnRate:7.4});
 const voidRows=g.generateVoid(60.1,48,60/116,0);
 if(voidRows.length<80||!voidRows.every((row,index)=>index===0||row.t>=voidRows[index-1].t))throw new Error('Void generation test failed');
