@@ -100,12 +100,12 @@ for(const id of [100,105,110,115]){
     for(const direction of [-1,1]){
       const events=PatternGenerator.PAT[name](0,direction,()=>.37);
       const rows=events.map(([beat,gaps,span=0])=>({
-        t:beat*level.beatDur,
+        t:beat*(60/level.bpm),
         g:[...new Set(gaps.map(value=>((value%6)+6)%6))],
         w:mask(gaps),
         ...(span>0?{th:Math.max(TH,level.speed*level.beatDur*span)}:{})
       }));
-      const chart=new Chart(rows,level.beatDur,0,level.bpm,60,level.speed)
+      const chart=new Chart(rows,60/level.bpm,0,level.bpm,60,level.speed)
         .randomized({...level,offset:0},0x51A7+id+direction);
       const result=hasPlayablePath(chart.rows,level.speed);
       if(!result.ok)throw new Error(
