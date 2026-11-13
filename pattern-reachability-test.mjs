@@ -117,7 +117,9 @@ for(const level of LEVELS){
           const leaves=row.t+(depth+RP-PL.back)/level.speed;
           return t>=enters-1e-6&&t<=leaves+1e-6;
         }).map(row=>({t:+row.t.toFixed(3),g:row.g,th:+(row.th??TH).toFixed(3)}));
-        throw new Error(`Void reachability failed: level ${level.id}, seed ${seed}, t=${t.toFixed(3)}s, active=${JSON.stringify(active)}`);
+        const reachableSectors=[...new Set(Array.from({length:ANGLE_BINS},(_,index)=>reachable[index]?Math.floor(index*TAU/ANGLE_BINS/SIDE):null).filter(value=>value!==null))];
+        const recent=rows.filter(row=>row.t>=t-2&&row.t<=t+.5).map(row=>({t:+row.t.toFixed(3),g:row.g,th:+(row.th??TH).toFixed(3)}));
+        throw new Error(`Void reachability failed: level ${level.id}, seed ${seed}, t=${t.toFixed(3)}s, active=${JSON.stringify(active)}, reachableSectors=${JSON.stringify(reachableSectors)}, recent=${JSON.stringify(recent)}`);
       }
     }
   }
