@@ -60,11 +60,6 @@ export class Renderer{
     poly(c,PLAYER_POINTS);c.fill();
     c.restore();
     
-    c.save();
-    c.rotate(phi);
-    c.shadowColor=color;
-    c.shadowBlur=9;
-    c.fillStyle=color;
     poly(c,PLAYER_POINTS);c.fill();
     c.shadowBlur=0;
     c.lineWidth=.006;
