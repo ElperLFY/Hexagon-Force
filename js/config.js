@@ -23,7 +23,7 @@ const hsl=(h,s,l)=>`hsl(${h},${s}%,${l}%)`;
 export const LEVELS=[
   {
     id:105,name:'VERDE · GIALLO · ROSSO',offset:0,speed:1,seed:105,turnRate:10,
-    rotSpeed:.60,rotAmp:.2,rotBeats:16,
+    rotSpeed:1,rotAmp:.2,rotBeats:16,
     randomSectionBeats:16,randomLaneShiftChance:.05,randomDropChance:.025,randomAddChance:.08,
     pal(tt){
       let p=(tt/30)%2;
@@ -34,7 +34,7 @@ export const LEVELS=[
   },
   {
     id:100,name:'CREMISI · NERO',offset:39,speed:1.1,seed:100,inv:true,turnRate:8,
-    rotSpeed:.35,rotAmp:.2,rotBeats:16,
+    rotSpeed:1.20,rotAmp:.2,rotBeats:16,
     patternWeights:{
   ladder:2,
   whirl:1.5,
@@ -57,7 +57,7 @@ export const LEVELS=[
   },
   {
     id:115,name:'RGB',offset:0,speed:1.4,seed:115,hard:true,diff:.35,ramp:45,turnRate:10,
-    rotSpeed:1,rotAmp:0,rotBeats:12,trip:true,
+    rotSpeed:1.50,rotAmp:0,rotBeats:12,trip:true,
     randomSectionBeats:8,randomLaneShiftChance:.22,randomDropChance:.14,randomAddChance:.05,
     intensityThreshold:.055,
     extra:['dwhirl','stair1','stair2','spin3','spin4','t321','rain','doubleC'],
