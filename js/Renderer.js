@@ -6,7 +6,7 @@ const poly=(c,pts)=>{
   c.closePath();
 };
 const P=(a,m)=>[m*K*Math.cos(a),m*K*Math.sin(a)];
-const PLAYER_SIZE = .75; // 75% of the current length and width
+const PLAYER_SIZE = .50; // 75% of the current length and width
 const PLAYER_POINTS = [
   [PL.tip, 0],
   [PL.tip - (PL.tip - PL.back) * PLAYER_SIZE, PL.half * PLAYER_SIZE],
