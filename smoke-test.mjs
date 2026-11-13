@@ -155,6 +155,7 @@ for(const id of [100,105,110,115]){
 const g=new PatternGenerator({...LEVELS[3],seed:90210,speed:1.7,turnRate:7.4});
 const voidRows=g.generateVoid(60.1,48,60/116,0);
 if(voidRows.length<80||!voidRows.every((row,index)=>index===0||row.t>=voidRows[index-1].t))throw new Error('Void generation test failed');
+if(voidRows[0].g.length<2)throw new Error('Hypermode must not start with a single-opening C Part');
 
 // Endless run: authored rows are cut at the void start, generation continues for minutes, stays sorted,
 // stays bounded in memory and every row (chunk seams included) is reachable from the previous one.
