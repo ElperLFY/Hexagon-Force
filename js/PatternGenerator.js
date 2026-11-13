@@ -381,19 +381,26 @@ export class PatternGenerator{
     const L=this.L,r=this.rng,rows=[],t0=L.offset;
     if(!(bd>0)||!(dur>0))return rows;
     const quiet=L.intensityThreshold??(L.hard ? .065 : .1);
-    for(let bar=0;;){
-      const b0=bar*4,tb=tg0+b0*bd;
+    let beatCursor=Math.max(0,Math.ceil((t0+2-tg0)/(4*bd)-1e-6)*4);
+    for(;;){
+      const b0=beatCursor,tb=tg0+b0*bd;
       if(tb+4*bd>dur-1.5)break;
-      if(tb<t0+2){bar++;continue;}
 
       let intensity=0;
       for(let h=0;h<8;h++)intensity+=Math.max(0,Math.min(1,Number(S(b0+h/2))||0));
       intensity/=8;
-      if(intensity<quiet){bar++;continue;}
+
+      // Blu/RGB must not leave empty bars when the music becomes quiet.
+      // On hard stages intensity affects pattern weighting only; generation continues.
+      if(intensity<quiet&&!L.hard){
+        beatCursor+=4;
+        continue;
+      }
 
       const ramp=Math.min(1,Math.max(0,(tb-t0)/(L.ramp||90)));
       const noise=(r()-.5)*(L.hard ? .18 : .3);
-      const x=intensity*.42+ramp*.58+(L.diff||0)+(L.hard ? .08 : 0)+noise;
+      const rawX=intensity*.42+ramp*.58+(L.diff||0)+(L.hard ? .08 : 0)+noise;
+      const x=L.hard?Math.max(.55,rawX):rawX;
       const g=r()*6|0,d=r()<.5?1:-1;
       const names=this.pool(x);
       const name=this.choose(names,r);
@@ -405,39 +412,74 @@ export class PatternGenerator{
         rows.push(row);
         end=Math.max(end,beat+spanBeats);
       }
-      // Reserve enough beats for the whole motif; long motifs intentionally
-      // leave a short breath before the next four-beat phrase.
-      bar+=Math.max(1,Math.ceil((end+.5)/4));
+
+      if(L.hard){
+        // Continue after the final Part clears; do not round back to a four-beat bar.
+        beatCursor+=Math.max(1.1,end+(L.patternGapBeats??.32));
+      }else{
+        beatCursor+=Math.max(4,Math.ceil((end+.5)/4)*4);
+      }
     }
     return this.repair(rows.filter(row=>row.t<dur-1).sort((a,b)=>a.t-b.t));
   }
-
   repair(rows,seed=null){
     return repairRows(rows,this.L,seed);
   }
 
-  // Endless phase: `bars` four-beat bars from the first bar line at/after `from`, ignoring the music's
-  // intensity and getting harder as (time - t0) grows. Returns the new rows (sorted, repaired against
-  // `prev`) and leaves the next free bar line in this.voidNext, so chunks can be chained seamlessly.
+  // Void deliberately uses a dedicated pattern pool in every stage. A multi-lane
+  // Part is guaranteed at least every other motif, preventing endless single-C runs.
+  voidPool(){
+    return [
+      'solo2','solo3','ladder','stair','bat','tripleC','whirl','dwhirl',
+      'multiC','stair1','stair2','spin2','spin3','spin4','t321','rain','doubleC'
+    ];
+  }
+
+  chooseVoid(r){
+    const multi=['solo2','solo3','bat','dwhirl','stair1','rain','doubleC'];
+    let names=this.voidPool();
+    if(this.lastVoidMulti===false)names=names.filter(name=>multi.includes(name));
+    else if(this.lastVoidMulti===true)names=names.filter(name=>!multi.includes(name));
+    if(names.length>1&&this.lastVoidPattern)names=names.filter(name=>name!==this.lastVoidPattern);
+    if(!names.length)names=this.voidPool();
+
+    const weights={
+      solo2:1.0,solo3:.75,ladder:1.3,stair:.9,bat:1.4,tripleC:.65,
+      whirl:1.0,dwhirl:1.9,multiC:.9,stair1:1.45,stair2:1.1,
+      spin2:.85,spin3:1.0,spin4:1.05,t321:1.0,rain:1.25,doubleC:1.1
+    };
+    const total=names.reduce((sum,name)=>sum+(weights[name]??1),0);
+    let value=r()*total,chosen=names[names.length-1];
+    for(const name of names){
+      value-=weights[name]??1;
+      if(value<=0){chosen=name;break;}
+    }
+    this.lastVoidPattern=chosen;
+    this.lastVoidMulti=multi.includes(chosen);
+    return chosen;
+  }
+
+  // Continuous Void stream. Chunks begin at the exact time returned by the previous
+  // chunk; motifs are separated only by the short authored clearance gap.
   generateVoid(from,bars,bd,tg0,t0=from,prev=null){
     const L=this.L,r=this.rng,rows=[];
     if(!(bd>0)||!(bars>0)){this.voidNext=from;return rows;}
-    const first=Math.ceil((from-tg0)/(4*bd)-1e-6),stop=tg0+(first+bars)*4*bd;
-    for(let bar=first;;){
-      const tb=tg0+bar*4*bd;
-      if(tb>=stop){this.voidNext=tb;break;}
+    const stop=from+bars*4*bd;
+    let tb=from,guard=0;
+    while(tb<stop&&guard++<512){
       const ramp=Math.min(1,Math.max(0,(tb-t0)/(L.voidRamp||150)));
-      const x=.62+.3*ramp+(L.diff||0)*.5+(r()-.5)*.2;
       const g=r()*6|0,d=r()<.5?1:-1;
-      const name=this.choose(this.pool(x),r);
+      const name=this.chooseVoid(r);
+      const pat=PatternGenerator.PAT[name](g,d,r);
       let end=0;
-      for(const [beat,gaps,spanBeats=0] of PatternGenerator.PAT[name](g,d,r)){
+      for(const [beat,gaps,spanBeats=0] of pat){
         const row={t:tb+beat*bd,g:unique(gaps)};
         if(spanBeats>0)row.th=Math.max(TH,(L.speed||1)*bd*spanBeats);
         rows.push(row);
         end=Math.max(end,beat+spanBeats);
       }
-      bar+=Math.max(1,Math.ceil((end+.5)/4));
+      tb+=(end+(L.voidGapBeats??.32))*bd;
     }
+    this.voidNext=tb;
     return this.repair(rows.sort((a,b)=>a.t-b.t),prev);
   }}
