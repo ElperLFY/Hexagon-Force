@@ -268,22 +268,23 @@ export class PatternGenerator{
 
     wall:(g,d,r)=>[[0,[g],.4],[2,[g+(r()*3|0)-1],.4]],
 
-    // Ladder geometry: two long, parallel rails plus short crossbars alternating
-    // between the two sides. Each event is [startBeat, openSectors, spanBeats].
+    // Ladder: two continuous opposing rails and one short wall segment at a
+    // time, alternating sides and stepping along each side to form a zig-zag.
+    // Never place both sectors of a side-rung together: with the two rails that
+    // would close all six sectors and create an unavoidable death.
+    // Each event is [startBeat, openSectors, spanBeats].
     ladder:(g,d)=>{
       const sectors=[0,1,2,3,4,5];
       const rails=[norm(g),norm(g+3)];
       const events=rails.map(rail=>[
         0,sectors.filter(sector=>sector!==rail),4
       ]);
+      const zigzag=d>0?[1,4,2,5]:[4,1,5,2];
       for(let i=0;i<8;i++){
-        const clockwise=(i%2===0)===(d>0);
-        const rungs=clockwise
-          ?[norm(g+1),norm(g+2)]
-          :[norm(g+4),norm(g+5)];
+        const rung=norm(g+zigzag[i%zigzag.length]);
         events.push([
           .25+i*.5,
-          sectors.filter(sector=>!rungs.includes(sector)),
+          sectors.filter(sector=>sector!==rung),
           .22
         ]);
       }
