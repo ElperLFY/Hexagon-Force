@@ -261,7 +261,10 @@ export class Game {
   async getChart(level, audioBuffer) {
     try {
       const response = await fetch(`${SONG_DIR}${level.id}.json`);
-      if (response.ok) {
+      // Blu/RGB JSON charts were generated with the old intensity gate and
+      // contain full silent bars. Re-analyze hard stages so the continuous
+      // hard-stage generator is used; retain the authored charts for other levels.
+      if (response.ok && !level.hard) {
         return Chart.fromJSON(await response.json(), level);
       }
     } catch (error) {
