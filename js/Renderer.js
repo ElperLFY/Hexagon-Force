@@ -10,9 +10,6 @@ const poly=(c,pts)=>{
 const P=(a,m)=>[m*K*Math.cos(a),m*K*Math.sin(a)];
 
 const PLAYER_SIZE=.65;
-// The arrow is now defined relative to its TIP, not to RP. Its tip is the
-// orbital anchor, so leaning rotates the body around the lethal point without
-// moving that point or desynchronising the visual arrow from its hitbox.
 const PLAYER_POINTS=[
   [0,0],
   [-(PL.tip-PL.back)*PLAYER_SIZE,PL.half*PLAYER_SIZE],
@@ -61,7 +58,7 @@ export class Renderer{
     const now=performance.now();
     const dt=this.playerTiltTime===null?1/60:Math.min((now-this.playerTiltTime)/1000,.05);
     this.playerTiltTime=now;
-    const targetTilt=clamp(turn,-1,1)*.62;
+    const targetTilt=clamp(turn,1)*.62;
     const ease=1-Math.exp(-dt/.18);
     this.playerTilt+=(targetTilt-this.playerTilt)*ease;
 
@@ -215,7 +212,7 @@ export class Renderer{
       c.save();c.translate((Math.random()-.5)*U*.06*k,(Math.random()-.5)*U*.06*k);
     }
 
-    const maxOmega=(L.turnRate??8)*(g.mods?.playerSpeed??1)*(g.voidActive?1.08:1);
+    const maxOmega=(L.turnRate??10)*(g.mods?.playerSpeed??1)*(g.voidActive?1.08:1);
     const turn=Number.isFinite(g.playerOmega)
       ?clamp(g.playerOmega/Math.max(.001,maxOmega),-1,1)
       :(g.input?(g.input.R-g.input.L):0);
