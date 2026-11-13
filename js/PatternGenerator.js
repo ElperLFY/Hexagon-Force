@@ -363,135 +363,140 @@ Chart.EMPTY=new Chart();
 // Pattern catalog inspired by the named movement families documented for
 // Super Hexagon. Each entry is [beatOffset, openSectors].
 export class PatternGenerator{
-  // A Ladder is a complete phrase, not a bag of independent rows. The next
-  // phrase is restricted to multi-opening patterns with a safe first Part.
-  static POST_LADDER=Object.freeze(['solo3','alt3','stair1']);
-  static POST_LADDER_FINAL=Object.freeze(['solo3','alt3']);
-  static POST_BAT=Object.freeze(['solo3','alt3']);
+  static catalog=null;
+  static loading=null;
+  static PAT={};
+  static POST_LADDER=Object.freeze([]);
+  static POST_LADDER_FINAL=Object.freeze([]);
+  static POST_BAT=Object.freeze([]);
 
-  static PAT={
-    // Solo is a two-Part phrase in this reconstruction: two matching single-hole
-    // bodies keep one corridor open while making the repeated visual rhythm explicit.
-    solo:g=>[[0,[g],.22],[1,[g],.22]],
-    solo2:g=>[[0,[g,g+3]]],
-    solo3:g=>[[0,[g,g+2,g+4]]],
-
-    wall:(g,d,r)=>[[0,[g],.4],[2,[g+(r()*3|0)-1],.4]],
-
-    // Ladder is authored as one persistent pair of opposing rails plus
-    // eight mirrored cross-rungs. The two rails are one composite Part: keeping
-    // them in separate same-time rows made route repair alter one rail only.
-    // Rungs alternate between opposite sector pairs, leaving two opposite
-    // openings that shift by one sector at regular 0.75-beat intervals.
-    // Event tuple: [beatOffset, openSectors, wallSpanBeats, routeDepthBeats?].
-    ladder:(g,d)=>{
-      const sectors=[0,1,2,3,4,5];
-      const rails=[norm(g),norm(g+3)];
-      const firstOpen=d>0
-        ?[norm(g+2),norm(g+5)]
-        :[norm(g+1),norm(g+4)];
-      const secondOpen=d>0
-        ?[norm(g+1),norm(g+4)]
-        :[norm(g+2),norm(g+5)];
-      const events=[
-        [
-          0,
-          [...firstOpen,...secondOpen],
-          6.22,
-          0
-        ]
-      ];
-      for(let i=0;i<8;i++){
-        const openings=i%2===0?firstOpen:secondOpen;
-        events.push([
-          .75+i*.75,
-          [...rails,...openings],
-          .22
-        ]);
+  // Load the human-editable pattern catalog once. The runtime only compiles
+  // beat/sector data into the existing factory interface used by the game.
+  static async loadCatalog(){
+    if(this.catalog)return this.catalog;
+    if(this.loading)return this.loading;
+    this.loading=(async()=>{
+      const base=new URL('./SubData/PatternGenerator/',import.meta.url);
+      const response=await fetch(new URL('catalog.json',base));
+      if(!response.ok)throw new Error('Pattern catalog not found: '+response.status);
+      const catalog=await response.json();
+      if(catalog.schemaVersion!==1||!Array.isArray(catalog.patterns)||!catalog.definitionFiles){
+        throw new Error('Pattern catalog has an unsupported or incomplete schema');
       }
-      return events;
-    },
-    zig:(g,d)=>PatternGenerator.PAT.ladder(g,d),
 
-    // One-way stair and three-hole alternating C shapes.
-    stair:(g,d)=>[0,1,2,3].map(i=>[i,[g+i*d],.42]),
-    alt3:g=>[0,1,2,3].map(i=>[i,[g+i%2,g+i%2+2,g+i%2+4],.42]),
+      const entries=await Promise.all(catalog.patterns.map(async id=>{
+        const file=catalog.definitionFiles[id];
+        if(typeof file!=='string')throw new Error('Missing JSON file mapping for pattern: '+id);
+        const result=await fetch(new URL(file,base));
+        if(!result.ok)throw new Error('Pattern JSON not found ('+id+'): '+result.status);
+        const definition=await result.json();
+        if(definition.id!==id)throw new Error('Pattern id mismatch in '+file);
+        if(!definition.aliasOf&&!Array.isArray(definition.parts))throw new Error('Pattern has no Parts: '+id);
+        return [id,definition];
+      }));
+      const definitions=Object.fromEntries(entries);
+      const compiled={};
+      const normSector=value=>((value%6)+6)%6;
+      const randomInt=(random,min,max)=>min+Math.floor(random()*(max-min+1));
 
-    // Bat: two opposed openings drift together around the hexagon.
-    bat:(g,d)=>[0,1,2,3].map(i=>[i,[g+(i%2)*d,g+3+(i%2)*d],.42]),
-    pairs:(g,d)=>PatternGenerator.PAT.bat(g,d),
+      const compile=id=>{
+        if(compiled[id])return compiled[id];
+        const definition=definitions[id];
+        if(!definition)throw new Error('Unknown pattern definition: '+id);
+        if(definition.aliasOf){
+          const target=compile(definition.aliasOf);
+          const factory=(g=0,d=1,r=()=>.5)=>target(g,d,r,definition.repeatCount);
+          compiled[id]=factory;
+          return factory;
+        }
 
-    burst:(g,d)=>[[0,[g],.32],[.5,[g],.32],[1,[g],.32],[1.5,[g],.32],[3,[g+2*d],.42]],
+        const directionMode=definition.directionMode??'fixed';
+        const direction=value=>value<0?-1:1;
+        const randomOffset=(part,random)=>{
+          if(!Array.isArray(part.randomSectorOffset))return 0;
+          const [min,max]=part.randomSectorOffset;
+          return randomInt(random,min,max);
+        };
+        const openOffsets=(part,d)=>{
+          if(part.openOffsetsByDirection){
+            return part.openOffsetsByDirection[d<0?'counterClockwise':'clockwise'];
+          }
+          return part.openOffsets??[];
+        };
+        const makeEvent=(part,g,d,random,beat=part.beat)=>{
+          const sign=direction(d);
+          const multiplier=directionMode==='relative'?sign:1;
+          const shift=randomOffset(part,random);
+          const offsets=openOffsets(part,d);
+          const gaps=offsets.map(offset=>normSector(normSector(g)+offset*multiplier+shift));
+          const event=[beat,gaps];
+          if(part.wallSpanBeats!=null||part.routeSpanBeats!=null){
+            event.push(part.wallSpanBeats??0);
+          }
+          if(part.routeSpanBeats!=null)event.push(part.routeSpanBeats);
+          return event;
+        };
 
-    // Three C-shaped Parts. The openings alternate across the arena; the
-    // three-sector M jump needs enough time to cross the full diameter.
-    // One beat was not enough at the slower turn-rate stages once wall depth
-    // and reaction margin were deducted, so use a 2.5-beat interval.
-    tripleC:g=>[[0,[g],.42],[2.5,[g+3],.42],[5,[g],.42]],
+        if(definition.repeatTemplate){
+          const factory=(g=0,d=1,random=()=>.5,repeatOverride=1)=>{
+            let repeats=repeatOverride;
+            if(typeof random==='number'){repeats=random;random=()=>.5;}
+            repeats=Math.max(1,Math.min(12,Math.floor(Number(repeats)||1)));
+            const cycleBeats=definition.repeatTemplate.cycleBeats;
+            const events=[];
+            for(let cycle=0;cycle<repeats;cycle++){
+              for(const part of definition.parts){
+                events.push(makeEvent(part,g,d,random,part.beat+cycle*cycleBeats));
+              }
+            }
+            return events;
+          };
+          compiled[id]=factory;
+          return factory;
+        }
 
-    // A continuous spiral lane. Double Whirlpool keeps a second, opposite lane.
-    whirl:(g,d)=>[0,1,2,3,4,5].map(i=>[i*1.25,[g+i*d],.58]),
-    dwhirl:(g,d)=>[0,1,2,3,4,5].map(i=>[i*1.25,[g+i*d,g+3+i*d],.58]),
+        const factory=(g=0,d=1,random=()=>.5)=>{
+          return definition.parts.map(part=>makeEvent(part,g,d,random));
+        };
+        compiled[id]=factory;
+        return factory;
+      };
 
-    // Multi-C: consecutive single openings moving in one direction.
-    multiC:(g,d)=>[0,1,2,3,4].map(i=>[i*1.25,[g+i*d],.58]),
-
-    // Stair 1: two opposite openings, both advancing by one sector.
-    stair1:(g,d)=>[0,1,2,3,4].map(i=>[i,[g+i*d,g+3+i*d],.42]),
-
-    // Stair 2 follows the RRLLL cumulative sector offsets.
-    stair2:(g,d)=>[0,1,2,3,4,5].map((b,i)=>[b,[g+[0,1,2,1,0,-1][i]*d],.42]),
-
-    // 3-2-1 is an M-shaped route: move 3, then 2, then 1 unit.
-    t321:(g,d)=>[[0,[g],.38],[2,[g+3],.38],[4,[g+3+2*d],.38],[5,[g+3+3*d],.38]],
-
-    // Rain: alternating triple openings followed by a single-hole cap.
-    rain:g=>[0,1,2,3].map(i=>[i,[g+i%2,g+i%2+2,g+i%2+4],.42])
-      .concat([[4.5,[g+3],.42]]),
-
-    // User reference: 2/3/4-Spin share the same 1-2-3 movement motif.
-    // The number in the name is the number of times that motif is repeated.
-    spin:(g,d,repeats)=>Array.from({length:repeats*3},(_,i)=>[
-      i*2,[g+[0,1,3][i%3]*d],.58
-    ]),
-    spin2:(g,d)=>PatternGenerator.PAT.spin(g,d,2),
-    spin3:(g,d)=>PatternGenerator.PAT.spin(g,d,3),
-    spin4:(g,d)=>PatternGenerator.PAT.spin(g,d,4),
-
-    // Two adjacent C-shaped gaps, staggered as a compact double-C figure.
-    doubleC:(g,d)=>[0,1,2,3].map(i=>[i,[g+i*d,g+1+i*d],.42])
-  };
+      for(const id of catalog.patterns)compile(id);
+      this.PAT=Object.freeze(compiled);
+      this.POST_LADDER=Object.freeze([...catalog.transitions.afterLadder.allowed]);
+      this.POST_LADDER_FINAL=Object.freeze([...catalog.transitions.afterLadder.finalAllowed]);
+      this.POST_BAT=Object.freeze([...catalog.transitions.afterBat.allowed]);
+      this.catalog=catalog;
+      return catalog;
+    })();
+    try{return await this.loading;}
+    catch(error){this.loading=null;throw error;}
+  }
 
   constructor(L){this.L=L;this.rng=mul(L.seed);this.lastVoidPattern=null;this.lastVoidMulti=false;this.lastVoidOpenings=null;this.postVoidLadderRemaining=0;this.postVoidBatRemaining=0;}
 
   pool(x){
-    const L=this.L;
-    let p=x<.3
-      ?['wall','solo','solo2']
-      :x<.5
-        ?['ladder','wall','stair','bat','solo2','tripleC']
-        :x<.7
-          ?['ladder','stair','bat','tripleC','whirl','spin2','doubleC']
-          :['burst','ladder','tripleC','whirl','bat','multiC','spin2','spin3','t321','rain','doubleC'];
-
+    const L=this.L,catalog=PatternGenerator.catalog;
+    if(!catalog)throw new Error('PatternGenerator.loadCatalog() must finish before generating patterns');
+    const band=catalog.poolBands.find(item=>x<item.maxX)??catalog.poolBands[catalog.poolBands.length-1];
+    const names=[...band.patterns];
     if(L.hard){
-      if(x>=.3)p.push('solo3','dwhirl');
-      if(x>=.5)p.push('stair1','multiC','doubleC');
-      if(x>=.68)p.push('solo','stair2','spin4','spin3','t321','rain','dwhirl');
-      if(x>=.5&&Array.isArray(L.extra))p.push(...L.extra);
+      for(const rule of catalog.hardAdditions){
+        if(x>=rule.minX)names.push(...rule.patterns);
+      }
+      if(x>=.5&&Array.isArray(L.extra))names.push(...L.extra);
     }
-    return [...new Set(p)].filter(name=>typeof PatternGenerator.PAT[name]==='function');
+    return [...new Set(names)].filter(name=>typeof PatternGenerator.PAT[name]==='function');
   }
 
   choose(names,r){
-    // Slightly favour fast, recognisable motifs without duplicating array entries.
-    const weights=this.L.patternWeights||{};
-    const weight=name=>Math.max(.1,Number(weights[name]??(
-      name==='ladder'||name==='burst'||name==='whirl'?1.25:1
-    )));
+    const baseWeights=PatternGenerator.catalog?.normalWeights??{};
+    const levelWeights=this.L.patternWeights||{};
+    const weight=name=>Math.max(.1,Number(levelWeights[name]??baseWeights[name]??1));
     const total=names.reduce((sum,name)=>sum+weight(name),0);
-    let v=r()*total;
-    for(const name of names){v-=weight(name);if(v<=0)return name;}
+    let value=r()*total;
+    for(const name of names){value-=weight(name);if(value<=0)return name;}
     return names[names.length-1];
   }
 
@@ -598,14 +603,11 @@ export class PatternGenerator{
   // Void deliberately uses a dedicated pattern pool in every stage. A multi-lane
   // Part is guaranteed at least every other motif, preventing endless single-C runs.
   voidPool(){
-    return [
-      'solo2','solo3','alt3','ladder','stair','bat','tripleC','whirl','dwhirl',
-      'multiC','stair1','stair2','spin2','spin3','spin4','t321','rain','doubleC'
-    ];
+    return [...(PatternGenerator.catalog?.voidPool??[])];
   }
 
   chooseVoid(r){
-    const multi=['solo2','solo3','alt3','bat','dwhirl','stair1','rain','doubleC'];
+    const multi=PatternGenerator.catalog?.voidMultiLanePatterns??[];
     let names=this.voidPool();
     const enteringPostLadder=this.lastVoidPattern==='ladder'||this.lastVoidPattern==='zig';
     const inPostLadder=enteringPostLadder||this.postVoidLadderRemaining>0;
@@ -625,11 +627,7 @@ export class PatternGenerator{
     if(names.length>1&&this.lastVoidPattern)names=names.filter(name=>name!==this.lastVoidPattern);
     if(!names.length)names=this.voidPool();
 
-    const weights={
-      solo2:1.0,solo3:.75,ladder:1.3,stair:.9,bat:1.4,tripleC:.65,
-      whirl:1.0,dwhirl:1.9,multiC:.9,stair1:1.45,stair2:1.1,
-      spin2:.85,spin3:1.0,spin4:1.05,t321:1.0,rain:1.25,doubleC:1.1
-    };
+    const weights=PatternGenerator.catalog?.voidWeights??{};
     const total=names.reduce((sum,name)=>sum+(weights[name]??1),0);
     let value=r()*total,chosen=names[names.length-1];
     for(const name of names){
