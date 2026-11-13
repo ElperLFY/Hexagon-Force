@@ -13,13 +13,12 @@ const PLAYER_POINTS = [
   [PL.tip - (PL.tip - PL.back) * PLAYER_SIZE, -PL.half * PLAYER_SIZE]
 ];
 
-// Canvas renderer: arena, incoming walls, player after-image and HUD.
+// Canvas renderer: arena, incoming walls, player and HUD.
 export class Renderer{
   constructor(cv){
     this.cv=cv;
     this.c=cv.getContext('2d');
     this.p=null;
-    this.turnTrail=0;
     this.mapMul=1; // ModMenu "map speed"
     this.hubLvl=0;this.camLvl=0; // visualizer levels (0..1) for this frame
     addEventListener('resize',()=>this.resize());
@@ -45,11 +44,8 @@ export class Renderer{
     this.c.fill();
   }
 
-  drawPlayer(phi,color,turn){
+  drawPlayer(phi,color){
     const c=this.c;
-    if(turn)this.turnTrail=turn;
-    else this.turnTrail*=.86;
-    const direction=this.turnTrail;
 
     // A small dark drop-shadow keeps the pointer readable on bright palettes.
     c.save();
@@ -59,20 +55,6 @@ export class Renderer{
     c.fillStyle='#000';
     poly(c,PLAYER_POINTS);c.fill();
     c.restore();
-
-    // Motion after-images: previous angular positions trail behind the input.
-    // They are original vector shapes, not copied game assets.
-    if(Math.abs(direction)>.015){
-      for(let i=3;i>=1;i--){
-        const lag=i*0.001;
-        c.save();
-        c.rotate(phi-direction*6.4*lag);
-        c.globalAlpha=.055*i;
-        c.fillStyle=color;
-        poly(c,PLAYER_POINTS);c.fill();
-        c.restore();
-      }
-    }
 
     c.save();
     c.rotate(phi);
@@ -87,7 +69,7 @@ export class Renderer{
     c.restore();
   }
 
-  scene(L,t,ch,walls,phi,fx,turn=0){
+  scene(L,t,ch,walls,phi,fx){
     const c=this.c,tt=Math.max(0,t-L.offset),per=16*ch.beatDur;
     const n=L.inv?Math.max(0,Math.floor((t-ch.tg0)/per)):0;
     const r=Math.min(1,(t-ch.tg0-n*per)/.9);
@@ -142,7 +124,7 @@ export class Renderer{
     if(walls){
       c.rotate(rot);
       if(fx)this.shards(fx);
-      else this.drawPlayer(phi,this.p.p,turn);
+      else this.drawPlayer(phi,this.p.p);
     }
     c.restore();
   }
@@ -201,8 +183,7 @@ export class Renderer{
       const k=Math.exp(-fx.tau*7);
       c.save();c.translate((Math.random()-.5)*U*.06*k,(Math.random()-.5)*U*.06*k);
     }
-    const turn=g.input?(g.input.R-g.input.L):0;
-    this.scene(L,t,ch,g.live,g.phi,fx,turn);
+    this.scene(L,t,ch,g.live,g.phi,fx);
     if(fx){
       c.restore();c.fillStyle='#fff';c.globalAlpha=.55*Math.exp(-fx.tau*9);
       c.fillRect(0,0,W,H);c.globalAlpha=1;
