@@ -41,13 +41,19 @@ for(const [name,repetitions] of [['spin2',2],['spin3',3],['spin4',4]]){
 // Ladder: one composite Part for two continuous opposing rails, then
 // eight evenly spaced mirrored rung-pairs. Same-time rails must not be fed
 // to reachability repair as two sequential rows.
-const ladder=PatternGenerator.PAT.ladder(0,1);
-if(ladder.length!==9)throw new Error('Ladder must contain one composite rail row and eight rungs');
-if(ladder[0][0]!==0||ladder[0][1].length!==4||ladder[0][2]!==6.22||ladder[0][3]!==0)throw new Error('Ladder rail Part must be one continuous opposing pair');
-if(ladder.slice(1).some((event,index)=>event[1].length!==2||event[2]!==.22||Math.abs(event[0]-(.75+index*.75))>1e-9))throw new Error('Ladder mirrored rungs must have identical spacing and thickness');
-for(let i=1;i<ladder.length;i++){
-  const openings=ladder[i][1];
-  if(((openings[0]-openings[1]+6)%6)!==3)throw new Error('Each Ladder rung must leave mirrored opposite openings');
+for(let start=0;start<6;start++)for(const direction of [-1,1]){
+  const ladder=PatternGenerator.PAT.ladder(start,direction);
+  if(ladder.length!==9)throw new Error('Ladder must contain one composite rail row and eight rungs');
+  const rails=ladder[0];
+  const railOpenings=rails[1].map(value=>((value%6)+6)%6);
+  const railWalls=[0,1,2,3,4,5].filter(sector=>!railOpenings.includes(sector));
+  if(rails[0]!==0||railOpenings.length!==4||rails[2]!==6.22||rails[3]!==0)throw new Error('Ladder rail Part must be one continuous opposing pair');
+  if(railWalls.length!==2||((railWalls[0]-railWalls[1]+6)%6)!==3)throw new Error('Ladder rails must occupy opposite sectors');
+  if(ladder.slice(1).some((event,index)=>event[1].length!==2||event[2]!==.22||Math.abs(event[0]-(.75+index*.75))>1e-9))throw new Error('Ladder mirrored rungs must have identical spacing and thickness');
+  for(let i=1;i<ladder.length;i++){
+    const openings=ladder[i][1].map(value=>((value%6)+6)%6);
+    if(((openings[0]-openings[1]+6)%6)!==3)throw new Error('Each Ladder rung must leave mirrored opposite openings');
+  }
 }
 const ladderRows=ladder.map(([beat,gaps,span,routeSpan])=>({
   t:beat*.5,g:[...new Set(gaps.map(value=>((value%6)+6)%6))],
