@@ -184,9 +184,9 @@ The user screenshots define the intended Spin repetition and the movement silhou
 
 The source of truth for generated pattern shapes is now `js/SubData/PatternGenerator/`:
 
-- `catalog.json` defines pattern IDs, pool bands, hard-stage additions, weights, Void pool and safe transition presets.
+- `catalog.json` defines pattern IDs, pool bands, hard-stage additions, Void pool and safe transition presets. Each pattern JSON stores its own normal and Void selection weights.
 - Each pattern has its own JSON file. A Part records its beat offset, open sectors (relative to the motif start), optional wall span and optional route-planning span.
-- `pattern-catalog.schema.json` documents the catalog structure. The folder README explains the Part fields and aliases.
+- `pattern-catalog.schema.json` documents the catalog; `pattern.schema.json` documents each pattern definition. The folder README explains the Part fields and aliases.
 - `js/PatternGenerator.js` is the runtime loader/compiler. It turns JSON definitions into the factory interface used by the existing chart and Void code; adding or editing a pattern's shape no longer requires editing a JavaScript factory.
 
 The general Settings source is `js/SubData/Settings/`:
