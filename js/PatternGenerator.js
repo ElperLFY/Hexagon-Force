@@ -407,15 +407,17 @@ export class PatternGenerator{
       const pat=PatternGenerator.PAT[name](g,d,r);
       let end=0;
       for(const [beat,gaps,spanBeats=0] of pat){
+        const effectiveSpan=spanBeats>0?spanBeats:TH/((L.speed||1)*bd);
         const row={t:tb+beat*bd,g:unique(gaps)};
         if(spanBeats>0)row.th=Math.max(TH,(L.speed||1)*bd*spanBeats);
         rows.push(row);
-        end=Math.max(end,beat+spanBeats);
+        end=Math.max(end,beat+effectiveSpan);
       }
 
       if(L.hard){
-        // Continue after the final Part clears; do not round back to a four-beat bar.
-        beatCursor+=Math.max(1.1,end+(L.patternGapBeats??.32));
+        // Continue after the final wall thickness clears, with only a short
+        // clearance gap. Do not impose a full-beat pause on single-Part motifs.
+        beatCursor+=Math.max(.1,end+(L.patternGapBeats??.42));
       }else{
         beatCursor+=Math.max(4,Math.ceil((end+.5)/4)*4);
       }
