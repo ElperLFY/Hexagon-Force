@@ -28,11 +28,15 @@ const settingsSchema=JSON.parse(fs.readFileSync('./js/SubData/Settings/settings.
 const settingsDefinitionSchema=JSON.parse(fs.readFileSync('./js/SubData/Settings/settings.schema.json','utf8'));
 if(!settingsDefinitionSchema.properties?.$schema||!settingsSchema.$schema)throw new Error('Settings JSON must declare a schema that accepts its $schema metadata');
 const settingIds=settingsSchema.groups.flatMap(group=>group.settings.map(setting=>setting.id));
-for(const id of ['frameRate','vsync','modMenuEnabled','mapSpeed','playerSpeed','musicVolume','soundVolume']){
+for(const id of ['frameRate','modMenuEnabled','mapSpeed','playerSpeed','musicVolume','soundVolume']){
   if(!settingIds.includes(id))throw new Error(`Settings JSON is missing ${id}`);
 }
 const soundSetting=settingsSchema.groups.flatMap(group=>group.settings).find(setting=>setting.id==='soundVolume');
 if(!soundSetting.disabled||soundSetting.status!=='WIP')throw new Error('Sound Volume must remain visibly marked as WIP');
+if(settingIds.includes('vsync'))throw new Error('V-Sync must not be exposed as a Settings option');
+const modSetting=settingsSchema.groups.flatMap(group=>group.settings).find(setting=>setting.id==='modMenuEnabled');
+if(modSetting.label!=='Enable or Disable the Mods'||modSetting.description)throw new Error('Mods toggle copy must use the requested label without the old description');
+if(settingsSchema.groups.some(group=>/\\.$/.test(group.description??'')||group.settings.some(setting=>/\\.$/.test(setting.description??''))))throw new Error('Settings copy must not end with full stops');
 
 const settingsMarkup=fs.readFileSync('./js/SubData/Settings/settings.html','utf8');
 const settingsStyles=fs.readFileSync('./js/SubData/Settings/settings.css','utf8');
@@ -40,8 +44,11 @@ const indexMarkup=fs.readFileSync('./index.html','utf8');
 const settingsController=fs.readFileSync('./js/SettingsPanel.js','utf8');
 const gameSource=fs.readFileSync('./js/Game.js','utf8');
 if(!settingsMarkup.includes('role="dialog"')||!settingsMarkup.includes('data-settings-content'))throw new Error('Settings HTML dialog structure is incomplete');
+if(settingsMarkup.includes('HEXBEAT / SYSTEM')||settingsMarkup.includes('Tune the experience. Keep the rhythm.'))throw new Error('Settings header must contain only the SETTINGS title');
 if(!settingsStyles.includes('.hb-settings__dialog')||!settingsStyles.includes('@media'))throw new Error('Settings CSS is missing the dialog or responsive layout');
 if(!settingsStyles.includes('.hb-settings button:focus-visible'))throw new Error('Settings controls need a visible keyboard focus style');
+if(!settingsStyles.includes('steps(7,end)')||!settingsStyles.includes('background:transparent'))throw new Error('Settings opening animation must be raw 30 FPS steps with a transparent header');
+if(!settingsController.includes('updateTheme()')||!settingsController.includes("setProperty('--hb-accent'"))throw new Error('Settings title accent must follow the active level palette');
 if(!settingsMarkup.includes('tabindex="-1"'))throw new Error('The Settings scrim must not enter the keyboard tab order');
 if(!settingsController.includes("event.key==='Tab'")||!settingsController.includes('this.previousFocus=document.activeElement')||!settingsController.includes('previousFocus.focus()'))throw new Error('Settings must trap and restore keyboard focus while modal');
 if(!indexMarkup.includes('js/SubData/Settings/settings.css'))throw new Error('index.html does not load the Settings stylesheet');

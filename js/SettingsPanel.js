@@ -291,11 +291,20 @@ export class SettingsPanel{
     this.persist();this.applyAll();this.syncRows();
   }
 
+  updateTheme(){
+    const level=this.game.level;
+    if(!level?.pal||!this.root)return;
+    const palette=level.pal(this.game.time(),Boolean(level.inv&&this.game.view?.invert));
+    this.root.style.setProperty('--hb-accent',palette.b1);
+    this.root.style.setProperty('--hb-accent-strong',palette.b2);
+  }
+
   async open(){
     await this.ready;
     if(!this.root)return;
     if(this.isOpen)return;
     this.previousFocus=document.activeElement;
+    this.updateTheme();
     this.isOpen=true;
     this.game.uiOverlay='settings';
     document.body.classList.add('settings-open');
@@ -316,7 +325,7 @@ export class SettingsPanel{
     this.root.setAttribute('aria-hidden','true');
     if(previousFocus?.isConnected&&typeof previousFocus.focus==='function')previousFocus.focus();
     const root=this.root;
-    setTimeout(()=>{if(!this.isOpen)root.hidden=true;},260);
+    setTimeout(()=>{if(!this.isOpen)root.hidden=true;},240);
   }
 
   async toggle(){

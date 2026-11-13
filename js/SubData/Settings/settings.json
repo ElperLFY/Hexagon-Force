@@ -1,14 +1,14 @@
 {
   "$schema": "./settings.schema.json",
   "schemaVersion": 1,
-  "title": "HEXBEAT SETTINGS",
-  "description": "Human-editable settings metadata. The Settings panel reads this file; it contains no executable code.",
+  "title": "SETTINGS",
+  "description": "Settings definitions and defaults",
   "storageKey": "hexbeat.settings.v1",
   "groups": [
     {
       "id": "display",
       "title": "DISPLAY",
-      "description": "Rendering and presentation preferences.",
+      "description": "Rendering and presentation preferences",
       "settings": [
         {
           "id": "frameRate",
@@ -25,29 +25,20 @@
             165,
             240
           ],
-          "description": "Limits HEXBEAT drawing frequency. The browser and display refresh rate remain the upper bound."
-        },
-        {
-          "id": "vsync",
-          "label": "V-Sync",
-          "type": "status",
-          "default": "browser-managed",
-          "display": "BROWSER MANAGED",
-          "description": "Canvas presentation is synchronized by the browser compositor. A web page cannot reliably switch hardware V-Sync on or off."
+          "description": "Limits HEXBEAT drawing frequency. The browser and display refresh rate remain the upper bound"
         }
       ]
     },
     {
       "id": "gameplay",
       "title": "GAMEPLAY",
-      "description": "Optional difficulty modifiers.",
+      "description": "Optional difficulty modifiers",
       "settings": [
         {
           "id": "modMenuEnabled",
-          "label": "MOD MENU",
+          "label": "Enable or Disable the Mods",
           "type": "toggle",
-          "default": true,
-          "description": "Shows or hides the map-speed and player-speed difficulty controls."
+          "default": true
         },
         {
           "id": "mapSpeed",
@@ -59,7 +50,7 @@
           "default": 1,
           "unit": "×",
           "requires": "modMenuEnabled",
-          "description": "Changes how quickly incoming walls travel."
+          "description": "Changes how quickly incoming walls travel"
         },
         {
           "id": "playerSpeed",
@@ -71,14 +62,14 @@
           "default": 1,
           "unit": "×",
           "requires": "modMenuEnabled",
-          "description": "Changes the player's maximum turning speed."
+          "description": "Changes the player's maximum turning speed"
         }
       ]
     },
     {
       "id": "audio",
       "title": "AUDIO",
-      "description": "Music and sound effects.",
+      "description": "Music and sound effects",
       "settings": [
         {
           "id": "musicVolume",
@@ -89,7 +80,7 @@
           "step": 0.01,
           "default": 0.5,
           "displayAsPercent": true,
-          "description": "Controls level music and menu previews."
+          "description": "Controls level music and menu previews"
         },
         {
           "id": "soundVolume",
@@ -102,7 +93,7 @@
           "disabled": true,
           "status": "WIP",
           "displayAsPercent": true,
-          "description": "Sound effects are not implemented yet; only music is currently available."
+          "description": "Sound effects are not implemented yet; only music is currently available"
         }
       ]
     }
