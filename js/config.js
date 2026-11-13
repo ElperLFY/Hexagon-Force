@@ -1,6 +1,6 @@
 // Costanti di gioco, livelli e palette. I parametri di rotazione sono separati
 // dalla velocita' dei muri: ogni livello puo' avere un ritmo visivo distinto.
-export const TAU=Math.PI*2,SIDE=TAU/6,K=1.1547,RP=.19,HUB=.30,TH=.1,PW=.035;
+export const TAU=Math.PI*2,SIDE=TAU/6,K=1.1547,RP=.19,HUB=.20,TH=.1,PW=.035;
 export const PL={tip:RP+.045,back:RP-.03,half:.035};
 export const SONG_DIR='MusicData/';
 
