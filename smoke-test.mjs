@@ -275,7 +275,8 @@ for(let chunk=0;chunk<3;chunk++){
   previousVoidRow=chunkRows[chunkRows.length-1];
   chunkStart=g.voidNext;
 }
-if(voidRows.length<80||!voidRows.every((row,index)=>index===0||row.t>=voidRows[index-1].t))throw new Error('Void generation test failed');
+const expectedEnd=60.1+24*4*(60/116);
+if(voidRows.length<30||!voidRows.every((row,index)=>index===0||row.t>=voidRows[index-1].t)||g.voidNext<expectedEnd)throw new Error(`Void generation coverage failed: rows=${voidRows.length}, last=${voidRows.at(-1)?.t?.toFixed(2)}, next=${g.voidNext.toFixed(2)}, expectedEnd=${expectedEnd.toFixed(2)}`);
 if(voidRows[0].g.length<2)throw new Error('Hypermode must not start with a single-opening C Part');
 
 // Endless run: authored rows are cut at the void start, generation continues for minutes, stays sorted,
