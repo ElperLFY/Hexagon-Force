@@ -366,6 +366,7 @@ export class PatternGenerator{
   // A Ladder is a complete phrase, not a bag of independent rows. The next
   // phrase is restricted to multi-opening patterns with a safe first Part.
   static POST_LADDER=Object.freeze(['solo3','alt3','stair1']);
+  static POST_LADDER_FINAL=Object.freeze(['solo3','alt3']);
   static POST_BAT=Object.freeze(['solo3','alt3']);
 
   static PAT={
@@ -533,8 +534,10 @@ export class PatternGenerator{
       const inPostLadder=enteringPostLadder||postLadderRemaining>0;
       const enteringPostBat=previousPattern==='bat'||previousPattern==='pairs';
       const inPostBat=enteringPostBat||postBatRemaining>0;
+      const ladderExitPreset=postLadderRemaining===1
+        ?PatternGenerator.POST_LADDER_FINAL:PatternGenerator.POST_LADDER;
       const candidates=inPostLadder
-        ?this.poolAfter(names,PatternGenerator.POST_LADDER)
+        ?this.poolAfter(names,ladderExitPreset)
         :inPostBat
           ?this.poolAfter(names,PatternGenerator.POST_BAT)
           :names;
@@ -609,7 +612,9 @@ export class PatternGenerator{
     const enteringPostBat=this.lastVoidPattern==='bat'||this.lastVoidPattern==='pairs';
     const inPostBat=enteringPostBat||this.postVoidBatRemaining>0;
     if(inPostLadder){
-      names=names.filter(name=>PatternGenerator.POST_LADDER.includes(name));
+      const ladderExitPreset=this.postVoidLadderRemaining===1
+        ?PatternGenerator.POST_LADDER_FINAL:PatternGenerator.POST_LADDER;
+      names=names.filter(name=>ladderExitPreset.includes(name));
     }else if(inPostBat){
       names=names.filter(name=>PatternGenerator.POST_BAT.includes(name));
     }else if(this.lastVoidMulti===false){
