@@ -14,8 +14,8 @@ export const VOID={
   front:.45,         // final distance of the gradient's start from the centre (arena units, hub is ~.24)
   width:.6,          // softness of the gradient (arena units)
   alpha:[.3,.92],    // darkness at the far end: [at the start, at full strength] -> never fully black
-  chunkBars:8,       // rows are generated this many bars at a time...
-  ahead:14,          // ...and always at least this many seconds in advance
+  chunkBars:10,       // rows are generated this many bars at a time...
+  ahead:3,          // ...and always at least this many seconds in advance
   noise:{file:'wn01.wav',gain:.38,fade:1.5} // looped from the flip until you die (gain is relative to the volume slider)
 };
 
@@ -61,7 +61,7 @@ const hsl=(h,s,l)=>`hsl(${h},${s}%,${l}%)`;
 export const LEVELS=[
   {
     id:105,name:'VERDE · GIALLO · ROSSO',offset:0,speed:1,seed:105,
-    rotSpeed:1,rotAmp:.5,rotBeats:16,
+    rotSpeed:1,rotAmp:.1,rotBeats:16,
     randomSectionBeats:16,randomLaneShiftChance:.05,randomDropChance:.025,randomAddChance:.08,
     extra:['dwhirl','spin4','t321','rain'],
     pal(tt){
@@ -73,7 +73,7 @@ export const LEVELS=[
   },
   {
     id:100,name:'CREMISI · NERO',offset:39,speed:1.1,seed:100,inv:true,
-    rotSpeed:1.2,rotAmp:.6,rotBeats:16,
+    rotSpeed:1.2,rotAmp:.2,rotBeats:16,
     randomSectionBeats:12,randomLaneShiftChance:.08,randomDropChance:.04,randomAddChance:.08,
     pal(tt,inv){
       return inv
@@ -83,7 +83,7 @@ export const LEVELS=[
   },
   {
     id:110,name:'BLU',offset:0,speed:1.3,seed:110,hard:true,diff:.25,ramp:45,
-    rotSpeed:1.5,rotAmp:.72,rotBeats:14,
+    rotSpeed:1.5,rotAmp:0,rotBeats:14,
     randomSectionBeats:10,randomLaneShiftChance:.16,randomDropChance:.10,randomAddChance:.07,
     intensityThreshold:.065,
     extra:['dwhirl','stair1','stair2','spin3','spin4','t321','rain','doubleC'],
@@ -91,10 +91,10 @@ export const LEVELS=[
   },
   {
     id:115,name:'RGB',offset:0,speed:1.4,seed:115,hard:true,diff:.35,ramp:45,
-    rotSpeed:2,rotAmp:.86,rotBeats:12,trip:true,
-    randomSectionBeats:8,randomLaneShiftChance:.22,randomDropChance:.14,randomAddChance:.05,
+    rotSpeed:2,rotAmp:0,rotBeats:12,trip:true,
+    randomSectionBeats:4,randomLaneShiftChance:.22,randomDropChance:.14,randomAddChance:.05,
     intensityThreshold:.055,
-    extra:['dwhirl','stair1','stair2','spin3','spin4','t321','rain','doubleC'],
+    extra:['dwhirl','stair1','stair2','spin3','spin4','t321','rain','doubleC',"zig","pairs"],
     patternWeights:{ladder:1.35,burst:1.3,whirl:1.25,dwhirl:1.2,stair2:1.2,spin3:1.2,t321:1.15},
     pal(tt){
       const s=Math.min(tt,120),h=(10*tt+25*s*s/120+50*(tt-s))%360;
