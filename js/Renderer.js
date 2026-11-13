@@ -6,7 +6,12 @@ const poly=(c,pts)=>{
   c.closePath();
 };
 const P=(a,m)=>[m*K*Math.cos(a),m*K*Math.sin(a)];
-const PLAYER_POINTS=[[PL.tip,0],[PL.back,PL.half],[PL.back,-PL.half]];
+const PLAYER_SIZE = .65;
+const PLAYER_POINTS = [
+  [PL.tip, 0],
+  [PL.tip - (PL.tip - PL.back) * PLAYER_SIZE, PL.half * PLAYER_SIZE],
+  [PL.tip - (PL.tip - PL.back) * PLAYER_SIZE, -PL.half * PLAYER_SIZE]
+];
 
 // Canvas renderer: arena, incoming walls, player after-image and HUD.
 export class Renderer{
@@ -54,21 +59,7 @@ export class Renderer{
     c.fillStyle='#000';
     poly(c,PLAYER_POINTS);c.fill();
     c.restore();
-
-    // Motion after-images: previous angular positions trail behind the input.
-    // They are original vector shapes, not copied game assets.
-    if(Math.abs(direction)>.015){
-      for(let i=3;i>=1;i--){
-        const lag=i*.025;
-        c.save();
-        c.rotate(phi-direction*6.4*lag);
-        c.globalAlpha=.055*i;
-        c.fillStyle=color;
-        poly(c,PLAYER_POINTS);c.fill();
-        c.restore();
-      }
-    }
-
+    
     c.save();
     c.rotate(phi);
     c.shadowColor=color;
