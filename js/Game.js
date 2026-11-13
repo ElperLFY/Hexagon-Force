@@ -63,7 +63,7 @@ export class Game{
   const ts=t-L.offset;if(!(this.best[this.lv]>=ts)){this.best[this.lv]=ts;localStorage.setItem('hxb',JSON.stringify(this.best))}}
  update(dt){
   if(this.state!=='play')return;const L=this.level,ch=this.chart,t=this.audio.time(L);
-  this.phi+=(this.input.R-this.input.L)*(L.turnRate??6.4)*this.mods.playerSpeed*dt;
+  this.phi+=(this.input.R-this.input.L)*(L.turnRate??10)*this.mods.playerSpeed*dt;
   ch.ensure(t);
   if(!this.noiseOn&&t>=ch.voidStart){this.noiseOn=true;this.audio.startNoise()} // il rumore parte con l'inversione
   if(ch.hit(t,this.phi,this.mods.mapSpeed))this.die(t);
