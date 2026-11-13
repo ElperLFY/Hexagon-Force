@@ -76,7 +76,7 @@ Example extended events:
 ]
 ```
 
-The full six-sector Ladder construction is in `PatternGenerator.PAT.ladder`.
+The full six-sector Ladder construction is defined in `js/SubData/PatternGenerator/ladder.json` and loaded by `js/PatternGenerator.js`.
 
 ## 3. Geometry and thickness
 
