@@ -6,13 +6,17 @@ import {Chart,PatternGenerator} from './js/PatternGenerator.js';
 // real gameplay turn rate. This is a reachability test, not a pattern-name test.
 const DT=1/120;
 const ANGLE_BINS=180; // 2 degree resolution
-const STEP_BINS=Math.floor((8.5*DT)/(TAU/ANGLE_BINS));
-const BD=60/116;
-const SPEED=1.4;
-const LEVEL={speed:SPEED,turnRate:8.5,reactionMargin:.04};
 const norm=(x,n)=>((x%n)+n)%n;
 
-function simulate(name,direction,repeat=3){
+function simulate(name,direction,level,repeat=3){
+  const L={
+    ...level,
+    speed:level.speed??1,
+    turnRate:level.turnRate??6.4,
+    reactionMargin:level.reactionMargin??.04
+  };
+  const bd=60/(level.bpm??116),speed=L.speed;
+  const stepBins=Math.floor((L.turnRate*DT)/(TAU/ANGLE_BINS));
   const rng=()=>.5;
   const events=name==='spin'
     ?PatternGenerator.PAT[name](0,direction,repeat)
@@ -23,23 +27,22 @@ function simulate(name,direction,repeat=3){
   const motifId=`${name}-atomic`;
   for(const [beat,gaps,span=0,routeSpan=null] of events){
     const row={
-      t:beat*BD,
+      t:beat*bd,
       g:[...new Set(gaps.map(x=>norm(x,6)))],
       motifId,motifName:name,motifStart:0
     };
-    if(span>0)row.th=Math.max(TH,SPEED*BD*span);
-    if(Number.isFinite(routeSpan)&&routeSpan>=0)row.routeDepth=SPEED*BD*routeSpan;
+    if(span>0)row.th=Math.max(TH,speed*bd*span);
+    if(Number.isFinite(routeSpan)&&routeSpan>=0)row.routeDepth=speed*bd*routeSpan;
     maxDepth=Math.max(maxDepth,row.th??TH);
     rows.push(row);
     endBeat=Math.max(endBeat,beat+span);
   }
   rows.sort((a,b)=>a.t-b.t);
-  const chart=new Chart(rows,BD,0,116,30,SPEED)
-    .randomized({...LEVEL,randomSectionBeats:4},0x1ADDE+name.length+direction);
-  const endTime=endBeat*BD+maxDepth/SPEED+.15;
+  const chart=new Chart(rows,bd,0,level.bpm??116,30,speed)
+    .randomized({...L,randomSectionBeats:4},0x1ADDE+name.length+direction+level.id);
+  const endTime=endBeat*bd+maxDepth/speed+.15;
   let reachable=new Uint8Array(ANGLE_BINS).fill(1);
-  let firstFailure=null;
-  let lastFreeCount=ANGLE_BINS;
+  let firstFailure=null,lastFreeCount=ANGLE_BINS;
   for(let t=-.5+DT;t<=endTime+1e-9;t+=DT){
     const free=new Uint8Array(ANGLE_BINS);
     let freeCount=0;
@@ -51,7 +54,7 @@ function simulate(name,direction,repeat=3){
     let count=0;
     for(let from=0;from<ANGLE_BINS;from++){
       if(!reachable[from])continue;
-      for(let delta=-STEP_BINS;delta<=STEP_BINS;delta++){
+      for(let delta=-stepBins;delta<=stepBins;delta++){
         const to=norm(from+delta,ANGLE_BINS);
         if(!free[to])continue;
         let clear=true;
@@ -74,11 +77,12 @@ function simulate(name,direction,repeat=3){
 
 const names=Object.keys(PatternGenerator.PAT);
 const failures=[];
-for(const name of names){
-  // spin() needs an explicit repetition count; all other factories ignore it.
-  for(const direction of [1,-1]){
-    const result=simulate(name,direction,name==='spin'?3:3);
-    if(!result.ok)failures.push({name,direction,...result});
+for(const level of LEVELS){
+  for(const name of names){
+    for(const direction of [1,-1]){
+      const result=simulate(name,direction,level,3);
+      if(!result.ok)failures.push({level:level.id,name,direction,...result});
+    }
   }
 }
 if(failures.length){
@@ -86,7 +90,7 @@ if(failures.length){
   for(const failure of failures)console.error(JSON.stringify(failure));
   process.exitCode=1;
 }else{
-  console.log(`Pattern reachability OK: ${names.length} factories × 2 directions; ${ANGLE_BINS} angular bins, 120 Hz simulation.`);
+  console.log(`Pattern reachability OK: ${LEVELS.length} levels × ${names.length} factories × 2 directions; ${ANGLE_BINS} angular bins, 120 Hz simulation.`);
 }
 
 // Also exercise chained Void chunks, carrying the exact previous Part and
