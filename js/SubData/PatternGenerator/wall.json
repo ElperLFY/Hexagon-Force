@@ -28,5 +28,6 @@
       ],
       "wallSpanBeats": 0.4
     }
-  ]
+  ],
+  "$schema": "./pattern.schema.json"
 }
