@@ -47,6 +47,9 @@ export class Renderer{
 
   drawPlayer(phi,color,turn){
     const c=this.c;
+    if(turn)this.turnTrail=turn;
+    else this.turnTrail*=.86;
+    const direction=this.turnTrail;
 
     // A small dark drop-shadow keeps the pointer readable on bright palettes.
     c.save();
@@ -56,6 +59,21 @@ export class Renderer{
     c.fillStyle='#000';
     poly(c,PLAYER_POINTS);c.fill();
     c.restore();
+
+    // Motion after-images: previous angular positions trail behind the input.
+    // They are original vector shapes, not copied game assets.
+    if(Math.abs(direction)>.015){
+      for(let i=3;i>=1;i--){
+        const lag=i*0.001;
+        c.save();
+        c.rotate(phi-direction*6.4*lag);
+        c.globalAlpha=.055*i;
+        c.fillStyle=color;
+        poly(c,PLAYER_POINTS);c.fill();
+        c.restore();
+      }
+    }
+
     c.save();
     c.rotate(phi);
     c.shadowColor=color;
