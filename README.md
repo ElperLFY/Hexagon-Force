@@ -76,7 +76,7 @@ Example extended events:
 ]
 ```
 
-The full six-sector Ladder construction is in `PatternGenerator.PAT.ladder`.
+The full six-sector Ladder construction is defined in `js/SubData/PatternGenerator/ladder.json` and loaded by `js/PatternGenerator.js`.
 
 ## 3. Geometry and thickness
 
@@ -114,27 +114,18 @@ These are textual descriptions from the guide, not image-verified reconstruction
 
 The guide also describes mode changers between hexagon, pentagon and square topology. HEXBEAT currently has a fixed six-sector arena; these mode changers are not represented by the current six-sector row schema.
 
-## 5. How to add a pattern
+## 5. How to add or edit a pattern
 
-1. Choose a unique, lowercase key in `PatternGenerator.PAT`.
-2. Write a factory that receives `start` (starting sector), `direction` (+1 clockwise or -1 counter-clockwise), and optionally the seeded random function `rng`.
-3. Return one or more events. Each event must have a non-negative beat offset and a non-empty list of open sectors.
-4. Keep sector indices relative to `start`; wrap values with modulo six when producing rows.
-5. Add the new name to the appropriate difficulty pool in `pool(x)`. Do not add it only to `PAT`: an unreferenced factory is never selected.
-6. Add deterministic tests for the sequence, timing, sector wrapping, and reachability.
-7. If the pattern needs custom Part thickness, update the row schema, renderer and collision test together, and retain the global-`TH` fallback for old JSON.
+Pattern geometry belongs in `js/SubData/PatternGenerator/`, not in a JavaScript factory.
 
-Factory shape:
+1. Create or edit one named JSON file. Copy the structure of a nearby pattern and keep `"$schema": "./pattern.schema.json"` at the top.
+2. Set `id`, `name`, `category`, `description`, and `tags`. Set `weight` (normal selection) and `voidWeight` (Endless Void selection) in this same file.
+3. Add one object per Part in `parts`. Use `beat` for the arrival offset, `openOffsets` for sectors relative to the motif's starting sector, `directionMode` for clockwise/counter-clockwise behavior, and optional `wallSpanBeats` / `routeSpanBeats` for geometry and route planning.
+4. If the definition reuses another pattern, use `aliasOf`; repeated Spin variants use `repeatCount` plus the base Spin `repeatTemplate`.
+5. Register the pattern ID and filename in `catalog.json` under `patterns` and `definitionFiles`. Add it to `poolBands` or `hardAdditions` to make it selectable in normal stages; add it to `voidPool` if it should appear in Endless Void. Edit `transitions` only when it is safe to use during a protected exit sequence.
+6. Add deterministic checks in `smoke-test.mjs` and reachability coverage in `pattern-reachability-test.mjs`.
 
-```js
-newPattern: (start, direction) => [
-  [0, [start]],
-  [1, [start + direction]],
-  [2, [start + 2 * direction]]
-]
-```
-
-This describes three events one beat apart. It does not itself guarantee the intended movement path: validate the sequence against the reference geometry and the player turn rate.
+Sector offsets are wrapped modulo six at runtime. Keep the Parts in beat order. Do not alter the loader/compiler in `js/PatternGenerator.js` for ordinary pattern edits; it should remain the small runtime bridge from JSON to chart rows.
 
 ## 6. Timing and reachability
 
@@ -155,7 +146,7 @@ This catches a critical class of bug that row-by-row tests miss: individually re
 - every transition between consecutive Parts;
 - the seam between generated Void chunks;
 - both clockwise and counter-clockwise variants;
-- high-speed settings from the Mod Menu.
+- high-speed settings from Settings → Gameplay (Mod Menu).
 
 For visual diagnosis, append `?debugPatterns=1` to the game URL. The gameplay HUD then shows the currently active generated motif name and elapsed time within that motif. This is especially useful because screenshots without the label cannot distinguish a Ladder-like silhouette from Stair, Whirlpool or another family.
 
@@ -180,7 +171,28 @@ This is a reconstruction based on the user's marked screenshot, not a pixel-perf
 
 The user screenshots define the intended Spin repetition and the movement silhouettes above; do not replace those with the differing abbreviated wording in the guide without asking.
 
-## 8. Reference
+## 8. Human-editable pattern and settings data
+
+The source of truth for generated pattern shapes is now `js/SubData/PatternGenerator/`:
+
+- `catalog.json` defines pattern IDs, pool bands, hard-stage additions, Void pool and safe transition presets. Each pattern JSON stores its own normal and Void selection weights.
+- Each pattern has its own JSON file. A Part records its beat offset, open sectors (relative to the motif start), optional wall span and optional route-planning span.
+- `pattern-catalog.schema.json` documents the catalog; `pattern.schema.json` documents each pattern definition. The folder README explains the Part fields and aliases.
+- `js/PatternGenerator.js` is the runtime loader/compiler. It turns JSON definitions into the factory interface used by the existing chart and Void code; adding or editing a pattern's shape no longer requires editing a JavaScript factory.
+
+The general Settings source is `js/SubData/Settings/`:
+
+- `settings.json` defines categories, labels, defaults, limits, descriptions and feature dependencies.
+- `settings.html` is the semantic dialog markup.
+- `settings.css` contains the visual style and responsive layout.
+- `settings.schema.json` describes the JSON format.
+- `js/SettingsPanel.js` loads those assets and connects the controls to the game. It is intentionally the controller, not the location where settings are defined or styled.
+
+The Mod Menu is now a section inside Settings (shortcut `M` or `S`); there is no separate slide-down Mod Menu. Framerate is a render-rate cap, while V-Sync is shown as browser-managed because a web page cannot reliably toggle hardware V-Sync. Sound Volume remains disabled/WIP until the game has a separate sound-effects bus.
+
+`js/config.js` remains the source for existing level/game constants and is not part of the editable pattern or Settings data model.
+
+## 9. Reference
 
 JiminP, **Super Hexagon 101: Know your Patterns**, Steam Community Guide (2013):
 https://steamcommunity.com/sharedfiles/filedetails/?id=121153531

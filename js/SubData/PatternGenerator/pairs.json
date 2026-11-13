@@ -1,0 +1,14 @@
+{
+  "id": "pairs",
+  "name": "Bat alias",
+  "category": "alias",
+  "description": "Compatibility alias for Bat.",
+  "aliasOf": "bat",
+  "tags": [
+    "multi-opening",
+    "alias"
+  ],
+  "weight": 1,
+  "voidWeight": 1,
+  "$schema": "./pattern.schema.json"
+}

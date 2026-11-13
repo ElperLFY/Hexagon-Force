@@ -1,0 +1,51 @@
+{
+  "id": "burst",
+  "name": "Burst",
+  "category": "single-opening",
+  "description": "Four tightly spaced repeated Parts followed by a two-sector offset.",
+  "tags": [
+    "single-opening",
+    "burst"
+  ],
+  "weight": 1.25,
+  "voidWeight": 1,
+  "directionMode": "relative",
+  "parts": [
+    {
+      "beat": 0,
+      "openOffsets": [
+        0
+      ],
+      "wallSpanBeats": 0.32
+    },
+    {
+      "beat": 0.5,
+      "openOffsets": [
+        0
+      ],
+      "wallSpanBeats": 0.32
+    },
+    {
+      "beat": 1,
+      "openOffsets": [
+        0
+      ],
+      "wallSpanBeats": 0.32
+    },
+    {
+      "beat": 1.5,
+      "openOffsets": [
+        0
+      ],
+      "wallSpanBeats": 0.32
+    },
+    {
+      "beat": 3,
+      "openOffsets": [
+        2
+      ],
+      "wallSpanBeats": 0.42
+    }
+  ],
+  "$schema": "./pattern.schema.json"
+}

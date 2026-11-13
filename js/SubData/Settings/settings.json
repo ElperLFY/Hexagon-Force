@@ -1,0 +1,103 @@
+{
+  "$schema": "./settings.schema.json",
+  "schemaVersion": 1,
+  "title": "SETTINGS",
+  "description": "Settings definitions and defaults",
+  "storageKey": "hexbeat.settings.v1",
+  "groups": [
+    {
+      "id": "display",
+      "title": "DISPLAY",
+      "description": "Rendering and presentation preferences",
+      "settings": [
+        {
+          "id": "frameRate",
+          "label": "Framerate cap",
+          "type": "select",
+          "default": 60,
+          "unit": "FPS",
+          "options": [
+            30,
+            60,
+            90,
+            120,
+            144,
+            165,
+            240
+          ],
+          "description": "Limits HEXBEAT drawing frequency. The browser and display refresh rate remain the upper bound"
+        }
+      ]
+    },
+    {
+      "id": "gameplay",
+      "title": "GAMEPLAY",
+      "description": "Optional difficulty modifiers",
+      "settings": [
+        {
+          "id": "modMenuEnabled",
+          "label": "Enable or Disable the Mods",
+          "type": "toggle",
+          "default": true
+        },
+        {
+          "id": "mapSpeed",
+          "label": "Map Speed",
+          "type": "range",
+          "min": 0.5,
+          "max": 2.5,
+          "step": 0.05,
+          "default": 1,
+          "unit": "×",
+          "requires": "modMenuEnabled",
+          "description": "Changes how quickly incoming walls travel"
+        },
+        {
+          "id": "playerSpeed",
+          "label": "Player Speed",
+          "type": "range",
+          "min": 0.5,
+          "max": 2.5,
+          "step": 0.05,
+          "default": 1,
+          "unit": "×",
+          "requires": "modMenuEnabled",
+          "description": "Changes the player's maximum turning speed"
+        }
+      ]
+    },
+    {
+      "id": "audio",
+      "title": "AUDIO",
+      "description": "Music and sound effects",
+      "settings": [
+        {
+          "id": "musicVolume",
+          "label": "Music Volume",
+          "type": "range",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "default": 0.5,
+          "displayAsPercent": true,
+          "description": "Controls level music and menu previews"
+        },
+        {
+          "id": "soundVolume",
+          "label": "Sound Volume",
+          "type": "range",
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "default": 0,
+          "disabled": true,
+          "status": "WIP",
+          "displayAsPercent": true,
+          "description": "Sound effects are not implemented yet; only music is currently available"
+        }
+      ]
+    }
+  ],
+  "resetLabel": "RESET TO DEFAULTS",
+  "closeLabel": "DONE"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "spin4",
+  "name": "4-Spin",
+  "category": "spin",
+  "description": "The 1-2-3 Spin unit, repeated four times.",
+  "aliasOf": "spin",
+  "repeatCount": 4,
+  "tags": [
+    "single-opening",
+    "spin"
+  ],
+  "weight": 1,
+  "voidWeight": 1.05,
+  "$schema": "./pattern.schema.json"
+}

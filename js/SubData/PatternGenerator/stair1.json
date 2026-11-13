@@ -1,0 +1,56 @@
+{
+  "id": "stair1",
+  "name": "Stair 1",
+  "category": "multi-opening",
+  "description": "Five Parts with two opposite openings, both advancing one sector per beat.",
+  "tags": [
+    "multi-opening",
+    "stair"
+  ],
+  "weight": 1,
+  "voidWeight": 1.45,
+  "directionMode": "relative",
+  "parts": [
+    {
+      "beat": 0,
+      "openOffsets": [
+        0,
+        3
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 1,
+      "openOffsets": [
+        1,
+        4
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 2,
+      "openOffsets": [
+        2,
+        5
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 3,
+      "openOffsets": [
+        3,
+        6
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 4,
+      "openOffsets": [
+        4,
+        7
+      ],
+      "wallSpanBeats": 0.42
+    }
+  ],
+  "$schema": "./pattern.schema.json"
+}

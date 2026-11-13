@@ -2,6 +2,60 @@ import fs from 'node:fs';
 import {LEVELS,SIDE,TAU,TH,PART_DEPTH_SCALE,VOID,RP,PL} from './js/config.js';
 import {Chart,PatternGenerator} from './js/PatternGenerator.js';
 
+await PatternGenerator.loadCatalog();
+
+// The catalog, each individual pattern JSON and Settings schema are the
+// source of truth. Validate that every manifest entry resolves to a factory.
+const patternCatalog=JSON.parse(fs.readFileSync('./js/SubData/PatternGenerator/catalog.json','utf8'));
+const patternCatalogSchema=JSON.parse(fs.readFileSync('./js/SubData/PatternGenerator/pattern-catalog.schema.json','utf8'));
+const patternDefinitionSchema=JSON.parse(fs.readFileSync('./js/SubData/PatternGenerator/pattern.schema.json','utf8'));
+if(!patternCatalogSchema.properties?.$schema||!patternDefinitionSchema.properties?.$schema)throw new Error('Pattern JSON Schemas must allow their $schema metadata');
+if(!patternCatalog.$schema)throw new Error('Pattern catalog must declare its JSON Schema');
+if('normalWeights' in patternCatalog||'voidWeights' in patternCatalog)throw new Error('Pattern weights must live beside their pattern definitions');
+for(const id of patternCatalog.patterns){
+  const file=patternCatalog.definitionFiles[id];
+  if(!file)throw new Error(`Pattern catalog has no file mapping for ${id}`);
+  const definition=JSON.parse(fs.readFileSync(`./js/SubData/PatternGenerator/${file}`,'utf8'));
+  if(definition.id!==id)throw new Error(`Pattern JSON id mismatch: ${id}`);
+  if(!Number.isFinite(definition.weight)||!Number.isFinite(definition.voidWeight))throw new Error(`Pattern JSON is missing its selection weights: ${id}`);
+  if(typeof PatternGenerator.PAT[id]!=='function')throw new Error(`Pattern JSON did not compile: ${id}`);
+}
+if(PatternGenerator.PAT.zig(0,1).length!==PatternGenerator.PAT.ladder(0,1).length)throw new Error('Zig alias must use the Ladder JSON definition');
+if(PatternGenerator.PAT.pairs(0,1).length!==PatternGenerator.PAT.bat(0,1).length)throw new Error('Pairs alias must use the Bat JSON definition');
+if(PatternGenerator.PAT.spin4(0,1).length!==12)throw new Error('Spin 4 JSON alias must repeat the 1-2-3 unit four times');
+
+const settingsSchema=JSON.parse(fs.readFileSync('./js/SubData/Settings/settings.json','utf8'));
+const settingsDefinitionSchema=JSON.parse(fs.readFileSync('./js/SubData/Settings/settings.schema.json','utf8'));
+if(!settingsDefinitionSchema.properties?.$schema||!settingsSchema.$schema)throw new Error('Settings JSON must declare a schema that accepts its $schema metadata');
+const settingIds=settingsSchema.groups.flatMap(group=>group.settings.map(setting=>setting.id));
+for(const id of ['frameRate','modMenuEnabled','mapSpeed','playerSpeed','musicVolume','soundVolume']){
+  if(!settingIds.includes(id))throw new Error(`Settings JSON is missing ${id}`);
+}
+const soundSetting=settingsSchema.groups.flatMap(group=>group.settings).find(setting=>setting.id==='soundVolume');
+if(!soundSetting.disabled||soundSetting.status!=='WIP')throw new Error('Sound Volume must remain visibly marked as WIP');
+if(settingIds.includes('vsync'))throw new Error('V-Sync must not be exposed as a Settings option');
+const modSetting=settingsSchema.groups.flatMap(group=>group.settings).find(setting=>setting.id==='modMenuEnabled');
+if(modSetting.label!=='Enable or Disable the Mods'||modSetting.description)throw new Error('Mods toggle copy must use the requested label without the old description');
+if(settingsSchema.groups.some(group=>/\\.$/.test(group.description??'')||group.settings.some(setting=>/\\.$/.test(setting.description??''))))throw new Error('Settings copy must not end with full stops');
+
+const settingsMarkup=fs.readFileSync('./js/SubData/Settings/settings.html','utf8');
+const settingsStyles=fs.readFileSync('./js/SubData/Settings/settings.css','utf8');
+const indexMarkup=fs.readFileSync('./index.html','utf8');
+const settingsController=fs.readFileSync('./js/SettingsPanel.js','utf8');
+const gameSource=fs.readFileSync('./js/Game.js','utf8');
+if(!settingsMarkup.includes('role="dialog"')||!settingsMarkup.includes('data-settings-content'))throw new Error('Settings HTML dialog structure is incomplete');
+if(settingsMarkup.includes('HEXBEAT / SYSTEM')||settingsMarkup.includes('Tune the experience. Keep the rhythm.'))throw new Error('Settings header must contain only the SETTINGS title');
+if(!settingsStyles.includes('.hb-settings__dialog')||!settingsStyles.includes('@media'))throw new Error('Settings CSS is missing the dialog or responsive layout');
+if(!settingsStyles.includes('.hb-settings button:focus-visible'))throw new Error('Settings controls need a visible keyboard focus style');
+if(!settingsStyles.includes('steps(7,end)')||!settingsStyles.includes('background:transparent'))throw new Error('Settings opening animation must be raw 30 FPS steps with a transparent header');
+if(!settingsController.includes('updateTheme()')||!settingsController.includes("setProperty('--hb-accent'"))throw new Error('Settings title accent must follow the active level palette');
+if(!settingsMarkup.includes('tabindex="-1"'))throw new Error('The Settings scrim must not enter the keyboard tab order');
+if(!settingsController.includes("event.key==='Tab'")||!settingsController.includes('this.previousFocus=document.activeElement')||!settingsController.includes('previousFocus.focus()'))throw new Error('Settings must trap and restore keyboard focus while modal');
+if(!indexMarkup.includes('js/SubData/Settings/settings.css'))throw new Error('index.html does not load the Settings stylesheet');
+if(!settingsController.includes("new URL('settings.json',base)")||!settingsController.includes("new URL('settings.html',base)"))throw new Error('Settings controller is not loading the HTML and JSON assets');
+if(gameSource.includes("from './ModMenu.js'")||gameSource.includes('this.modMenu'))throw new Error('The old standalone Mod Menu is still wired into Game.js');
+
+
 const mask=gaps=>[0,1,2,3,4,5].map(sector=>!gaps.includes(sector));
 for(const id of [100,105,110,115]){
   const json=JSON.parse(fs.readFileSync(`./MusicData/${id}.json`,'utf8'));

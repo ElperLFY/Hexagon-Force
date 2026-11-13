@@ -1,0 +1,30 @@
+{
+  "id": "solo",
+  "name": "Solo",
+  "category": "single-opening",
+  "description": "Two same-lane single-hole Parts, one beat apart.",
+  "tags": [
+    "single-opening",
+    "paired"
+  ],
+  "weight": 1,
+  "voidWeight": 1,
+  "directionMode": "fixed",
+  "parts": [
+    {
+      "beat": 0,
+      "openOffsets": [
+        0
+      ],
+      "wallSpanBeats": 0.22
+    },
+    {
+      "beat": 1,
+      "openOffsets": [
+        0
+      ],
+      "wallSpanBeats": 0.22
+    }
+  ],
+  "$schema": "./pattern.schema.json"
+}
