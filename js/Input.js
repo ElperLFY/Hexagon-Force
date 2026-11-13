@@ -12,10 +12,15 @@ export class Input {
       }
       if (code === 'Escape') {
         if (event.repeat) return;
-        if (game.uiOverlay === 'scores') game.toggleHighScores();
-        else if (game.modMenu.open) game.modMenu.setOpen(false);
+        if (game.uiOverlay === 'settings') game.settingsPanel.close();
+        else if (game.uiOverlay === 'scores') game.toggleHighScores();
         else if (game.state === 'gate') game.quit();
         else game.back(); // In play: abandon this run and return to stage select.
+        return;
+      }
+      if ((code === 'KeyM' || code === 'KeyS') &&
+          game.state !== 'play' && game.state !== 'load') {
+        game.toggleSettings();
         return;
       }
       if (game.state === 'gate') {
@@ -29,7 +34,6 @@ export class Input {
       if (game.state === 'menu') {
         if (code === 'ArrowLeft' || code === 'KeyA') { game.nav(-1); return; }
         if (code === 'ArrowRight' || code === 'KeyD') { game.nav(1); return; }
-        if (code === 'KeyM') { game.modMenu.toggle(); return; }
         if (code === 'Space' || code === 'Enter') {
           event.preventDefault(); document.activeElement?.blur?.(); game.confirm(); return;
         }
