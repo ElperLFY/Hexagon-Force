@@ -54,13 +54,13 @@ for(let start=0;start<6;start++)for(const direction of [-1,1]){
     const openings=ladder[i][1].map(value=>((value%6)+6)%6);
     if(((openings[0]-openings[1]+6)%6)!==3)throw new Error('Each Ladder rung must leave mirrored opposite openings');
   }
+  const ladderRows=ladder.map(([beat,gaps,span,routeSpan])=>({
+    t:beat*.5,g:[...new Set(gaps.map(value=>((value%6)+6)%6))],
+    w:mask(gaps),...(span>0?{th:span*.5}:{}),
+    ...(routeSpan!=null?{routeDepth:routeSpan*.5}:{})
+  }));
+  if(ladderRows[0].routeDepth!==0)throw new Error('Persistent Ladder rails must not consume the rung-to-rung route-change window');
 }
-const ladderRows=ladder.map(([beat,gaps,span,routeSpan])=>({
-  t:beat*.5,g:[...new Set(gaps.map(value=>((value%6)+6)%6))],
-  w:mask(gaps),...(span>0?{th:span*.5}:{}),
-  ...(routeSpan!=null?{routeDepth:routeSpan*.5}:{})
-}));
-if(ladderRows[0].routeDepth!==0)throw new Error('Persistent Ladder rails must not consume the rung-to-rung route-change window');
 // Time-expanded reachability audit. Treat every wall as active for the exact
 // interval during which its radial span crosses the pointer radius. The pointer
 // can rotate at the game's real maximum turn rate; an 8.5-degree body clearance
