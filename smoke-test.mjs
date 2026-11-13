@@ -222,9 +222,22 @@ for(const id of [100,105,110,115]){
   const generator=new PatternGenerator({...level,seed:0xD00D+id});
   let seed=0xA55A+id;
   const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
-  const choices=Array.from({length:12},()=>generator.chooseVoid(random));
-  const multi=choices.map(name=>['solo2','solo3','bat','dwhirl','stair1','rain','doubleC'].includes(name));
-  if(multi.some((value,index)=>index>0&&value===multi[index-1]))throw new Error(`Void pattern variety failed in stage ${id}`);
+  const choices=Array.from({length:18},()=>generator.chooseVoid(random));
+  const multi=name=>['solo2','solo3','bat','dwhirl','stair1','rain','doubleC'].includes(name);
+  let previousPattern=null,previousMulti=null,exitRemaining=0;
+  for(const name of choices){
+    const forcedExit=previousPattern==='ladder'||previousPattern==='zig'||exitRemaining>0;
+    if(forcedExit){
+      if(!PatternGenerator.POST_LADDER.includes(name))throw new Error(`Void post-Ladder preset failed in stage ${id}`);
+      if(previousPattern==='ladder'||previousPattern==='zig')exitRemaining=1;
+      else exitRemaining=Math.max(0,exitRemaining-1);
+    }else if(previousMulti!==null&&multi(name)===previousMulti){
+      throw new Error(`Void pattern variety failed in stage ${id}`);
+    }
+    if(name==='ladder'||name==='zig')exitRemaining=2;
+    previousPattern=name;
+    previousMulti=multi(name);
+  }
   if(new Set(choices).size<6)throw new Error(`Void pool lacks diversity in stage ${id}`);
 }
 
