@@ -22,6 +22,8 @@ export class Game {
     this.baseCharts = {};
 
     this.best = JSON.parse(localStorage.getItem('hxb') || '{}');
+    this.lastScores = JSON.parse(localStorage.getItem('hxl') || '{}');
+    this.uiOverlay = null;
     this.noiseOn = false;
     this.mods = this.loadMods();
 
@@ -40,6 +42,8 @@ export class Game {
   get level() {
     return LEVELS[this.lv];
   }
+
+  get levels() { return LEVELS; }
 
   get live() {
     return this.state === 'play' || this.state === 'dead' || this.state === 'win';
@@ -113,34 +117,77 @@ export class Game {
   }
 
   nav(direction) {
-    if (this.state !== 'menu') return;
-
+    if (this.state !== 'menu' && this.state !== 'gate') return;
     this.lv = (this.lv + direction + LEVELS.length) % LEVELS.length;
-    this.preview();
+    if (this.state === 'menu') this.preview();
   }
 
   back() {
-    if (this.state === 'gate' || this.state === 'load') return;
-
+    if (this.state === 'load' || this.state === 'play') return;
+    this.uiOverlay = null;
     this.audio.stopNoise();
-    this.state = 'menu';
-    this.preview();
+    if (this.state === 'menu') {
+      this.modMenu.setOpen(false);
+      this.audio.stop();
+      this.state = 'gate';
+      return;
+    }
+    if (this.state === 'dead' || this.state === 'win') {
+      this.state = 'menu';
+      this.preview();
+    }
+  }
+
+  quit() {
+    try { window.close(); } catch (error) {}
+    if (!window.closed) this.msg = 'CLOSE THIS BROWSER TAB TO QUIT';
+  }
+
+  toggleHighScores() {
+    if (this.state === 'load' || this.state === 'play') return;
+    this.uiOverlay = this.uiOverlay === 'scores' ? null : 'scores';
+  }
+
+  recordResult(time) {
+    const elapsed = Math.max(0, time - this.level.offset);
+    this.lastScores[this.lv] = elapsed;
+    localStorage.setItem('hxl', JSON.stringify(this.lastScores));
+    if (!(this.best[this.lv] >= elapsed)) {
+      this.best[this.lv] = elapsed;
+      localStorage.setItem('hxb', JSON.stringify(this.best));
+    }
+  }
+
+  complete(time) {
+    this.tF = time;
+    this.recordResult(time);
+    this.audio.stopNoise();
+    this.audio.stop();
+    this.fx = null;
+    this.uiOverlay = null;
+    this.state = 'win';
   }
 
   pointer(x, y) {
+    if (this.uiOverlay === 'scores') { this.toggleHighScores(); return; }
     const state = this.state;
-
     if (state === 'gate') {
-      this.confirm();
-    } else if (state === 'menu' && this.modMenu.open) {
-      // A tap outside the mod menu closes it.
-      this.modMenu.setOpen(false);
-    } else if (state === 'menu') {
-      if (x < 0.25) this.nav(-1);
-      else if (x > 0.75) this.nav(1);
-      else this.confirm();
-    } else if (state === 'dead' || state === 'win') {
-      if (y < 0.15) this.back();
+      if (y < .075 && x < .4) { this.toggleHighScores(); return; }
+      if (y < .075 && x > .6) { this.quit(); return; }
+      if (y > .5 && y < .72 && x < .25) { this.nav(-1); return; }
+      if (y > .5 && y < .72 && x > .75) { this.nav(1); return; }
+      this.confirm(); return;
+    }
+    if (state === 'menu') {
+      if (y < .075 && x < .4) { this.toggleHighScores(); return; }
+      if (y < .075 && x > .6) { this.back(); return; }
+      if (y > .5 && y < .72 && x < .10) { this.nav(-1); return; }
+      if (y > .5 && y < .72 && x > .44 && x < .54) { this.nav(1); return; }
+      this.confirm(); return;
+    }
+    if (state === 'dead' || state === 'win') {
+      if (y < .075 && x < .4) this.toggleHighScores();
+      else if (y < .075 && x > .6) this.back();
       else this.confirm();
     }
   }
@@ -150,6 +197,7 @@ export class Game {
 
     const level = this.level;
     this.tk++;
+    this.uiOverlay = null;
     this.state = 'load';
     this.msg = '';
 
@@ -249,11 +297,7 @@ export class Game {
     this.audio.duck(0.35);
     this.audio.loopNow(level);
 
-    const survivalTime = time - level.offset;
-    if (!(this.best[this.lv] >= survivalTime)) {
-      this.best[this.lv] = survivalTime;
-      localStorage.setItem('hxb', JSON.stringify(this.best));
-    }
+    this.recordResult(time);
   }
 
   update(deltaTime) {
@@ -278,10 +322,8 @@ export class Game {
 
     if (chart.hit(time, this.phi, this.mods.mapSpeed)) {
       this.die(time);
-    } else if (time >= chart.dur - 0.05) {
-      this.state = 'win';
-      this.tF = time;
-      this.preview();
+    } else if (time >= (chart.stageEnd ?? chart.dur) - 0.05) {
+      this.complete(time);
     }
   }
 

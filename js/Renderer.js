@@ -1,4 +1,5 @@
 import {TAU,SIDE,K,RP,HUB,TH,PL,VOID,VIS} from './config.js';
+import {UIRenderer} from './UIRenderer.js';
 
 const lerp=(a,b,k)=>a+(b-a)*k;
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
@@ -27,6 +28,7 @@ export class Renderer{
     this.mapMul=1;
     this.hubLvl=0;
     this.camLvl=0;
+    this.ui=new UIRenderer(this);
     addEventListener('resize',()=>this.resize());
     this.resize();
   }
@@ -223,9 +225,16 @@ export class Renderer{
       c.fillRect(0,0,W,H);c.globalAlpha=1;
     }
 
-    const inverted=this.post(g,t,ch);
+    // Results use the level palette rather than keeping the gameplay Void
+    // compositing over the stage-complete presentation.
+    const inverted=g.state!=='win'&&this.post(g,t,ch);
     if(inverted)c.globalCompositeOperation='difference';
     const p=inverted?{...this.p,p:'#fff',w:'#fff'}:this.p,s=g.state;
+    if(g.uiOverlay==='scores'){this.ui.leaderboard(g,p);return;}
+    if(s==='gate'){this.ui.title(g,p);return;}
+    if(s==='menu'){this.ui.selection(g,p);return;}
+    if(s==='win'||s==='dead'){this.ui.results(g,p,s==='win');return;}
+    if(s==='load'){this.ui.loading(g,p);return;}
     if(g.live){
       this.text((t-L.offset).toFixed(2)+'s',W-U*.12,U*.12,U*.07,p.p,'right');
       this.text('BPM '+ch.bpm.toFixed(1),U*.12,U*.1,U*.035,p.p,'left');
@@ -236,17 +245,7 @@ export class Renderer{
       return;
     }
 
-    this.text('HEXBEAT',W/2,H*.2,U*.24,p.w);
-    if(s==='gate'){
-      this.text('PREMI UN TASTO O TOCCA PER INIZIARE',W/2,H*.6,U*.05,p.w);
-      return;
-    }
-    this.text(L.name,W/2,H*.52,U*.075,p.w);
-    this.arrow(W*.12,H*.52,U*.1,-1,p.w);
-    this.arrow(W*.88,H*.52,U*.1,1,p.w);
-    if(g.best[g.lv])this.text('MIGLIOR TEMPO '+g.best[g.lv].toFixed(2)+'s',W/2,H*.62,U*.045,p.w);
-    this.text(s==='load'?'ANALIZZO LA MUSICA…':'SPAZIO / TOCCA PER GIOCARE',W/2,H*.8,U*.05,p.w);
-    this.text('← → SCEGLI IL LIVELLO  ·  J SALVA IL LIVELLO IN JSON',W/2,H*.87,U*.035,p.w);
-    if(g.msg)this.text(g.msg,W/2,H*.95,U*.03,p.w);
+    // Fallback for any future UI state.
+
   }
 }

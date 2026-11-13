@@ -149,6 +149,7 @@ export class Chart{
   // the authored rows are dropped and replaced by generated ones, produced lazily by ensure().
   endless(L,seed,start){
     const bd=this.beatDur;
+    this.stageEnd=this.dur;
     this.voidStart=this.tg0+Math.ceil((start-this.tg0)/bd-1e-6)*bd;
     this.rows=this.rows.filter(r=>r.t<this.voidStart);
     this.voidSide=mul(seed>>>0)()<.5?-1:1; // which side of the screen the darkness comes from
