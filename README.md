@@ -144,6 +144,10 @@ For two consecutive rows separated by `Δt`, available movement time is reduced 
 
 The row-to-row repair is only a heuristic. The enclosed `smoke-test.mjs` therefore also runs a time-expanded reachability simulation: it combines every wall whose radial span is crossing the Pointer, applies the actual maximum turn rate, and reserves an angular clearance for the Pointer body. It audits every named pattern in all four stages and both directions, then checks deterministic multi-pattern Void sequences for continuous routes.
 
+Blu/RGB continue generating patterns through low-intensity audio bars; those bars no longer become silent gaps. Void uses a dedicated pool and alternates multi-lane Parts with other pattern families, rather than inheriting the stage's ordinary pool. Motifs are scheduled from the exact end of the previous Part plus a short clearance interval, not rounded to the next four-beat bar.
+
+Radial geometry is clipped consistently in both renderer and collision at the hub radius. A negative inner radius would make the polar-coordinate polygon reflect through the origin by 180°, creating walls that appear to emerge from the hub and phantom collisions that can hold the Pointer still after the wall is no longer visibly present.
+
 This catches a critical class of bug that row-by-row tests miss: individually reachable openings can still overlap into a fully closed ring. The test is conservative and does not prove visual fidelity or fun; still playtest:
 - the first Part from the player's actual angle;
 - every transition between consecutive Parts;
