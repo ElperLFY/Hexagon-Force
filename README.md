@@ -30,7 +30,7 @@ The sector index is wrapped modulo six. Sector 5 and sector 0 are neighbours.
 
 A chart row is stored internally as:
 
-`{ t, g, w, th? }`
+`{ t, g, w, th?, routeDepth?, motifId?, motifName?, motifStart?, motifEnd? }`
 
 - `t`: inner-face arrival time in seconds on the song timeline.
 - `g`: array of open sector indices (0–5).
@@ -43,7 +43,7 @@ Legacy chart rows retain the compact array form:
 
 Extended geometry rows use an object:
 
-`{ "t": time, "g": [openSector, ...], "th": radialDepth }`
+`{ "t": time, "g": [openSector, ...], "th": radialDepth, "rd": routeDepth, "mid": motifId, "mn": motifName, "ms": motifStart, "me": motifEnd }`
 
 The wall mask is reconstructed from the open sectors. The row time for a pattern event is:
 
@@ -51,9 +51,9 @@ The wall mask is reconstructed from the open sectors. The row time for a pattern
 
 Pattern factories return events in the form:
 
-`[beatOffset, [openSector, ...], spanBeats?]`
+`[beatOffset, [openSector, ...], spanBeats?, routeSpanBeats?]`
 
-The optional third value specifies how far the Part extends radially, measured in beats. The generator converts it to arena depth using the level wall speed and beat duration. Events without it use the legacy global `TH`.
+The optional third value specifies how far the Part extends radially, measured in beats. The generator converts it to arena depth using the level wall speed and beat duration. Events without it use the legacy global `TH`. The optional fourth value specifies route-planning depth separately from visual/collision depth; this is used for persistent Ladder rails whose corridor remains open while short rungs move.
 
 ### Cyclic-sector arithmetic
 
@@ -98,7 +98,7 @@ These are textual descriptions from the guide, not image-verified reconstruction
 | Name | Guide description |
 |---|---|
 | Solo | One, two or three holes; may be striped |
-| Triple C | Three C-shaped Parts; adjacent holes are 3 units apart in hexagon mode |
+| Triple C | Three C-shaped Parts; adjacent holes are 3 units apart in hexagon mode. HEXBEAT spaces the three-sector transitions 2.5 beats apart for the slowest stage turn rate |
 | Whirlpool | One spiral sequence, clockwise or counter-clockwise |
 | Bat | Two-way pattern; guide recommends three separate presses (MMM) |
 | Ladder | Zig-zag |
