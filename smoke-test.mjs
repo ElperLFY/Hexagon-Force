@@ -91,6 +91,16 @@ const matchesSingleTransform=[...Array(6).keys()].some(offset=>
   }))
 );
 if(!matchesSingleTransform)throw new Error('Ladder Parts were not kept under one atomic mirror/rotation transform');
+const transformedRailWalls=[0,1,2,3,4,5].filter(sector=>!transformedRows[0].g.includes(sector));
+if(transformedRailWalls.length!==2||((transformedRailWalls[0]-transformedRailWalls[1]+6)%6)!==3)throw new Error('Atomic randomization must preserve two continuous opposing rails');
+for(const row of transformedRows.slice(1)){
+  if(!transformedRailWalls.every(sector=>row.g.includes(sector)))throw new Error('A Ladder rung row must leave both long rail sectors open so the rails remain continuous');
+  const rungWalls=[0,1,2,3,4,5].filter(sector=>!row.g.includes(sector));
+  if(rungWalls.length!==2)throw new Error('Each Ladder rung must draw exactly one mirrored wall pair');
+  if(transformedRailWalls.some(sector=>rungWalls.includes(sector)))throw new Error('A rung must not interrupt either persistent rail');
+}
+const expectedRailDepth=1.3*(60/140)*6.22;
+if(Math.abs(transformedRows[0].th-expectedRailDepth)>1e-8)throw new Error('Ladder rail wall must keep its complete multi-beat radial depth');
 
 // A Ladder must transition into an authored multi-opening exit preset, never
 // straight into a single-opening C-shaped family such as Stair/Whirlpool.
@@ -107,7 +117,7 @@ const transitionRows=transitionProbe.generate(()=>1,60/140,0,35);
 if(receivedPools.length<4)throw new Error('Pattern generator did not schedule two post-Ladder exit patterns');
 for(const pool of receivedPools.slice(1,3)){
   if(pool.some(name=>!PatternGenerator.POST_LADDER.includes(name)))throw new Error('Post-Ladder selector included a pattern outside the safe exit preset');
-  if(pool.includes('solo')||pool.includes('stair')||pool.includes('whirl'))throw new Error('A single-opening C pattern may not immediately follow Ladder');
+  if(pool.includes('solo')||pool.includes('stair')||pool.includes('whirl')||pool.includes('rain'))throw new Error('A single-opening C or capped Rain pattern may not occur in the two-pattern Ladder exit preset');
 }
 if(!receivedPools[3].includes('solo')||!receivedPools[3].includes('stair'))throw new Error('Normal pattern pool should resume after the two-pattern exit preset');
 const ladderStart=transitionRows.find(row=>row.motifName==='ladder')?.motifStart;
