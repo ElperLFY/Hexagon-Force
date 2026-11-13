@@ -175,7 +175,7 @@ export class Chart{
 
       // Occasional local lane change makes otherwise repeated motifs less
       // predictable while preserving their opening count.
-      if(r()<laneShiftChance){
+      if(source.th==null&&r()<laneShiftChance){
         const delta=r()<.5?1:-1;
         gaps=unique(gaps.map(g=>norm(g+delta)));
       }
@@ -327,7 +327,7 @@ export class PatternGenerator{
     // User reference: 2/3/4-Spin share the same 1-2-3 movement motif.
     // The number in the name is the number of times that motif is repeated.
     spin:(g,d,repeats)=>Array.from({length:repeats*3},(_,i)=>[
-      i,[g+[0,1,3][i%3]*d],.58
+      i*2,[g+[0,1,3][i%3]*d],.58
     ]),
     spin2:(g,d)=>PatternGenerator.PAT.spin(g,d,2),
     spin3:(g,d)=>PatternGenerator.PAT.spin(g,d,3),
