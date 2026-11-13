@@ -35,7 +35,7 @@ A chart row is stored internally as:
 - `t`: inner-face arrival time in seconds on the song timeline.
 - `g`: array of open sector indices (0–5).
 - `w`: six booleans; `true` means a wall occupies that sector.
-- `th` (optional): radial depth of this Part, in arena units. If absent, the renderer and collision system both use the global `TH`.
+- `th` (optional): radial depth of this Part, in arena units. If absent, the renderer and collision system both use the global `TH` (`0.09`). Ordinary authored Part spans are multiplied by `PART_DEPTH_SCALE` (`0.9`); the long Ladder rail is exempt so it still spans the full phrase.
 
 Legacy chart rows retain the compact array form:
 
@@ -53,7 +53,7 @@ Pattern factories return events in the form:
 
 `[beatOffset, [openSector, ...], spanBeats?, routeSpanBeats?]`
 
-The optional third value specifies how far the Part extends radially, measured in beats. The generator converts it to arena depth using the level wall speed and beat duration. Events without it use the legacy global `TH`. The optional fourth value specifies route-planning depth separately from visual/collision depth; this is used for persistent Ladder rails whose corridor remains open while short rungs move.
+The optional third value specifies how far the Part extends radially, measured in beats. The generator converts it to arena depth using the level wall speed and beat duration. Events without it use the legacy global `TH`. The optional fourth value specifies route-planning depth separately from visual/collision depth; this is used for persistent Ladder rails whose corridor remains open while short rungs move. A route span of zero preserves that rail's full authored radial length when the general Part-depth reduction is applied.
 
 ### Cyclic-sector arithmetic
 
@@ -142,7 +142,7 @@ A beat lasts `beatDur` seconds. A pattern event at offset `b` occurs after `b ×
 
 For two consecutive Parts separated by `Δt`, available movement time is reduced by wall traversal and the reaction margin. Authored multi-Part motifs are treated atomically: if the entry lane needs to change, the repair pass rotates the entire motif in six-sector space rather than adding or deleting openings in individual Parts. That preserves the authored silhouette of Ladder, Spin and other compound patterns. Legacy ungrouped chart rows retain bridge-opening repair. The concrete reachable lane is also carried across generated Void chunk boundaries.
 
-The enclosed `smoke-test.mjs` checks structural invariants (including both continuous Ladder rails, every mirrored rung and full rail depth), pattern grouping/serialization, the two-pattern post-Ladder exit preset, hard-stage quiet-audio cadence, Void chunk timing and hub collision clipping. `pattern-reachability-test.mjs` runs a time-expanded collision simulation: it combines overlapping wall Parts, applies each stage's actual turn rate and wall speed, and reserves angular clearance for the Pointer body. It audits every pattern factory in all four stages and both directions, then checks deterministic multi-pattern Void sequences across three consecutive generated chunks per seed.
+The enclosed `smoke-test.mjs` checks structural invariants (including both continuous Ladder rails, every mirrored rung and full rail depth), motif grouping/serialization, the four-motif post-Ladder corridor (including Stair 1 followed by the next protected Part), the two-motif post-Bat exit, the paired Solo shape, reduced Part depth, hard-stage quiet-audio cadence, Void chunk timing and hub collision clipping. It also time-simulates Ladder → four protected motifs → the first normal Solo as one overlapping collision sequence. `pattern-reachability-test.mjs` runs a time-expanded collision simulation: it combines overlapping wall Parts, applies each stage's actual turn rate and wall speed, and reserves angular clearance for the Pointer body. It audits every pattern factory in all four stages and both directions, then checks deterministic multi-pattern Void sequences across three consecutive generated chunks per seed.
 
 Blu/RGB always re-analyze their audio instead of loading the legacy JSON charts, because those files contain skipped low-intensity bars (up to several beats long). Their hard-stage generator continues through quiet audio and schedules the next motif after the previous Part's actual wall thickness plus a short clearance interval; single-Part motifs no longer receive an arbitrary full-beat pause.
 
@@ -170,9 +170,11 @@ Four screenshots have now been supplied by the user:
 
 The Steam guide text also calls Ladder a zig-zag, Whirlpool a one-way spiral, Double Whirlpool two spirals (one on each side), and 3-2-1 an M-shaped route. However, the guide's image placeholders do not expose the full original diagrams as directly retrievable image assets in this workflow. The current Ladder is represented as one composite row for its two persistent opposing rails, followed by eight mirrored rung events. The rail row leaves the four non-rail sectors open. Each rung row also explicitly leaves the two persistent rail sectors open, plus one opposite pair; the intersection of the long rail mask and the active rung mask therefore retains exactly two opposite playable openings. The rung pairs alternate at a regular 0.75-beat interval and each has the same 0.22-beat span. Keeping both rails in one row is important: when they were separate rows with the same timestamp, the route-repair pass treated them as sequential transitions and could shift only one side. The persistent rail row uses a zero `routeDepth` for route planning (it does not shorten the corridor-change window), while its visual/collision depth still spans the whole motif. The entire Ladder also carries one motif identity, so section-based randomization applies one mirror/rotation to the complete multi-beat phrase rather than reflecting its second half independently.
 
-Immediately after a Ladder or Bat, the generator selects two patterns from a dedicated wide-opening exit preset: `solo3` and `alt3`. Both begin with three open sectors, giving the Pointer a wider entry corridor than a two-opening or C-shaped Part. Only after both exit motifs does the generator return to the general pattern pool. Void applies the same rule. This prevents a single-opening C/Spin pattern, or a narrow two-opening Double C, from being selected immediately after a long compound motif.
+Immediately after a Ladder, the generator stays in a four-motif safety corridor. The allowed exit families are `solo3`, `alt3` and `stair1`; Stair 1 is allowed inside the corridor, but not followed by a C/Spin or another single-opening family until all four exit motifs have completed. The normal pool resumes only after that. Bat uses a shorter two-motif wide-opening exit (`solo3` and `alt3`). Void applies both rules and carries them across generated chunks.
 
-Triple C uses 2.5-beat spacing for its 3-sector transitions. Whirlpool, Double Whirlpool and Multi C use 1.25-beat spacing between one-sector changes. These intervals are calculated against the slower stage turn-rate constraints, rather than relying on a generic beat spacing.
+The project's `Solo` reconstruction follows the supplied screenshot as two same-lane single-hole Parts, one beat apart. The Steam guide describes Solo more generally as single bodies with one, two or three holes, and warns about a Solo followed by a three-unit turn; it does not specify a universal two-Part count. The fixed pair here is therefore the project's screenshot-based interpretation, not a claim about every original Solo variant.
+
+Triple C uses 2.5-beat spacing for its 3-sector transitions. Whirlpool, Double Whirlpool and Multi C use 1.25-beat spacing between one-sector changes. Ordinary Part wall spans are 10% thinner in both standard generation and Void; the persistent Ladder rails retain their full phrase-spanning depth. These intervals are calculated against the slower stage turn-rate constraints, rather than relying on a generic beat spacing.
 
 This is a reconstruction based on the user's marked screenshot, not a pixel-perfect copy of an unavailable original guide diagram.
 
