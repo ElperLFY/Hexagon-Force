@@ -182,34 +182,47 @@ export class Chart{
     const dropChance=Math.max(0,Math.min(1,L.randomDropChance??.08));
     const addChance=Math.max(0,Math.min(1,L.randomAddChance??.06));
     let section=-1,offset=0,mirror=false;
+    const motifTransforms=new Map();
 
     const rows=this.rows.map(source=>{
       const beat=(source.t-this.tg0)/this.beatDur;
-      const nextSection=Math.floor(beat/sectionBeats);
-      if(nextSection!==section){
-        section=nextSection;
-        offset=r()*6|0;
-        mirror=r()<.5;
-      }
-      let gaps=unique(source.g.map(g=>norm((mirror?-g:g)+offset)));
+      let transform;
+      const atomic=source.motifId!=null;
 
-      // Occasional local lane change makes otherwise repeated motifs less
-      // predictable while preserving their opening count.
-      if(source.th==null&&r()<laneShiftChance){
+      if(atomic){
+        // A complete multi-Part pattern is one visual phrase. Never let a
+        // random-section boundary mirror/rotate its later rows independently.
+        transform=motifTransforms.get(source.motifId);
+        if(!transform){
+          transform={offset:r()*6|0,mirror:r()<.5};
+          motifTransforms.set(source.motifId,transform);
+        }
+      }else{
+        const nextSection=Math.floor(beat/sectionBeats);
+        if(nextSection!==section){
+          section=nextSection;
+          offset=r()*6|0;
+          mirror=r()<.5;
+        }
+        transform={offset,mirror};
+      }
+
+      let gaps=unique(source.g.map(g=>norm((transform.mirror?-g:g)+transform.offset)));
+
+      // Legacy / ungrouped chart rows can still receive local variation.
+      // Atomic generated motifs retain their full authored silhouette.
+      if(!atomic&&source.th==null&&r()<laneShiftChance){
         const delta=r()<.5?1:-1;
         gaps=unique(gaps.map(g=>norm(g+delta)));
       }
 
-      // Hard levels sometimes close one of several gaps; a few single-gap
-      // rows gain a secondary route so the result is varied, not uniformly harsher.
-      // Preserve multi-sector wall silhouettes on authored long Parts.
-      if(source.th==null&&gaps.length>1&&r()<dropChance){
+      if(!atomic&&source.th==null&&gaps.length>1&&r()<dropChance){
         gaps.splice(r()*gaps.length|0,1);
-      }else if(source.th==null&&gaps.length===1&&r()<addChance){
+      }else if(!atomic&&source.th==null&&gaps.length===1&&r()<addChance){
         const distance=r()<.65?2:3;
         gaps.push(norm(gaps[0]+(r()<.5?distance:-distance)));
       }
-      return{t:source.t,g:gaps,th:source.th,routeDepth:source.routeDepth};
+      return{...source,g:gaps,w:wmask(gaps)};
     });
 
     const repaired=repairRows(rows,L);
@@ -249,24 +262,27 @@ export class Chart{
     const{beatDur,tg0,bpm,dur,speed}=this;
     return{
       v:1,beatDur,tg0,bpm,dur,speed,
-      rows:this.rows.map(r=>r.th==null&&r.routeDepth==null
-        ?[+r.t.toFixed(4),...r.g]
-        :{
+      rows:this.rows.map(r=>{
+        const extended=r.th!=null||r.routeDepth!=null||r.motifId!=null;
+        if(!extended)return[+r.t.toFixed(4),...r.g];
+        return{
           t:+r.t.toFixed(4),g:[...r.g],
           ...(r.th==null?{}:{th:+r.th.toFixed(6)}),
-          ...(r.routeDepth==null?{}:{rd:+r.routeDepth.toFixed(6)})
-        })
+          ...(r.routeDepth==null?{}:{rd:+r.routeDepth.toFixed(6)}),
+          ...(r.motifId==null?{}:{mid:r.motifId,mn:r.motifName,ms:r.motifStart,me:r.motifEnd})
+        };
+      })
     };
   }
 
   static fromJSON(j,L){
     if(!j||!Array.isArray(j.rows))throw new Error('Chart JSON non valido');
     const rows=j.rows.map(item=>{
-      let t,g,th,rd;
+      let t,g,th,rd,mid,mn,ms,me;
       if(Array.isArray(item)){
         [t,...g]=item;
       }else if(item&&typeof item==='object'){
-        ({t,g,th,rd}=item);
+        ({t,g,th,rd,mid,mn,ms,me}=item);
       }else{
         throw new Error('Riga chart non valida');
       }
@@ -276,6 +292,10 @@ export class Chart{
       const row={t,g:gaps,w:wmask(gaps)};
       if(Number.isFinite(th)&&th>0)row.th=th;
       if(Number.isFinite(rd)&&rd>=0)row.routeDepth=rd;
+      if(mid!=null)row.motifId=String(mid);
+      if(typeof mn==='string')row.motifName=mn;
+      if(Number.isFinite(ms))row.motifStart=ms;
+      if(Number.isFinite(me))row.motifEnd=me;
       return row;
     }).sort((a,b)=>a.t-b.t);
     return new Chart(rows,j.beatDur,j.tg0,j.bpm,j.dur,L.speed);
@@ -286,6 +306,10 @@ Chart.EMPTY=new Chart();
 // Pattern catalog inspired by the named movement families documented for
 // Super Hexagon. Each entry is [beatOffset, openSectors].
 export class PatternGenerator{
+  // A Ladder is a complete phrase, not a bag of independent rows. The next
+  // phrase is restricted to multi-opening patterns with a safe first Part.
+  static POST_LADDER=Object.freeze(['solo2','solo3','bat','dwhirl','stair1','rain']);
+
   static PAT={
     solo:g=>[[0,[g]]],
     solo2:g=>[[0,[g,g+3]]],
@@ -407,11 +431,18 @@ export class PatternGenerator{
     return names[names.length-1];
   }
 
+  poolAfter(previousPattern,names){
+    if(previousPattern!=='ladder'&&previousPattern!=='zig')return names;
+    const safe=names.filter(name=>PatternGenerator.POST_LADDER.includes(name));
+    return safe.length?safe:PatternGenerator.POST_LADDER.filter(name=>typeof PatternGenerator.PAT[name]==='function');
+  }
+
   generate(S,bd,tg0,dur){
     const L=this.L,r=this.rng,rows=[],t0=L.offset;
     if(!(bd>0)||!(dur>0))return rows;
     const quiet=L.intensityThreshold??(L.hard ? .065 : .1);
     let beatCursor=Math.max(0,Math.ceil((t0+2-tg0)/(4*bd)-1e-6)*4);
+    let previousPattern=null;
     for(;;){
       const b0=beatCursor,tb=tg0+b0*bd;
       if(tb+4*bd>dur-1.5)break;
@@ -433,12 +464,20 @@ export class PatternGenerator{
       const x=L.hard?Math.max(.55,rawX):rawX;
       const g=r()*6|0,d=r()<.5?1:-1;
       const names=this.pool(x);
-      const name=this.choose(names,r);
+      const candidates=this.poolAfter(previousPattern,names);
+      const name=this.choose(candidates,r);
       const pat=PatternGenerator.PAT[name](g,d,r);
+      const motifId=`${name}@${tb.toFixed(6)}`;
+      const motifDuration=Math.max(...pat.map(([beat,,spanBeats=0])=>
+        beat+(spanBeats>0?spanBeats:TH/((L.speed||1)*bd))
+      ));
       let end=0;
       for(const [beat,gaps,spanBeats=0,routeSpanBeats=null] of pat){
         const effectiveSpan=spanBeats>0?spanBeats:TH/((L.speed||1)*bd);
-        const row={t:tb+beat*bd,g:unique(gaps)};
+        const row={
+          t:tb+beat*bd,g:unique(gaps),
+          motifId,motifName:name,motifStart:tb,motifEnd:tb+motifDuration*bd
+        };
         if(spanBeats>0)row.th=Math.max(TH,(L.speed||1)*bd*spanBeats);
         if(Number.isFinite(routeSpanBeats)&&routeSpanBeats>=0){
           row.routeDepth=(L.speed||1)*bd*routeSpanBeats;
@@ -446,6 +485,7 @@ export class PatternGenerator{
         rows.push(row);
         end=Math.max(end,beat+effectiveSpan);
       }
+      previousPattern=name;
 
       if(L.hard){
         // Continue after the final wall thickness clears, with only a short
@@ -475,6 +515,9 @@ export class PatternGenerator{
     let names=this.voidPool();
     if(this.lastVoidMulti===false)names=names.filter(name=>multi.includes(name));
     else if(this.lastVoidMulti===true)names=names.filter(name=>!multi.includes(name));
+    if(this.lastVoidPattern==='ladder'||this.lastVoidPattern==='zig'){
+      names=names.filter(name=>PatternGenerator.POST_LADDER.includes(name));
+    }
     if(names.length>1&&this.lastVoidPattern)names=names.filter(name=>name!==this.lastVoidPattern);
     if(!names.length)names=this.voidPool();
 
@@ -522,9 +565,14 @@ export class PatternGenerator{
       }
 
       const pat=PatternGenerator.PAT[name](g,d,r);
+      const motifId=`${name}@${tb.toFixed(6)}`;
+      const motifDuration=Math.max(...pat.map(([beat,,spanBeats=0])=>beat+spanBeats));
       let end=0;
       for(const [beat,gaps,spanBeats=0,routeSpanBeats=null] of pat){
-        const row={t:tb+beat*bd,g:unique(gaps)};
+        const row={
+          t:tb+beat*bd,g:unique(gaps),
+          motifId,motifName:name,motifStart:tb,motifEnd:tb+motifDuration*bd
+        };
         if(spanBeats>0)row.th=Math.max(TH,(L.speed||1)*bd*spanBeats);
         if(Number.isFinite(routeSpanBeats)&&routeSpanBeats>=0){
           row.routeDepth=(L.speed||1)*bd*routeSpanBeats;
