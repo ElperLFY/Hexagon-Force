@@ -157,6 +157,8 @@ This catches a critical class of bug that row-by-row tests miss: individually re
 - both clockwise and counter-clockwise variants;
 - high-speed settings from the Mod Menu.
 
+For visual diagnosis, append `?debugPatterns=1` to the game URL. The gameplay HUD then shows the currently active generated motif name and elapsed time within that motif. This is especially useful because screenshots without the label cannot distinguish a Ladder-like silhouette from Stair, Whirlpool or another family.
+
 ## 7. Reference images and current reconstruction scope
 
 Four screenshots have now been supplied by the user:
