@@ -1,4 +1,4 @@
-import {TAU,SIDE,K,TH,RP,HUB,PL,VOID} from './config.js';
+import {TAU,SIDE,K,TH,PART_DEPTH_SCALE,RP,HUB,PL,VOID} from './config.js';
 
 // Deterministic PRNG: the same level seed produces the same chart.
 const mul=a=>()=>{
@@ -365,7 +365,7 @@ Chart.EMPTY=new Chart();
 export class PatternGenerator{
   // A Ladder is a complete phrase, not a bag of independent rows. The next
   // phrase is restricted to multi-opening patterns with a safe first Part.
-  static POST_LADDER=Object.freeze(['solo3','alt3']);
+  static POST_LADDER=Object.freeze(['solo3','alt3','stair1']);
   static POST_BAT=Object.freeze(['solo3','alt3']);
 
   static PAT={
@@ -492,9 +492,10 @@ export class PatternGenerator{
     return names[names.length-1];
   }
 
-  poolAfter(names,preset=PatternGenerator.POST_LADDER){
-    const safe=names.filter(name=>preset.includes(name));
-    return safe.length?safe:preset.filter(name=>typeof PatternGenerator.PAT[name]==='function');
+  poolAfter(_names,preset=PatternGenerator.POST_LADDER){
+    // Exit motifs are injected even when the stage's regular difficulty pool
+    // would not normally contain them.
+    return preset.filter(name=>typeof PatternGenerator.PAT[name]==='function');
   }
 
   generate(S,bd,tg0,dur){
@@ -538,9 +539,9 @@ export class PatternGenerator{
       const name=this.choose(candidates,r);
       const pat=PatternGenerator.PAT[name](g,d,r);
       if(name==='ladder'||name==='zig'){
-        postLadderRemaining=2;
+        postLadderRemaining=4;
       }else if(enteringPostLadder){
-        postLadderRemaining=1;
+        postLadderRemaining=3;
       }else if(postLadderRemaining>0){
         postLadderRemaining--;
       }
@@ -552,17 +553,21 @@ export class PatternGenerator{
         postBatRemaining--;
       }
       const motifId=`${name}@${tb.toFixed(6)}`;
-      const motifDuration=Math.max(...pat.map(([beat,,spanBeats=0])=>
-        beat+(spanBeats>0?spanBeats:TH/((L.speed||1)*bd))
+      const defaultSpan=TH/((L.speed||1)*bd);
+      const partSpan=(spanBeats,routeSpanBeats=null)=>spanBeats>0
+        ?spanBeats*(routeSpanBeats===0?1:PART_DEPTH_SCALE)
+        :defaultSpan;
+      const motifDuration=Math.max(...pat.map(([beat,,spanBeats=0,routeSpanBeats=null])=>
+        beat+partSpan(spanBeats,routeSpanBeats)
       ));
       let end=0;
       for(const [beat,gaps,spanBeats=0,routeSpanBeats=null] of pat){
-        const effectiveSpan=spanBeats>0?spanBeats:TH/((L.speed||1)*bd);
+        const effectiveSpan=partSpan(spanBeats,routeSpanBeats);
         const row={
           t:tb+beat*bd,g:unique(gaps),
           motifId,motifName:name,motifStart:tb,motifEnd:tb+motifDuration*bd
         };
-        if(spanBeats>0)row.th=Math.max(TH,(L.speed||1)*bd*spanBeats);
+        if(spanBeats>0)row.th=Math.max(TH,(L.speed||1)*bd*effectiveSpan);
         if(Number.isFinite(routeSpanBeats)&&routeSpanBeats>=0){
           row.routeDepth=(L.speed||1)*bd*routeSpanBeats;
         }
@@ -627,9 +632,9 @@ export class PatternGenerator{
     this.lastVoidPattern=chosen;
     this.lastVoidMulti=multi.includes(chosen);
     if(chosen==='ladder'||chosen==='zig'){
-      this.postVoidLadderRemaining=2;
+      this.postVoidLadderRemaining=4;
     }else if(enteringPostLadder){
-      this.postVoidLadderRemaining=1;
+      this.postVoidLadderRemaining=3;
     }else if(this.postVoidLadderRemaining>0){
       this.postVoidLadderRemaining--;
     }
@@ -680,21 +685,25 @@ export class PatternGenerator{
       const pat=PatternGenerator.PAT[name](g,d,r);
       const motifId=`${name}@${tb.toFixed(6)}`;
       const defaultSpan=TH/((L.speed||1)*bd);
-      const motifDuration=Math.max(...pat.map(([beat,,spanBeats=0])=>
-        beat+(spanBeats>0?spanBeats:defaultSpan)
+      const partSpan=(spanBeats,routeSpanBeats=null)=>spanBeats>0
+        ?spanBeats*(routeSpanBeats===0?1:PART_DEPTH_SCALE)
+        :defaultSpan;
+      const motifDuration=Math.max(...pat.map(([beat,,spanBeats=0,routeSpanBeats=null])=>
+        beat+partSpan(spanBeats,routeSpanBeats)
       ));
       let end=0;
       for(const [beat,gaps,spanBeats=0,routeSpanBeats=null] of pat){
+        const effectiveSpan=partSpan(spanBeats,routeSpanBeats);
         const row={
           t:tb+beat*bd,g:unique(gaps),
           motifId,motifName:name,motifStart:tb,motifEnd:tb+motifDuration*bd
         };
-        if(spanBeats>0)row.th=Math.max(TH,(L.speed||1)*bd*spanBeats);
+        if(spanBeats>0)row.th=Math.max(TH,(L.speed||1)*bd*effectiveSpan);
         if(Number.isFinite(routeSpanBeats)&&routeSpanBeats>=0){
           row.routeDepth=(L.speed||1)*bd*routeSpanBeats;
         }
         rows.push(row);
-        end=Math.max(end,beat+(spanBeats>0?spanBeats:defaultSpan));
+        end=Math.max(end,beat+effectiveSpan);
       }
       this.lastVoidOpenings=unique(pat[pat.length-1]?.[1]??[]);
       tb+=(end+(L.voidGapBeats??.32))*bd;
