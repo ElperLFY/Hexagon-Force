@@ -364,6 +364,7 @@ Chart.EMPTY=new Chart();
 // Super Hexagon. Each entry is [beatOffset, openSectors].
 export class PatternGenerator{
   static catalog=null;
+  static definitions=null;
   static loading=null;
   static PAT={};
   static POST_LADDER=Object.freeze([]);
@@ -470,6 +471,7 @@ export class PatternGenerator{
       };
 
       for(const id of catalog.patterns)compile(id);
+      this.definitions=definitions;
       this.PAT=Object.freeze(compiled);
       this.POST_LADDER=Object.freeze([...catalog.transitions.afterLadder.allowed]);
       this.POST_LADDER_FINAL=Object.freeze([...catalog.transitions.afterLadder.finalAllowed]);
@@ -498,9 +500,9 @@ export class PatternGenerator{
   }
 
   choose(names,r){
-    const baseWeights=PatternGenerator.catalog?.normalWeights??{};
     const levelWeights=this.L.patternWeights||{};
-    const weight=name=>Math.max(.1,Number(levelWeights[name]??baseWeights[name]??1));
+    const definitions=PatternGenerator.definitions??{};
+    const weight=name=>Math.max(.1,Number(levelWeights[name]??definitions[name]?.weight??1));
     const total=names.reduce((sum,name)=>sum+weight(name),0);
     let value=r()*total;
     for(const name of names){value-=weight(name);if(value<=0)return name;}
@@ -634,11 +636,12 @@ export class PatternGenerator{
     if(names.length>1&&this.lastVoidPattern)names=names.filter(name=>name!==this.lastVoidPattern);
     if(!names.length)names=this.voidPool();
 
-    const weights=PatternGenerator.catalog?.voidWeights??{};
-    const total=names.reduce((sum,name)=>sum+(weights[name]??1),0);
+    const definitions=PatternGenerator.definitions??{};
+    const weight=name=>Number(definitions[name]?.voidWeight??1);
+    const total=names.reduce((sum,name)=>sum+weight(name),0);
     let value=r()*total,chosen=names[names.length-1];
     for(const name of names){
-      value-=weights[name]??1;
+      value-=weight(name);
       if(value<=0){chosen=name;break;}
     }
     this.lastVoidPattern=chosen;
