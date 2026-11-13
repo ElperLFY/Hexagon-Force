@@ -277,13 +277,16 @@ for(const id of [100,105,110,115]){
       else ladderExitRemaining=Math.max(0,ladderExitRemaining-1);
     }else if(inBatExit){
       if(!PatternGenerator.POST_BAT.includes(name))throw new Error(`Void post-Bat preset failed in stage ${id}`);
-      if(enteringBat)batExitRemaining=1;
-      else batExitRemaining=Math.max(0,batExitRemaining-1);
     }else if(previousMulti!==null&&multi(name)===previousMulti){
       throw new Error(`Void pattern variety failed in stage ${id}`);
     }
-    if(name==='ladder'||name==='zig')ladderExitRemaining=2;
+
+    // Both exit states can overlap (for example, Bat may be the first of
+    // Ladder's two exit motifs). Update their counters independently.
+    if(enteringBat)batExitRemaining=1;
+    else if(batExitRemaining>0)batExitRemaining--;
     if(name==='bat'||name==='pairs')batExitRemaining=2;
+    if(name==='ladder'||name==='zig')ladderExitRemaining=2;
     previousPattern=name;
     previousMulti=multi(name);
   }
