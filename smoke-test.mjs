@@ -10,7 +10,7 @@ const patternCatalog=JSON.parse(fs.readFileSync('./js/SubData/PatternGenerator/c
 const patternCatalogSchema=JSON.parse(fs.readFileSync('./js/SubData/PatternGenerator/pattern-catalog.schema.json','utf8'));
 const patternDefinitionSchema=JSON.parse(fs.readFileSync('./js/SubData/PatternGenerator/pattern.schema.json','utf8'));
 if(!patternCatalogSchema.properties?.$schema||!patternDefinitionSchema.properties?.$schema)throw new Error('Pattern JSON Schemas must allow their $schema metadata');
-if(!patternCatalog.properties?.$schema)throw new Error('Pattern catalog must declare its JSON Schema');
+if(!patternCatalog.$schema)throw new Error('Pattern catalog must declare its JSON Schema');
 if('normalWeights' in patternCatalog||'voidWeights' in patternCatalog)throw new Error('Pattern weights must live beside their pattern definitions');
 for(const id of patternCatalog.patterns){
   const file=patternCatalog.definitionFiles[id];
