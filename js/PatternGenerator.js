@@ -182,9 +182,10 @@ export class Chart{
 
       // Hard levels sometimes close one of several gaps; a few single-gap
       // rows gain a secondary route so the result is varied, not uniformly harsher.
-      if(gaps.length>1&&r()<dropChance){
+      // Preserve multi-sector wall silhouettes on authored long Parts.
+      if(source.th==null&&gaps.length>1&&r()<dropChance){
         gaps.splice(r()*gaps.length|0,1);
-      }else if(gaps.length===1&&r()<addChance){
+      }else if(source.th==null&&gaps.length===1&&r()<addChance){
         const distance=r()<.65?2:3;
         gaps.push(norm(gaps[0]+(r()<.5?distance:-distance)));
       }
