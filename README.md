@@ -30,23 +30,30 @@ The sector index is wrapped modulo six. Sector 5 and sector 0 are neighbours.
 
 A chart row is stored internally as:
 
-`{ t, g, w }`
+`{ t, g, w, th? }`
 
-- `t`: wall arrival time in seconds on the song timeline.
+- `t`: inner-face arrival time in seconds on the song timeline.
 - `g`: array of open sector indices (0–5).
 - `w`: six booleans; `true` means a wall occupies that sector.
+- `th` (optional): radial depth of this Part, in arena units. If absent, the renderer and collision system both use the global `TH`.
 
-The JSON form is compact:
+Legacy chart rows retain the compact array form:
 
 `[time, openSector1, openSector2, ...]`
+
+Extended geometry rows use an object:
+
+`{ "t": time, "g": [openSector, ...], "th": radialDepth }`
 
 The wall mask is reconstructed from the open sectors. The row time for a pattern event is:
 
 `t = barTime + beatOffset × beatDur`
 
-Every pattern factory returns an array of events:
+Pattern factories return events in the form:
 
-`[[beatOffset, [openSector, ...]], ...]`
+`[beatOffset, [openSector, ...], spanBeats?]`
+
+The optional third value specifies how far the Part extends radially, measured in beats. The generator converts it to arena depth using the level wall speed and beat duration. Events without it use the legacy global `TH`.
 
 ### Cyclic-sector arithmetic
 
@@ -63,12 +70,10 @@ This creates useful ambiguities that the pattern format must handle explicitly:
 Example:
 
 ```js
-ladder: (start, direction) => [
-  [0, [start]],
-  [1, [start + direction]],
-  [2, [start]],
-  [3, [start + direction]]
-]
+ladder: (start, direction) => {
+  // Extended events can describe two long rails and short alternating rungs.
+  // See PatternGenerator.PAT.ladder for the complete six-sector construction.
+}
 ```
 
 This is only a schema example, not a claim that it reproduces the guide's exact Ladder diagram.
@@ -80,15 +85,11 @@ The arena uses six sectors, each spanning `SIDE` radians. A wall sector is rende
 - inner hexagon apothem offset: `m`
 - outer hexagon apothem offset: `m + TH`
 
-`TH` is currently a **global wall thickness between parallel hexagon boundaries** in world units, defined in `js/config.js`. It is not a per-pattern property.
+`TH` remains the global fallback wall thickness, defined in `js/config.js`. Pattern Parts can override it with `th`, a radial depth calculated from their authored span in beats.
 
-The current row schema stores only the time and open sectors. It cannot express different thickness per Part. To introduce pattern-specific thickness safely, the data model would need an optional field, for example:
+The renderer and collision geometry read the same effective depth (`row.th ?? TH`). Legacy JSON arrays therefore retain their old appearance and collision behavior, while extended rows can produce long rails, rungs, and thicker Part silhouettes.
 
-`{ t, g, w, thickness }`
-
-with a fallback to global `TH` for legacy JSON. The renderer and collision geometry must read the same effective thickness; changing only the drawing would desynchronise visuals and hit detection.
-
-The Steam guide text describes silhouettes and movement, but does not specify numeric thicknesses. Exact per-pattern thickness therefore needs the guide diagrams or user-provided reference images.
+The span values are design parameters, not measurements stated by the Steam guide. They are initial visual tuning values and still need in-game inspection against the supplied screenshots.
 
 ## 4. Pattern definitions in the reference guide
 
@@ -148,21 +149,18 @@ This is a gameplay safeguard, not a proof that every pattern is visually faithfu
 - both clockwise and counter-clockwise variants;
 - high-speed settings from the Mod Menu.
 
-## 7. Reference images still required
+## 7. Reference images and current reconstruction scope
 
-The Steam page text is accessible, but its embedded pattern diagrams are not present in the page content available to this workflow. The image placeholders appear as the word “Picture”; the separately exposed Steam image links resolve to decorative reaction icons, not pattern diagrams.
+Four screenshots have now been supplied by the user:
 
-Before changing the exact pattern silhouettes or introducing per-pattern thickness values, attach the actual diagrams in this order:
+1. A shared Spin Part silhouette, used for 2-, 3-, and 4-Spin by repeating the motif the named number of times.
+2. The 3-2-1 M-shaped sequence (3, then 2, then 1 unit).
+3. Double Whirlpool, with two simultaneous spiral lanes.
+4. A 3-Spin reference illustrating the 1-2-3 movement progression.
 
-1. `321`
-2. `Ladder`
-3. `Whirlpool`
-4. `Double Whirlpool`
-5. `2-Spin`
-6. `3-Spin`
-7. `4-Spin`
+The Steam guide text also calls Ladder a zig-zag, Whirlpool a one-way spiral, Double Whirlpool two spirals (one on each side), and 3-2-1 an M-shaped route. However, the guide's image placeholders do not expose the full original diagrams as directly retrievable image assets in this workflow. The current Ladder rails/rungs and wall span values are therefore a geometric reconstruction, not a pixel-verified copy of a missing Ladder screenshot.
 
-Name each attachment with the corresponding pattern name. For diagrams showing an entire sequence, include all Parts and their order.
+The user screenshots define the intended Spin repetition and the movement silhouettes above; do not replace those with the differing abbreviated wording in the guide without asking.
 
 ## 8. Reference
 
