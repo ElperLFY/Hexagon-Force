@@ -344,7 +344,7 @@ export class PatternGenerator{
     doubleC:(g,d)=>[0,1,2,3].map(i=>[i,[g+i*d,g+1+i*d],.42])
   };
 
-  constructor(L){this.L=L;this.rng=mul(L.seed);this.lastVoidPattern=null;this.lastVoidMulti=false;}
+  constructor(L){this.L=L;this.rng=mul(L.seed);this.lastVoidPattern=null;this.lastVoidMulti=false;this.lastVoidOpenings=null;}
 
   pool(x){
     const L=this.L;
@@ -468,8 +468,24 @@ export class PatternGenerator{
     let tb=from,guard=0;
     while(tb<stop&&guard++<512){
       const ramp=Math.min(1,Math.max(0,(tb-t0)/(L.voidRamp||150)));
-      const g=r()*6|0,d=r()<.5?1:-1;
+      const d=r()<.5?1:-1;
       const name=this.chooseVoid(r);
+      let g=r()*6|0;
+
+      // Orient the next motif so its first Part retains at least one opening
+      // from the previous motif's final Part. This avoids an abrupt lane jump
+      // at a motif seam that row-local repair cannot detect.
+      if(this.lastVoidOpenings?.length){
+        let best=-1,candidates=[];
+        for(let candidate=0;candidate<6;candidate++){
+          const first=PatternGenerator.PAT[name](candidate,d,()=>.5)[0]?.[1]??[];
+          const score=first.filter(sector=>this.lastVoidOpenings.includes(norm(sector))).length;
+          if(score>best){best=score;candidates=[candidate];}
+          else if(score===best)candidates.push(candidate);
+        }
+        if(best>0)g=candidates[r()*candidates.length|0];
+      }
+
       const pat=PatternGenerator.PAT[name](g,d,r);
       let end=0;
       for(const [beat,gaps,spanBeats=0] of pat){
@@ -478,8 +494,11 @@ export class PatternGenerator{
         rows.push(row);
         end=Math.max(end,beat+spanBeats);
       }
+      this.lastVoidOpenings=unique(pat[pat.length-1]?.[1]??[]);
       tb+=(end+(L.voidGapBeats??.32))*bd;
     }
     this.voidNext=tb;
-    return this.repair(rows.sort((a,b)=>a.t-b.t),prev);
+    const repaired=this.repair(rows.sort((a,b)=>a.t-b.t),prev);
+    if(repaired.length)this.lastVoidOpenings=[...repaired[repaired.length-1].g];
+    return repaired;
   }}
