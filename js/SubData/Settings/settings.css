@@ -29,7 +29,9 @@ canvas { display:block; width:100%; height:100%; }
 .hb-settings__nav { display:flex; flex-direction:column; gap:7px; padding:24px 14px; border-right:1px solid var(--hb-line); background:rgba(0,0,0,.18); }
 .hb-settings__nav button { border:1px solid transparent; padding:13px 12px; text-align:left; color:var(--hb-muted); background:transparent; font:700 10px Orbitron,sans-serif; letter-spacing:.09em; cursor:pointer; }
 .hb-settings__nav button[aria-current="page"] { color:var(--hb-text); border-color:var(--hb-line); background:linear-gradient(90deg,rgba(73,139,211,.22),rgba(73,139,211,.035)); box-shadow:inset 2px 0 var(--hb-accent-strong); }
-.hb-settings__content { min-height:0; overflow:auto; padding:clamp(18px,3vw,32px); }
+.hb-settings__content { min-height:0; overflow:auto; overscroll-behavior:contain; padding:clamp(18px,3vw,32px); touch-action:pan-y; }
+.hb-settings__nav { touch-action:pan-x; }
+body.settings-open { touch-action:auto; }
 .hb-settings__section[hidden] { display:none; }
 .hb-settings__section h2 { margin:0 0 8px; color:var(--hb-accent); font-size:15px; letter-spacing:.13em; }
 .hb-settings__section-description { margin:0 0 20px; color:var(--hb-muted); font:12px/1.6 Arial,sans-serif; }
