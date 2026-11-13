@@ -43,7 +43,7 @@
       "description": "Optional difficulty modifiers.",
       "settings": [
         {
-          "id": "advancedModifiers",
+          "id": "modMenuEnabled",
           "label": "Advanced Modifiers",
           "type": "toggle",
           "default": true,
@@ -58,7 +58,7 @@
           "step": 0.05,
           "default": 1,
           "unit": "×",
-          "requires": "advancedModifiers",
+          "requires": "modMenuEnabled",
           "description": "Changes how quickly incoming walls travel."
         },
         {
@@ -70,7 +70,7 @@
           "step": 0.05,
           "default": 1,
           "unit": "×",
-          "requires": "advancedModifiers",
+          "requires": "modMenuEnabled",
           "description": "Changes the player's maximum turning speed."
         }
       ]
