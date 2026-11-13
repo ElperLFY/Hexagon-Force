@@ -4,6 +4,7 @@
   "title": "HEXBEAT settings",
   "type": "object",
   "required": [
+    "$schema",
     "schemaVersion",
     "storageKey",
     "groups"
