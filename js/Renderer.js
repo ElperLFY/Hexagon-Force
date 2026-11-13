@@ -48,7 +48,7 @@ export class Renderer{
   drawPlayer(phi,color,turn=0){
     const c=this.c;
     // Lean a little into the current turning direction, easing back to neutral on release.
-    this.playerTilt+=(turn*.5-this.playerTilt)*.20;
+    this.playerTilt+=(turn * .5 - this.playerTilt) * .50;
     const angle=phi+this.playerTilt;
 
     // A small dark drop-shadow keeps the pointer readable on bright palettes.
