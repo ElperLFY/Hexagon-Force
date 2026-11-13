@@ -38,12 +38,23 @@ for(const [name,repetitions] of [['spin2',2],['spin3',3],['spin4',4]]){
   }
 }
 
-// Ladder: two long opposing rails plus eight alternating single-sector rungs.
+// Ladder: one composite Part for two continuous opposing rails, then
+// eight evenly spaced mirrored rung-pairs. Same-time rails must not be fed
+// to reachability repair as two sequential rows.
 const ladder=PatternGenerator.PAT.ladder(0,1);
-if(ladder.length!==10)throw new Error('Ladder must contain two rails and eight rungs');
-if(!ladder.slice(0,2).every(event=>event[2]===4&&event[1].length===5))throw new Error('Ladder rails must be long single-sector walls');
-if(!ladder.slice(2).every(event=>event[1].length===5&&event[2]===.22))throw new Error('Ladder rungs must be single-sector walls');
-if(ladder.slice(2).some(event=>event[1].length===4))throw new Error('A Ladder rung must never combine two sectors and close the opposite route');
+if(ladder.length!==9)throw new Error('Ladder must contain one composite rail row and eight rungs');
+if(ladder[0][0]!==0||ladder[0][1].length!==4||ladder[0][2]!==6.22||ladder[0][3]!==0)throw new Error('Ladder rail Part must be one continuous opposing pair');
+if(ladder.slice(1).some((event,index)=>event[1].length!==2||event[2]!==.22||Math.abs(event[0]-(.75+index*.75))>1e-9))throw new Error('Ladder mirrored rungs must have identical spacing and thickness');
+for(let i=1;i<ladder.length;i++){
+  const openings=ladder[i][1];
+  if(((openings[0]-openings[1]+6)%6)!==3)throw new Error('Each Ladder rung must leave mirrored opposite openings');
+}
+const ladderRows=ladder.map(([beat,gaps,span,routeSpan])=>({
+  t:beat*.5,g:[...new Set(gaps.map(value=>((value%6)+6)%6))],
+  w:mask(gaps),...(span>0?{th:span*.5}:{}),
+  ...(routeSpan!=null?{routeDepth:routeSpan*.5}:{})
+}));
+if(ladderRows[0].routeDepth!==0)throw new Error('Persistent Ladder rails must not consume the rung-to-rung route-change window');
 // Time-expanded reachability audit. Treat every wall as active for the exact
 // interval during which its radial span crosses the pointer radius. The pointer
 // can rotate at the game's real maximum turn rate; an 8.5-degree body clearance
