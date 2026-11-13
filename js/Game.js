@@ -30,6 +30,8 @@ export class Game {
     this.audio = new AudioManager();
     this.view = new Renderer(canvas);
     this.input = new Input(this);
+    this.frameRateCap = 60;
+    this.lastDraw = 0;
     this.volUI = new VolumeControl(this.audio, value => this.settingsPanel?.syncMusicVolume(value));
     this.settingsPanel = new SettingsPanel(this);
     this.settingsReady = this.settingsPanel.ready.catch(error => {
@@ -37,8 +39,7 @@ export class Game {
       this.msg = 'SETTINGS UNAVAILABLE: ' + error.message;
       return null;
     });
-    this.frameRateCap = 60;
-    this.lastDraw = 0;
+    this.settingsPanel.ready = this.settingsReady;
     this.vis = new Visualizer(this.audio);
     this.fx = null;
 
@@ -263,7 +264,6 @@ export class Game {
       this.charts[this.lv] = run;
       this.noiseOn = false;
       this.audio.loadNoise(); // Preload wn01.wav.
-      this.modMenu.setOpen(false);
       this.audio.play(level, false, run);
       this.phi = 0;
       this.fx = null;
