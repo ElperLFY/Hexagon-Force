@@ -19,3 +19,5 @@ jobs:
           node-version: 22
       - name: Run deterministic smoke tests
         run: node smoke-test.mjs
+      - name: Run pattern and Void reachability audit
+        run: node pattern-reachability-test.mjs
