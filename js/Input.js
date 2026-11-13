@@ -5,6 +5,15 @@ export class Input {
     this.R = 0;
     addEventListener('keydown', event => {
       const code = event.code;
+      // A modal Settings screen owns keyboard input; don't let Tab open scores
+      // or menu shortcuts leak through if focus reaches the document.
+      if (game.uiOverlay === 'settings') {
+        if (code === 'Escape' && !event.repeat) {
+          event.preventDefault();
+          game.settingsPanel.close();
+        }
+        return;
+      }
       if (code === 'Tab' && game.state !== 'play' && game.state !== 'load') {
         event.preventDefault();
         game.toggleHighScores();
@@ -12,7 +21,6 @@ export class Input {
       }
       if (code === 'Escape') {
         if (event.repeat) return;
-        if (game.uiOverlay === 'settings') game.settingsPanel.close();
         else if (game.uiOverlay === 'scores') game.toggleHighScores();
         else if (game.state === 'gate') game.quit();
         else game.back(); // In play: abandon this run and return to stage select.
