@@ -22,7 +22,7 @@ const hsl=(h,s,l)=>`hsl(${h},${s}%,${l}%)`;
 
 export const LEVELS=[
   {
-    id:105,name:'VERDE · GIALLO · ROSSO',offset:0,speed:1,seed:105,
+    id:105,name:'VERDE · GIALLO · ROSSO',offset:0,speed:1,seed:105,turnRate:8,
     rotSpeed:.60,rotAmp:.5,rotBeats:16,
     randomSectionBeats:16,randomLaneShiftChance:.05,randomDropChance:.025,randomAddChance:.08,
     pal(tt){
@@ -33,7 +33,7 @@ export const LEVELS=[
     }
   },
   {
-    id:100,name:'CREMISI · NERO',offset:39,speed:1.1,seed:100,inv:true,
+    id:100,name:'CREMISI · NERO',offset:39,speed:1.1,seed:100,inv:true,turnRate:8,
     rotSpeed:.35,rotAmp:.6,rotBeats:16,
     patternWeights:{
   ladder:2,
@@ -48,7 +48,7 @@ export const LEVELS=[
     }
   },
   {
-    id:110,name:'BLU',offset:0,speed:1.3,seed:110,hard:true,diff:.25,ramp:45,
+    id:110,name:'BLU',offset:0,speed:1.3,seed:110,hard:true,diff:.25,ramp:45,turnRate:10,
     rotSpeed:.90,rotAmp:.72,rotBeats:14,
     randomSectionBeats:10,randomLaneShiftChance:.16,randomDropChance:.10,randomAddChance:.07,
     intensityThreshold:.065,
@@ -56,7 +56,7 @@ export const LEVELS=[
     pal(){return{b1:hsl(215,70,64),b2:hsl(215,70,57),w:hsl(222,85,16),p:hsl(210,60,97)}}
   },
   {
-    id:115,name:'RGB',offset:0,speed:1.4,seed:115,hard:true,diff:.35,ramp:45,
+    id:115,name:'RGB',offset:0,speed:1.4,seed:115,hard:true,diff:.35,ramp:45,turnRate:8,
     rotSpeed:1,rotAmp:.86,rotBeats:12,trip:true,
     randomSectionBeats:8,randomLaneShiftChance:.22,randomDropChance:.14,randomAddChance:.05,
     intensityThreshold:.055,
