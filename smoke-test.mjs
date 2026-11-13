@@ -298,7 +298,7 @@ for(const id of [100,105,110,115]){
   let seed=0xA55A+id;
   const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
   const choices=Array.from({length:18},()=>generator.chooseVoid(random));
-  const multi=name=>['solo2','solo3','bat','dwhirl','stair1','rain','doubleC'].includes(name);
+  const multi=name=>['solo2','solo3','alt3','bat','dwhirl','stair1','rain','doubleC'].includes(name);
   let previousPattern=null,previousMulti=null,ladderExitRemaining=0,batExitRemaining=0;
   for(let choiceIndex=0;choiceIndex<choices.length;choiceIndex++){
     const name=choices[choiceIndex];
