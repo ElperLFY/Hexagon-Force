@@ -106,11 +106,6 @@
       ]
     }
   ],
-  "normalWeights": {
-    "ladder": 1.25,
-    "burst": 1.25,
-    "whirl": 1.25
-  },
   "voidPool": [
     "solo2",
     "solo3",
@@ -141,25 +136,6 @@
     "doubleC",
     "alt3"
   ],
-  "voidWeights": {
-    "solo2": 1,
-    "solo3": 0.75,
-    "ladder": 1.3,
-    "stair": 0.9,
-    "bat": 1.4,
-    "tripleC": 0.65,
-    "whirl": 1,
-    "dwhirl": 1.9,
-    "multiC": 0.9,
-    "stair1": 1.45,
-    "stair2": 1.1,
-    "spin2": 0.85,
-    "spin3": 1,
-    "spin4": 1.05,
-    "t321": 1,
-    "rain": 1.25,
-    "doubleC": 1.1
-  },
   "transitions": {
     "afterLadder": {
       "motifCount": 4,
