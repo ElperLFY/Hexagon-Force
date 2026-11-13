@@ -115,10 +115,12 @@ transitionProbe.choose=names=>{
 };
 const transitionRows=transitionProbe.generate(()=>1,60/140,0,35);
 if(receivedPools.length<6)throw new Error('Pattern generator did not schedule four post-Ladder exit motifs');
-for(const pool of receivedPools.slice(1,5)){
+const ladderExitPools=receivedPools.slice(1,5);
+for(const pool of ladderExitPools){
   if(pool.some(name=>!PatternGenerator.POST_LADDER.includes(name)))throw new Error('Post-Ladder selector included a pattern outside the four-motif safe corridor');
   if(pool.includes('solo')||pool.includes('stair')||pool.includes('tripleC')||pool.includes('whirl')||pool.includes('multiC')||pool.includes('stair2')||pool.includes('t321')||pool.includes('spin2')||pool.includes('spin3')||pool.includes('spin4')||pool.includes('rain')||pool.includes('doubleC'))throw new Error('A single-opening C/Spin pattern may not occur in the four-motif Ladder exit corridor');
 }
+if(ladderExitPools[3].some(name=>!PatternGenerator.POST_LADDER_FINAL.includes(name)))throw new Error('The final Ladder exit motif must have three openings, so Stair 1 is never followed directly by a C');
 if(!receivedPools[5].includes('solo')||!receivedPools[5].includes('stair'))throw new Error('Normal pattern pool should resume after the four-motif Ladder exit corridor');
 const ladderStart=transitionRows.find(row=>row.motifName==='ladder')?.motifStart;
 const ladderEnd=transitionRows.find(row=>row.motifName==='ladder')?.motifEnd;
@@ -281,6 +283,7 @@ for(const id of [100,105,110,115]){
     const inBatExit=enteringBat||batExitRemaining>0;
     if(inLadderExit){
       if(!PatternGenerator.POST_LADDER.includes(name))throw new Error(`Void post-Ladder preset failed in stage ${id}`);
+      if(ladderExitRemaining===1&&!PatternGenerator.POST_LADDER_FINAL.includes(name))throw new Error(`Void final post-Ladder motif must have three openings in stage ${id}`);
       if(enteringLadder)ladderExitRemaining=3;
       else ladderExitRemaining=Math.max(0,ladderExitRemaining-1);
     }else if(inBatExit){
