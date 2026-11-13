@@ -25,7 +25,8 @@ const deepPart=new Chart([{t:10,g:[1],w:mask([1]),th:.4}],.5,0,120,20,1);
 if(thinPart.hit(10.2,SIDE/2))throw new Error('Legacy TH should not reach the player yet');
 if(!deepPart.hit(10.2,SIDE/2))throw new Error('Custom Part depth must extend the collision wall');
 if(!deepPart.hit(10.35,SIDE/2))throw new Error('Thick Part must remain collidable until its outer edge clears the Pointer');
-if(deepPart.collision(10.5,SIDE/2)!==null)throw new Error('A wall fully inside the hub must not create a phantom collision');
+if(deepPart.collision(10.5,SIDE/2)!==null)throw new Error('A wall hidden behind the player hitbox must not create a phantom collision');
+if(deepPart.collision(10.54,SIDE/2)!==null)throw new Error('A wall fully inside the hub must not create a phantom collision');
 
 // Spin family: 2/3/4 variants repeat the same three-position 1-2-3 motif.
 for(const [name,repetitions] of [['spin2',2],['spin3',3],['spin4',4]]){
@@ -153,7 +154,20 @@ for(const id of [100,105,110,115]){
 }
 
 const g=new PatternGenerator({...LEVELS[3],seed:90210,speed:1.7,turnRate:7.4});
-const voidRows=g.generateVoid(60.1,48,60/116,0);
+const voidRows=[];
+let chunkStart=60.1,previousVoidRow=null;
+for(let chunk=0;chunk<3;chunk++){
+  const chunkRows=g.generateVoid(chunkStart,8,60/116,0,60.1,previousVoidRow);
+  if(!chunkRows.length)throw new Error('Void generation returned an empty chunk');
+  if(previousVoidRow){
+    const previousClear=previousVoidRow.t+(previousVoidRow.th??TH)/1.7;
+    const seamGap=chunkRows[0].t-previousClear;
+    if(seamGap<-.01||seamGap>.55*(60/116))throw new Error(`Void chunk seam contains an interruption (${seamGap.toFixed(3)}s)`);
+  }
+  voidRows.push(...chunkRows);
+  previousVoidRow=chunkRows[chunkRows.length-1];
+  chunkStart=g.voidNext;
+}
 if(voidRows.length<80||!voidRows.every((row,index)=>index===0||row.t>=voidRows[index-1].t))throw new Error('Void generation test failed');
 if(voidRows[0].g.length<2)throw new Error('Hypermode must not start with a single-opening C Part');
 
