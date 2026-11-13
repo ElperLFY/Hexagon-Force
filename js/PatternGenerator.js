@@ -78,7 +78,10 @@ function repairRows(rows,L,seed=null){
     if(!row.g.length)row.g=previous?[...previous.g]:[0];
     if(previous){
       const dt=row.t-previous.t;
-      const previousDepth=previous.th??TH;
+      // routeDepth is the amount of wall depth that actually consumes
+      // lane-change time. A persistent Ladder rail remains visible, but its
+      // open corridor stays traversable while the rungs change.
+      const previousDepth=previous.routeDepth??previous.th??TH;
       const available=Math.max(0,dt-previousDepth/speed-reaction);
       const maxSteps=Math.min(3,Math.max(0,Math.floor(available/stepTime)));
 
@@ -206,7 +209,7 @@ export class Chart{
         const distance=r()<.65?2:3;
         gaps.push(norm(gaps[0]+(r()<.5?distance:-distance)));
       }
-      return{t:source.t,g:gaps,th:source.th};
+      return{t:source.t,g:gaps,th:source.th,routeDepth:source.routeDepth};
     });
 
     const repaired=repairRows(rows,L);
@@ -246,20 +249,24 @@ export class Chart{
     const{beatDur,tg0,bpm,dur,speed}=this;
     return{
       v:1,beatDur,tg0,bpm,dur,speed,
-      rows:this.rows.map(r=>r.th==null
+      rows:this.rows.map(r=>r.th==null&&r.routeDepth==null
         ?[+r.t.toFixed(4),...r.g]
-        :{t:+r.t.toFixed(4),g:[...r.g],th:+r.th.toFixed(6)})
+        :{
+          t:+r.t.toFixed(4),g:[...r.g],
+          ...(r.th==null?{}:{th:+r.th.toFixed(6)}),
+          ...(r.routeDepth==null?{}:{rd:+r.routeDepth.toFixed(6)})
+        })
     };
   }
 
   static fromJSON(j,L){
     if(!j||!Array.isArray(j.rows))throw new Error('Chart JSON non valido');
     const rows=j.rows.map(item=>{
-      let t,g,th;
+      let t,g,th,rd;
       if(Array.isArray(item)){
         [t,...g]=item;
       }else if(item&&typeof item==='object'){
-        ({t,g,th}=item);
+        ({t,g,th,rd}=item);
       }else{
         throw new Error('Riga chart non valida');
       }
@@ -268,6 +275,7 @@ export class Chart{
       if(!gaps.length)throw new Error('Riga chart senza aperture');
       const row={t,g:gaps,w:wmask(gaps)};
       if(Number.isFinite(th)&&th>0)row.th=th;
+      if(Number.isFinite(rd)&&rd>=0)row.routeDepth=rd;
       return row;
     }).sort((a,b)=>a.t-b.t);
     return new Chart(rows,j.beatDur,j.tg0,j.bpm,j.dur,L.speed);
@@ -285,23 +293,34 @@ export class PatternGenerator{
 
     wall:(g,d,r)=>[[0,[g],.4],[2,[g+(r()*3|0)-1],.4]],
 
-    // Ladder: two continuous opposing rails and one short wall segment at a
-    // time, alternating sides and stepping along each side to form a zig-zag.
-    // Never place both sectors of a side-rung together: with the two rails that
-    // would close all six sectors and create an unavoidable death.
-    // Each event is [startBeat, openSectors, spanBeats].
+    // Ladder is authored as one persistent pair of opposing rails plus
+    // eight mirrored cross-rungs. The two rails are one composite Part: keeping
+    // them in separate same-time rows made route repair alter one rail only.
+    // Rungs alternate between opposite sector pairs, leaving two opposite
+    // openings that shift by one sector at regular 0.75-beat intervals.
+    // Event tuple: [beatOffset, openSectors, wallSpanBeats, routeDepthBeats?].
     ladder:(g,d)=>{
       const sectors=[0,1,2,3,4,5];
       const rails=[norm(g),norm(g+3)];
-      const events=rails.map(rail=>[
-        0,sectors.filter(sector=>sector!==rail),4
-      ]);
-      const zigzag=d>0?[1,4,2,5]:[4,1,5,2];
+      const firstOpen=d>0
+        ?[norm(g+2),norm(g+5)]
+        :[norm(g+1),norm(g+4)];
+      const secondOpen=d>0
+        ?[norm(g+1),norm(g+4)]
+        :[norm(g+2),norm(g+5)];
+      const events=[
+        [
+          0,
+          [...firstOpen,...secondOpen],
+          6.22,
+          0
+        ]
+      ];
       for(let i=0;i<8;i++){
-        const rung=norm(g+zigzag[i%zigzag.length]);
+        const openings=i%2===0?firstOpen:secondOpen;
         events.push([
-          .25+i*.5,
-          sectors.filter(sector=>sector!==rung),
+          .75+i*.75,
+          [...openings],
           .22
         ]);
       }
@@ -417,10 +436,13 @@ export class PatternGenerator{
       const name=this.choose(names,r);
       const pat=PatternGenerator.PAT[name](g,d,r);
       let end=0;
-      for(const [beat,gaps,spanBeats=0] of pat){
+      for(const [beat,gaps,spanBeats=0,routeSpanBeats=null] of pat){
         const effectiveSpan=spanBeats>0?spanBeats:TH/((L.speed||1)*bd);
         const row={t:tb+beat*bd,g:unique(gaps)};
         if(spanBeats>0)row.th=Math.max(TH,(L.speed||1)*bd*spanBeats);
+        if(Number.isFinite(routeSpanBeats)&&routeSpanBeats>=0){
+          row.routeDepth=(L.speed||1)*bd*routeSpanBeats;
+        }
         rows.push(row);
         end=Math.max(end,beat+effectiveSpan);
       }
@@ -501,9 +523,12 @@ export class PatternGenerator{
 
       const pat=PatternGenerator.PAT[name](g,d,r);
       let end=0;
-      for(const [beat,gaps,spanBeats=0] of pat){
+      for(const [beat,gaps,spanBeats=0,routeSpanBeats=null] of pat){
         const row={t:tb+beat*bd,g:unique(gaps)};
         if(spanBeats>0)row.th=Math.max(TH,(L.speed||1)*bd*spanBeats);
+        if(Number.isFinite(routeSpanBeats)&&routeSpanBeats>=0){
+          row.routeDepth=(L.speed||1)*bd*routeSpanBeats;
+        }
         rows.push(row);
         end=Math.max(end,beat+spanBeats);
       }
