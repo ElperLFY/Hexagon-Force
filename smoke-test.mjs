@@ -61,6 +61,52 @@ for(let start=0;start<6;start++)for(const direction of [-1,1]){
   }));
   if(ladderRows[0].routeDepth!==0)throw new Error('Persistent Ladder rails must not consume the rung-to-rung route-change window');
 }
+// A multi-beat Ladder is one atomic pattern. Random-section boundaries
+// must not re-mirror its later Parts independently (RGB's section is only 4 beats).
+const ladderEvents=PatternGenerator.PAT.ladder(0,1);
+const ladderDuration=6.22*(60/140);
+const ladderChart=new Chart(ladderEvents.map(([beat,gaps,span,routeSpan])=>({
+  t:beat*(60/140),g:[...new Set(gaps.map(value=>((value%6)+6)%6))],
+  w:mask(gaps),motifId:'ladder-atomic-test',motifName:'ladder',
+  motifStart:0,motifEnd:ladderDuration,
+  ...(span>0?{th:span*(60/140)}:{}),
+  ...(routeSpan!=null?{routeDepth:routeSpan*(60/140)}:{})
+})),60/140,0,140,30,1.3);
+const ladderRandomized=ladderChart.randomized({...LEVELS.find(level=>level.id===115),offset:0,randomSectionBeats:4},0xB1A1);
+const transformedRows=ladderRandomized.rows;
+const matchesSingleTransform=[...Array(6).keys()].some(offset=>
+  [false,true].some(mirror=>ladderEvents.every(([beat,gaps],index)=>{
+    const expected=gaps.map(value=>((mirror?-value:value)+offset+600)%6).sort((a,b)=>a-b);
+    const actual=transformedRows[index].g.slice().sort((a,b)=>a-b);
+    return expected.length===actual.length&&expected.every((value,i)=>value===actual[i]);
+  }))
+);
+if(!matchesSingleTransform)throw new Error('Ladder Parts were not kept under one atomic mirror/rotation transform');
+
+// A Ladder must transition into an authored multi-opening exit preset, never
+// straight into a single-opening C-shaped family such as Stair/Whirlpool.
+const transitionProbe=new PatternGenerator({...LEVELS.find(level=>level.id===110),seed:0xA771});
+transitionProbe.pool=()=>['ladder','solo','stair','solo2','dwhirl'];
+const receivedPools=[];
+let transitionPick=0;
+transitionProbe.choose=(names)=>{
+  receivedPools.push([...names]);
+  return transitionPick++===0?'ladder':'solo2';
+};
+const transitionRows=transitionProbe.generate(()=>1,60/140,0,35);
+if(receivedPools.length<2)throw new Error('Pattern generator did not schedule a post-Ladder pattern');
+if(receivedPools[1].some(name=>!PatternGenerator.POST_LADDER.includes(name)))throw new Error('Post-Ladder selector included a pattern outside the safe exit preset');
+if(receivedPools[1].includes('solo')||receivedPools[1].includes('stair'))throw new Error('A single-opening C pattern may not immediately follow Ladder');
+const ladderStart=transitionRows.find(row=>row.motifName==='ladder')?.motifStart;
+const ladderEnd=transitionRows.find(row=>row.motifName==='ladder')?.motifEnd;
+const exitStart=transitionRows.find(row=>row.motifName==='solo2')?.motifStart;
+if(!(Number.isFinite(ladderStart)&&Number.isFinite(ladderEnd)&&exitStart>=ladderEnd))throw new Error('Post-Ladder exit overlaps the Ladder phrase');
+
+// Motif grouping metadata must survive export/import so later randomization
+// cannot split a phrase at a section boundary.
+const roundTrip=Chart.fromJSON(ladderChart.toJSON(),LEVELS.find(level=>level.id===115));
+if(roundTrip.rows.some(row=>row.motifId!=='ladder-atomic-test'||row.motifName!=='ladder'))throw new Error('Atomic pattern metadata did not survive chart serialization');
+
 // Time-expanded reachability audit. Treat every wall as active for the exact
 // interval during which its radial span crosses the pointer radius. The pointer
 // can rotate at the game's real maximum turn rate; an 8.5-degree body clearance
