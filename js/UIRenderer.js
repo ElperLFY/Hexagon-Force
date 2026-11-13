@@ -54,7 +54,7 @@ export class UIRenderer{
     this.chevron(W*.15,by+bh*.5,U*.095,-1,p.p);this.chevron(W*.85,by+bh*.5,U*.095,1,p.p);
     this.text('PRESS SPACE TO SELECT',W*.5,H*.79,U*.047,p.w);
     this.text('← / →  CHANGE SHOWCASE',W*.5,H*.86,U*.031,p.w);
-    this.text('M  MODS',W*.5,H*.93,U*.027,p.w);
+    this.text('SETTINGS  ·  M / S',W*.5,H*.93,U*.027,p.w);
     if(g.msg)this.text(g.msg,W*.5,H*.975,U*.022,p.w);
   }
   selection(g,p){
@@ -71,6 +71,7 @@ export class UIRenderer{
     this.text('BEST  '+timeLabel(g.best[g.lv]),W*.26,H*.735,U*.043,p.w);
     this.text('PRESS SPACE TO PLAY',W*.26,H*.84,U*.04,p.p);
     this.text('ESC — BACK',W*.07,H*.94,U*.03,p.w,'left');
+    this.text('SETTINGS  ·  M / S',W*.94,H*.94,U*.027,p.w,'right');
     if(g.msg)this.text(g.msg,W*.5,H*.975,U*.022,p.w);
   }
   results(g,p,complete){

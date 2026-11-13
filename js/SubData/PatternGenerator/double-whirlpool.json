@@ -1,0 +1,64 @@
+{
+  "id": "dwhirl",
+  "name": "Double Whirlpool",
+  "category": "multi-opening",
+  "description": "Two opposite spiral lanes, advancing together every 1.25 beats.",
+  "tags": [
+    "multi-opening",
+    "spiral"
+  ],
+  "weight": 1,
+  "voidWeight": 1.9,
+  "directionMode": "relative",
+  "parts": [
+    {
+      "beat": 0,
+      "openOffsets": [
+        0,
+        3
+      ],
+      "wallSpanBeats": 0.58
+    },
+    {
+      "beat": 1.25,
+      "openOffsets": [
+        1,
+        4
+      ],
+      "wallSpanBeats": 0.58
+    },
+    {
+      "beat": 2.5,
+      "openOffsets": [
+        2,
+        5
+      ],
+      "wallSpanBeats": 0.58
+    },
+    {
+      "beat": 3.75,
+      "openOffsets": [
+        3,
+        6
+      ],
+      "wallSpanBeats": 0.58
+    },
+    {
+      "beat": 5,
+      "openOffsets": [
+        4,
+        7
+      ],
+      "wallSpanBeats": 0.58
+    },
+    {
+      "beat": 6.25,
+      "openOffsets": [
+        5,
+        8
+      ],
+      "wallSpanBeats": 0.58
+    }
+  ],
+  "$schema": "./pattern.schema.json"
+}

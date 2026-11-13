@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import {LEVELS,SIDE,TAU,TH,PART_DEPTH_SCALE,RP,PL} from './js/config.js';
 import {Chart,PatternGenerator} from './js/PatternGenerator.js';
 
+await PatternGenerator.loadCatalog();
+
 // Test the actual Chart.collision geometry, including the arrow's side hitbox.
 // The player may choose either direction at every frame, but cannot exceed the
 // real gameplay turn rate. This is a reachability test, not a pattern-name test.

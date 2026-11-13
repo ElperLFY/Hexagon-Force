@@ -1,0 +1,24 @@
+{
+  "id": "solo3",
+  "name": "Solo 3",
+  "category": "wide-opening",
+  "description": "One Part with three alternating openings.",
+  "tags": [
+    "multi-opening",
+    "wide-opening"
+  ],
+  "weight": 1,
+  "voidWeight": 0.75,
+  "directionMode": "fixed",
+  "parts": [
+    {
+      "beat": 0,
+      "openOffsets": [
+        0,
+        2,
+        4
+      ]
+    }
+  ],
+  "$schema": "./pattern.schema.json"
+}

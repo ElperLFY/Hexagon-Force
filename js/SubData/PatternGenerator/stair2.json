@@ -1,0 +1,58 @@
+{
+  "id": "stair2",
+  "name": "Stair 2",
+  "category": "single-opening",
+  "description": "Six Parts following the cumulative RRLLL sector offsets.",
+  "tags": [
+    "single-opening",
+    "stair"
+  ],
+  "weight": 1,
+  "voidWeight": 1.1,
+  "directionMode": "relative",
+  "parts": [
+    {
+      "beat": 0,
+      "openOffsets": [
+        0
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 1,
+      "openOffsets": [
+        1
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 2,
+      "openOffsets": [
+        2
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 3,
+      "openOffsets": [
+        1
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 4,
+      "openOffsets": [
+        0
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 5,
+      "openOffsets": [
+        -1
+      ],
+      "wallSpanBeats": 0.42
+    }
+  ],
+  "$schema": "./pattern.schema.json"
+}

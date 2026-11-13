@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexbeat.invalid/schemas/pattern-catalog.schema.json",
+  "title": "HEXBEAT pattern catalog",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "patterns",
+    "definitionFiles",
+    "poolBands",
+    "hardAdditions",
+    "voidPool",
+    "voidMultiLanePatterns",
+    "normalWeights",
+    "voidWeights",
+    "transitions"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "description": {
+      "type": "string"
+    },
+    "patterns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "definitionFiles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "poolBands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "maxX",
+          "patterns"
+        ],
+        "properties": {
+          "maxX": {
+            "type": "number"
+          },
+          "patterns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "hardAdditions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "minX",
+          "patterns"
+        ],
+        "properties": {
+          "minX": {
+            "type": "number"
+          },
+          "patterns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "normalWeights": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0
+      }
+    },
+    "voidPool": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "voidMultiLanePatterns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "voidWeights": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0
+      }
+    },
+    "transitions": {
+      "type": "object",
+      "required": [
+        "afterLadder",
+        "afterBat"
+      ],
+      "properties": {
+        "afterLadder": {
+          "type": "object",
+          "required": [
+            "motifCount",
+            "allowed",
+            "finalAllowed"
+          ],
+          "properties": {
+            "motifCount": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "allowed": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "finalAllowed": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "afterBat": {
+          "type": "object",
+          "required": [
+            "motifCount",
+            "allowed"
+          ],
+          "properties": {
+            "motifCount": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "allowed": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

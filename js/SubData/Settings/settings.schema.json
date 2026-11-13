@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexbeat.invalid/schemas/settings.schema.json",
+  "title": "HEXBEAT settings",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "storageKey",
+    "groups"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "storageKey": {
+      "type": "string"
+    },
+    "resetLabel": {
+      "type": "string"
+    },
+    "closeLabel": {
+      "type": "string"
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "settings"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "settings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "label",
+                "type",
+                "default"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "type": {
+                  "enum": [
+                    "range",
+                    "select",
+                    "toggle",
+                    "status"
+                  ]
+                },
+                "default": {},
+                "min": {
+                  "type": "number"
+                },
+                "max": {
+                  "type": "number"
+                },
+                "step": {
+                  "type": "number"
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "display": {
+                  "type": "string"
+                },
+                "displayAsPercent": {
+                  "type": "boolean"
+                },
+                "disabled": {
+                  "type": "boolean"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "requires": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

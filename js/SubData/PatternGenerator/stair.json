@@ -1,0 +1,44 @@
+{
+  "id": "stair",
+  "name": "Stair",
+  "category": "single-opening",
+  "description": "Four one-opening Parts stepping one sector at a time.",
+  "tags": [
+    "single-opening",
+    "stair"
+  ],
+  "weight": 1,
+  "voidWeight": 0.9,
+  "directionMode": "relative",
+  "parts": [
+    {
+      "beat": 0,
+      "openOffsets": [
+        0
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 1,
+      "openOffsets": [
+        1
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 2,
+      "openOffsets": [
+        2
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 3,
+      "openOffsets": [
+        3
+      ],
+      "wallSpanBeats": 0.42
+    }
+  ],
+  "$schema": "./pattern.schema.json"
+}

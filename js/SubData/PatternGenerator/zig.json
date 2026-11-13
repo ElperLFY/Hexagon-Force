@@ -1,0 +1,14 @@
+{
+  "id": "zig",
+  "name": "Ladder alias",
+  "category": "alias",
+  "description": "Compatibility alias for Ladder.",
+  "aliasOf": "ladder",
+  "tags": [
+    "compound",
+    "alias"
+  ],
+  "weight": 1,
+  "voidWeight": 1,
+  "$schema": "./pattern.schema.json"
+}

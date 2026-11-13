@@ -2,6 +2,31 @@ import fs from 'node:fs';
 import {LEVELS,SIDE,TAU,TH,PART_DEPTH_SCALE,VOID,RP,PL} from './js/config.js';
 import {Chart,PatternGenerator} from './js/PatternGenerator.js';
 
+await PatternGenerator.loadCatalog();
+
+// The catalog, each individual pattern JSON and Settings schema are the
+// source of truth. Validate that every manifest entry resolves to a factory.
+const patternCatalog=JSON.parse(fs.readFileSync('./js/SubData/PatternGenerator/catalog.json','utf8'));
+for(const id of patternCatalog.patterns){
+  const file=patternCatalog.definitionFiles[id];
+  if(!file)throw new Error(`Pattern catalog has no file mapping for ${id}`);
+  const definition=JSON.parse(fs.readFileSync(`./js/SubData/PatternGenerator/${file}`,'utf8'));
+  if(definition.id!==id)throw new Error(`Pattern JSON id mismatch: ${id}`);
+  if(typeof PatternGenerator.PAT[id]!=='function')throw new Error(`Pattern JSON did not compile: ${id}`);
+}
+if(PatternGenerator.PAT.zig(0,1).length!==PatternGenerator.PAT.ladder(0,1).length)throw new Error('Zig alias must use the Ladder JSON definition');
+if(PatternGenerator.PAT.pairs(0,1).length!==PatternGenerator.PAT.bat(0,1).length)throw new Error('Pairs alias must use the Bat JSON definition');
+if(PatternGenerator.PAT.spin4(0,1).length!==12)throw new Error('Spin 4 JSON alias must repeat the 1-2-3 unit four times');
+
+const settingsSchema=JSON.parse(fs.readFileSync('./js/SubData/Settings/settings.json','utf8'));
+const settingIds=settingsSchema.groups.flatMap(group=>group.settings.map(setting=>setting.id));
+for(const id of ['frameRate','vsync','modMenuEnabled','mapSpeed','playerSpeed','musicVolume','soundVolume']){
+  if(!settingIds.includes(id))throw new Error(`Settings JSON is missing ${id}`);
+}
+const soundSetting=settingsSchema.groups.flatMap(group=>group.settings).find(setting=>setting.id==='soundVolume');
+if(!soundSetting.disabled||soundSetting.status!=='WIP')throw new Error('Sound Volume must remain visibly marked as WIP');
+
+
 const mask=gaps=>[0,1,2,3,4,5].map(sector=>!gaps.includes(sector));
 for(const id of [100,105,110,115]){
   const json=JSON.parse(fs.readFileSync(`./MusicData/${id}.json`,'utf8'));

@@ -1,0 +1,58 @@
+{
+  "id": "whirl",
+  "name": "Whirlpool",
+  "category": "single-opening",
+  "description": "A continuous one-lane spiral with 1.25 beats between one-sector changes.",
+  "tags": [
+    "single-opening",
+    "spiral"
+  ],
+  "weight": 1.25,
+  "voidWeight": 1,
+  "directionMode": "relative",
+  "parts": [
+    {
+      "beat": 0,
+      "openOffsets": [
+        0
+      ],
+      "wallSpanBeats": 0.58
+    },
+    {
+      "beat": 1.25,
+      "openOffsets": [
+        1
+      ],
+      "wallSpanBeats": 0.58
+    },
+    {
+      "beat": 2.5,
+      "openOffsets": [
+        2
+      ],
+      "wallSpanBeats": 0.58
+    },
+    {
+      "beat": 3.75,
+      "openOffsets": [
+        3
+      ],
+      "wallSpanBeats": 0.58
+    },
+    {
+      "beat": 5,
+      "openOffsets": [
+        4
+      ],
+      "wallSpanBeats": 0.58
+    },
+    {
+      "beat": 6.25,
+      "openOffsets": [
+        5
+      ],
+      "wallSpanBeats": 0.58
+    }
+  ],
+  "$schema": "./pattern.schema.json"
+}

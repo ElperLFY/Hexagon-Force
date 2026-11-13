@@ -1,0 +1,37 @@
+{
+  "id": "tripleC",
+  "name": "Triple C",
+  "category": "single-opening",
+  "description": "Three C-shaped Parts. The three-sector transition is spaced 2.5 beats apart.",
+  "tags": [
+    "single-opening",
+    "three-sector-turn"
+  ],
+  "weight": 1,
+  "voidWeight": 0.65,
+  "directionMode": "relative",
+  "parts": [
+    {
+      "beat": 0,
+      "openOffsets": [
+        0
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 2.5,
+      "openOffsets": [
+        3
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 5,
+      "openOffsets": [
+        0
+      ],
+      "wallSpanBeats": 0.42
+    }
+  ],
+  "$schema": "./pattern.schema.json"
+}
