@@ -142,8 +142,10 @@ A beat lasts `beatDur` seconds. A pattern event at offset `b` occurs after `b ×
 
 For two consecutive rows separated by `Δt`, available movement time is reduced by wall traversal and the reaction margin. The repair pass estimates the number of sector steps that can be made before the next row. If the closest current opening is too far away, it inserts a reachable bridge opening.
 
-This is a gameplay safeguard, not a proof that every pattern is visually faithful or fun. Always test:
-- the first Part from the player's initial position;
+The row-to-row repair is only a heuristic. The enclosed `smoke-test.mjs` therefore also runs a time-expanded reachability simulation: it combines every wall whose radial span is crossing the Pointer, applies the actual maximum turn rate, and reserves an angular clearance for the Pointer body. It audits every named pattern in all four stages and both directions, then checks deterministic multi-pattern Void sequences for continuous routes.
+
+This catches a critical class of bug that row-by-row tests miss: individually reachable openings can still overlap into a fully closed ring. The test is conservative and does not prove visual fidelity or fun; still playtest:
+- the first Part from the player's actual angle;
 - every transition between consecutive Parts;
 - the seam between generated Void chunks;
 - both clockwise and counter-clockwise variants;
@@ -158,7 +160,7 @@ Four screenshots have now been supplied by the user:
 3. Double Whirlpool, with two simultaneous spiral lanes.
 4. A 3-Spin reference illustrating the 1-2-3 movement progression.
 
-The Steam guide text also calls Ladder a zig-zag, Whirlpool a one-way spiral, Double Whirlpool two spirals (one on each side), and 3-2-1 an M-shaped route. However, the guide's image placeholders do not expose the full original diagrams as directly retrievable image assets in this workflow. The current Ladder rails/rungs and wall span values are therefore a geometric reconstruction, not a pixel-verified copy of a missing Ladder screenshot.
+The Steam guide text also calls Ladder a zig-zag, Whirlpool a one-way spiral, Double Whirlpool two spirals (one on each side), and 3-2-1 an M-shaped route. However, the guide's image placeholders do not expose the full original diagrams as directly retrievable image assets in this workflow. The current Ladder uses two long opposing rails plus one short single-sector rung at a time, alternating sides and stepping along each side. This deliberately leaves a route open; using two-sector rungs with both rails had closed all six sectors in one phase and was rejected by the reachability audit. The exact proportions remain a geometric reconstruction, not a pixel-verified copy of a missing Ladder screenshot.
 
 The user screenshots define the intended Spin repetition and the movement silhouettes above; do not replace those with the differing abbreviated wording in the guide without asking.
 
