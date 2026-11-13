@@ -10,12 +10,12 @@ export const VOID={
   start:60,          // seconds into the run
   flip:.9,           // seconds for the inversion to sweep out from the centre
   fade:1,            // pause after the flip before the darkness starts to grow
-  ramp:100,          // seconds for the darkness to reach full strength
+  ramp:60,          // seconds for the darkness to reach full strength
   front:.45,         // final distance of the gradient's start from the centre (arena units, hub is ~.24)
   width:.3,          // softness of the gradient (arena units)
   alpha:[.3,.92],    // darkness at the far end: [at the start, at full strength] -> never fully black
-  chunkBars:8,       // rows are generated this many bars at a time...
-  ahead:4,          // ...and always at least this many seconds in advance
+  chunkBars:10,       // rows are generated this many bars at a time...
+  ahead:3,          // ...and always at least this many seconds in advance
   noise:{file:'wn01.wav',gain:1,fade:1.5} // looped from the flip until you die (gain is relative to the volume slider)
 };
 const hsl=(h,s,l)=>`hsl(${h},${s}%,${l}%)`;
@@ -34,7 +34,7 @@ export const LEVELS=[
   },
   {
     id:100,name:'CREMISI · NERO',offset:39,speed:1.2,seed:100,inv:true,turnRate:8,
-    rotSpeed:4,rotAmp:.2,rotBeats:16,
+    rotSpeed:1.8,rotAmp:.2,rotBeats:16,
     patternWeights:{
   ladder:2,
   whirl:1.5,
@@ -57,7 +57,7 @@ export const LEVELS=[
   },
   {
     id:115,name:'RGB',offset:0,speed:1.4,seed:115,hard:true,diff:.35,ramp:45,turnRate:10,
-    rotSpeed:5,rotAmp:0,rotBeats:16,trip:true,
+    rotSpeed:2.5,rotAmp:0,rotBeats:16,trip:true,
     randomSectionBeats:8,randomLaneShiftChance:.22,randomDropChance:.14,randomAddChance:.05,
     intensityThreshold:.055,
     extra:['dwhirl','stair1','stair2','spin3','spin4','t321','rain','doubleC'],
