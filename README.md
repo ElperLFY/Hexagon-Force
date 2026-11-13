@@ -180,7 +180,28 @@ This is a reconstruction based on the user's marked screenshot, not a pixel-perf
 
 The user screenshots define the intended Spin repetition and the movement silhouettes above; do not replace those with the differing abbreviated wording in the guide without asking.
 
-## 8. Reference
+## 8. Human-editable pattern and settings data
+
+The source of truth for generated pattern shapes is now `js/SubData/PatternGenerator/`:
+
+- `catalog.json` defines pattern IDs, pool bands, hard-stage additions, weights, Void pool and safe transition presets.
+- Each pattern has its own JSON file. A Part records its beat offset, open sectors (relative to the motif start), optional wall span and optional route-planning span.
+- `pattern-catalog.schema.json` documents the catalog structure. The folder README explains the Part fields and aliases.
+- `js/PatternGenerator.js` is the runtime loader/compiler. It turns JSON definitions into the factory interface used by the existing chart and Void code; adding or editing a pattern's shape no longer requires editing a JavaScript factory.
+
+The general Settings source is `js/SubData/Settings/`:
+
+- `settings.json` defines categories, labels, defaults, limits, descriptions and feature dependencies.
+- `settings.html` is the semantic dialog markup.
+- `settings.css` contains the visual style and responsive layout.
+- `settings.schema.json` describes the JSON format.
+- `js/SettingsPanel.js` loads those assets and connects the controls to the game. It is intentionally the controller, not the location where settings are defined or styled.
+
+The Mod Menu is now a section inside Settings (shortcut `M` or `S`); there is no separate slide-down Mod Menu. Framerate is a render-rate cap, while V-Sync is shown as browser-managed because a web page cannot reliably toggle hardware V-Sync. Sound Volume remains disabled/WIP until the game has a separate sound-effects bus.
+
+`js/config.js` remains the source for existing level/game constants and is not part of the editable pattern or Settings data model.
+
+## 9. Reference
 
 JiminP, **Super Hexagon 101: Know your Patterns**, Steam Community Guide (2013):
 https://steamcommunity.com/sharedfiles/filedetails/?id=121153531
