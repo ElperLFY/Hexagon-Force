@@ -57,7 +57,7 @@ export const LEVELS=[
   },
   {
     id:115,name:'RGB',offset:0,speed:1.4,seed:115,hard:true,diff:.35,ramp:45,turnRate:10,
-    rotSpeed:2.5,rotAmp:0,rotBeats:16,trip:true,
+    rotSpeed:2,rotAmp:0,rotBeats:16,trip:true,
     randomSectionBeats:8,randomLaneShiftChance:.22,randomDropChance:.14,randomAddChance:.05,
     intensityThreshold:.055,
     extra:['dwhirl','stair1','stair2','spin3','spin4','t321','rain','doubleC'],
