@@ -80,7 +80,7 @@ export class Renderer{
     const r=Math.min(1,(t-ch.tg0-n*per)/.9);
     let f=(t-ch.tg0)/ch.beatDur;f-=Math.floor(f);
     const tr=L.trip?.4+.6*Math.min(1,tt/120):0;
-    const sc=1+(.10+.12*tr)*Math.exp(-5*f),rot=ch.rot(t,L);
+    const sc=1+(.30+.50*tr)*Math.exp(-5*f),rot=ch.rot(t,L);
   
     c.save();
     c.translate(this.W/2,this.H/2);
