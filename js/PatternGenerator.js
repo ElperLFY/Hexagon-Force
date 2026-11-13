@@ -377,9 +377,18 @@ export class PatternGenerator{
     if(this.loading)return this.loading;
     this.loading=(async()=>{
       const base=new URL('./SubData/PatternGenerator/',import.meta.url);
-      const response=await fetch(new URL('catalog.json',base));
-      if(!response.ok)throw new Error('Pattern catalog not found: '+response.status);
-      const catalog=await response.json();
+      const readText=async url=>{
+        // The browser reads the same files over HTTP; Node-based tests read them
+        // from disk so the catalog remains testable without a local web server.
+        if(typeof process==='object'&&process.versions?.node){
+          const {readFile}=await import('node:fs/promises');
+          return readFile(url,'utf8');
+        }
+        const response=await fetch(url);
+        if(!response.ok)throw new Error('Pattern JSON could not be loaded: '+response.status);
+        return response.text();
+      };
+      const catalog=JSON.parse(await readText(new URL('catalog.json',base)));
       if(catalog.schemaVersion!==1||!Array.isArray(catalog.patterns)||!catalog.definitionFiles){
         throw new Error('Pattern catalog has an unsupported or incomplete schema');
       }
@@ -387,9 +396,7 @@ export class PatternGenerator{
       const entries=await Promise.all(catalog.patterns.map(async id=>{
         const file=catalog.definitionFiles[id];
         if(typeof file!=='string')throw new Error('Missing JSON file mapping for pattern: '+id);
-        const result=await fetch(new URL(file,base));
-        if(!result.ok)throw new Error('Pattern JSON not found ('+id+'): '+result.status);
-        const definition=await result.json();
+        const definition=JSON.parse(await readText(new URL(file,base)));
         if(definition.id!==id)throw new Error('Pattern id mismatch in '+file);
         if(!definition.aliasOf&&!Array.isArray(definition.parts))throw new Error('Pattern has no Parts: '+id);
         return [id,definition];
