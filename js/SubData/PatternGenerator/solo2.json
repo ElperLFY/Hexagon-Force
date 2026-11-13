@@ -1,0 +1,21 @@
+{
+  "id": "solo2",
+  "name": "Solo 2",
+  "category": "multi-opening",
+  "description": "One Part with two opposite openings.",
+  "tags": [
+    "multi-opening"
+  ],
+  "weight": 1,
+  "voidWeight": 1,
+  "directionMode": "fixed",
+  "parts": [
+    {
+      "beat": 0,
+      "openOffsets": [
+        0,
+        3
+      ]
+    }
+  ]
+}
