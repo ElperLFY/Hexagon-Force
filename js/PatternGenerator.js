@@ -81,17 +81,28 @@ function repairRows(rows,L,seed=null){
       const previousDepth=previous.th??TH;
       const available=Math.max(0,dt-previousDepth/speed-reaction);
       const maxSteps=Math.min(3,Math.max(0,Math.floor(available/stepTime)));
-      let bestDistance=9,from=0,to=0;
-      for(const a of previous.g)for(const b of row.g){
-        const distance=cd(a,b);
-        if(distance<bestDistance){bestDistance=distance;from=a;to=b;}
+
+      // Track one concrete reachable lane, not merely any gap that happened
+      // to be present in the previous Part. Otherwise a multi-gap row can
+      // advertise a distant opening the player never had time to reach.
+      const from=previous.route!=null&&previous.g.includes(previous.route)
+        ?previous.route:previous.g[0];
+      let bestDistance=9,to=from;
+      for(const candidate of row.g){
+        const distance=cd(from,candidate);
+        if(distance<bestDistance){bestDistance=distance;to=candidate;}
       }
       if(bestDistance>maxSteps){
         const clockwise=norm(to-from);
         const direction=clockwise<=3?1:-1;
         const bridge=norm(from+direction*Math.min(bestDistance,maxSteps));
         row.g=unique([...row.g,bridge]);
+        row.route=bridge;
+      }else{
+        row.route=to;
       }
+    }else{
+      row.route=row.g[0];
     }
     row.w=wmask(row.g);
     previous=row;
