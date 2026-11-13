@@ -228,12 +228,12 @@ export class SettingsPanel{
       if(this.game.volUI?.input)this.game.volUI.input.value=String(value);
     }
     if(id==='mapSpeed'||id==='playerSpeed')this.applyModifiers();
-    if(id==='advancedModifiers')this.applyModifiers();
+    if(id==='modMenuEnabled')this.applyModifiers();
     this.syncRows();
   }
 
   applyModifiers(){
-    const enabled=this.values.advancedModifiers!==false;
+    const enabled=this.values.modMenuEnabled!==false;
     this.game.mods.mapSpeed=enabled?this.values.mapSpeed:1;
     this.game.mods.playerSpeed=enabled?this.values.playerSpeed:1;
     try{localStorage.setItem('hxm',JSON.stringify(this.game.mods));}catch(error){}
@@ -278,6 +278,7 @@ export class SettingsPanel{
 
   async open(){
     await this.ready;
+    if(!this.root)return;
     if(this.isOpen)return;
     this.isOpen=true;
     this.game.uiOverlay='settings';
