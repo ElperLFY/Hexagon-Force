@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import {LEVELS,SIDE,TAU,TH,VOID,RP,PL} from './js/config.js';
+import {LEVELS,SIDE,TAU,TH,PART_DEPTH_SCALE,VOID,RP,PL} from './js/config.js';
 import {Chart,PatternGenerator} from './js/PatternGenerator.js';
 
 const mask=gaps=>[0,1,2,3,4,5].map(sector=>!gaps.includes(sector));
@@ -65,7 +65,7 @@ for(let start=0;start<6;start++)for(const direction of [-1,1]){
   }
   const ladderRows=ladder.map(([beat,gaps,span,routeSpan])=>({
     t:beat*.5,g:[...new Set(gaps.map(value=>((value%6)+6)%6))],
-    w:mask(gaps),...(span>0?{th:span*.5}:{}),
+    w:mask(gaps),...(span>0?{th:span*.5*(routeSpan===0?1:PART_DEPTH_SCALE)}:{}),
     ...(routeSpan!=null?{routeDepth:routeSpan*.5}:{})
   }));
   if(ladderRows[0].routeDepth!==0)throw new Error('Persistent Ladder rails must not consume the rung-to-rung route-change window');
@@ -78,7 +78,7 @@ const ladderChart=new Chart(ladderEvents.map(([beat,gaps,span,routeSpan])=>({
   t:beat*(60/140),g:[...new Set(gaps.map(value=>((value%6)+6)%6))],
   w:mask(gaps),motifId:'ladder-atomic-test',motifName:'ladder',
   motifStart:0,motifEnd:ladderDuration,
-  ...(span>0?{th:1.3*span*(60/140)}:{}),
+  ...(span>0?{th:1.3*span*(60/140)*(routeSpan===0?1:PART_DEPTH_SCALE)}:{}),
   ...(routeSpan!=null?{routeDepth:routeSpan*(60/140)}:{})
 })),60/140,0,140,30,1.3);
 const ladderRandomized=ladderChart.randomized({...LEVELS.find(level=>level.id===115),offset:0,randomSectionBeats:4},0xB1A1);
@@ -102,28 +102,35 @@ for(const row of transformedRows.slice(1)){
 const expectedRailDepth=1.3*(60/140)*6.22;
 if(Math.abs(transformedRows[0].th-expectedRailDepth)>1e-8)throw new Error('Ladder rail wall must keep its complete multi-beat radial depth');
 
-// A Ladder must transition into an authored multi-opening exit preset, never
-// straight into a single-opening C-shaped family such as Stair/Whirlpool.
+// Ladder keeps a four-motif safety corridor. Stair 1 may occur inside it,
+// but a C/Spin or Solo single-opening pattern may not follow the Ladder yet.
 const transitionProbe=new PatternGenerator({...LEVELS.find(level=>level.id===110),seed:0xA771});
-transitionProbe.pool=()=>['ladder','solo','stair','solo2','dwhirl','solo3','alt3'];
+transitionProbe.pool=()=>['ladder','solo','stair','solo2','dwhirl','solo3','alt3','stair1'];
 const receivedPools=[];
 let transitionPick=0;
-const forcedTransitionNames=['ladder','solo3','alt3','solo'];
-transitionProbe.choose=(names)=>{
+const forcedTransitionNames=['ladder','solo3','stair1','alt3','solo3','solo'];
+transitionProbe.choose=names=>{
   receivedPools.push([...names]);
   return forcedTransitionNames[Math.min(transitionPick++,forcedTransitionNames.length-1)];
 };
 const transitionRows=transitionProbe.generate(()=>1,60/140,0,35);
-if(receivedPools.length<4)throw new Error('Pattern generator did not schedule two post-Ladder exit patterns');
-for(const pool of receivedPools.slice(1,3)){
-  if(pool.some(name=>!PatternGenerator.POST_LADDER.includes(name)))throw new Error('Post-Ladder selector included a pattern outside the safe exit preset');
-  if(pool.includes('solo')||pool.includes('stair')||pool.includes('whirl')||pool.includes('rain'))throw new Error('A single-opening C or capped Rain pattern may not occur in the two-pattern Ladder exit preset');
+if(receivedPools.length<6)throw new Error('Pattern generator did not schedule four post-Ladder exit motifs');
+for(const pool of receivedPools.slice(1,5)){
+  if(pool.some(name=>!PatternGenerator.POST_LADDER.includes(name)))throw new Error('Post-Ladder selector included a pattern outside the four-motif safe corridor');
+  if(pool.includes('solo')||pool.includes('stair')||pool.includes('tripleC')||pool.includes('whirl')||pool.includes('multiC')||pool.includes('stair2')||pool.includes('t321')||pool.includes('spin2')||pool.includes('spin3')||pool.includes('spin4')||pool.includes('rain')||pool.includes('doubleC'))throw new Error('A single-opening C/Spin pattern may not occur in the four-motif Ladder exit corridor');
 }
-if(!receivedPools[3].includes('solo')||!receivedPools[3].includes('stair'))throw new Error('Normal pattern pool should resume after the two-pattern exit preset');
+if(!receivedPools[5].includes('solo')||!receivedPools[5].includes('stair'))throw new Error('Normal pattern pool should resume after the four-motif Ladder exit corridor');
 const ladderStart=transitionRows.find(row=>row.motifName==='ladder')?.motifStart;
 const ladderEnd=transitionRows.find(row=>row.motifName==='ladder')?.motifEnd;
-const exitStart=transitionRows.find(row=>row.motifName==='solo3')?.motifStart;
-if(!(Number.isFinite(ladderStart)&&Number.isFinite(ladderEnd)&&exitStart>=ladderEnd))throw new Error('Post-Ladder exit overlaps the Ladder phrase');
+const exitMotifs=transitionRows.filter(row=>['solo3','alt3','stair1'].includes(row.motifName));
+const normalSolo=transitionRows.find(row=>row.motifName==='solo');
+const exitEnd=Math.max(...exitMotifs.map(row=>row.motifEnd));
+if(!(Number.isFinite(ladderStart)&&Number.isFinite(ladderEnd)&&exitMotifs.length&&normalSolo?.motifStart>=exitEnd))throw new Error('Four-motif Ladder exit overlaps or returns to the normal pool too early');
+
+// Solo is two same-lane C Parts, so the corridor stays aligned through both hits.
+const soloEvents=PatternGenerator.PAT.solo(2);
+if(soloEvents.length!==2||soloEvents[0][1][0]!==soloEvents[1][1][0]||soloEvents[0][0]!==0||soloEvents[1][0]!==1)throw new Error('Solo must repeat the same single-hole Part twice');
+if(soloEvents.some(event=>Math.abs(event[2]*PART_DEPTH_SCALE-.198)>1e-9))throw new Error('Solo Part wall depth must use the reduced thickness scale');
 
 // Bat uses the same two-pattern multi-opening exit rule as Ladder:
 // do not follow its opposite-lane sequence immediately with a single C/Spin.
@@ -274,7 +281,7 @@ for(const id of [100,105,110,115]){
     const inBatExit=enteringBat||batExitRemaining>0;
     if(inLadderExit){
       if(!PatternGenerator.POST_LADDER.includes(name))throw new Error(`Void post-Ladder preset failed in stage ${id}`);
-      if(enteringLadder)ladderExitRemaining=1;
+      if(enteringLadder)ladderExitRemaining=3;
       else ladderExitRemaining=Math.max(0,ladderExitRemaining-1);
     }else if(inBatExit){
       if(!PatternGenerator.POST_BAT.includes(name))throw new Error(`Void post-Bat preset failed in stage ${id}`);
@@ -287,7 +294,7 @@ for(const id of [100,105,110,115]){
     if(enteringBat)batExitRemaining=1;
     else if(batExitRemaining>0)batExitRemaining--;
     if(name==='bat'||name==='pairs')batExitRemaining=2;
-    if(name==='ladder'||name==='zig')ladderExitRemaining=2;
+    if(name==='ladder'||name==='zig')ladderExitRemaining=4;
     previousPattern=name;
     previousMulti=multi(name);
   }
