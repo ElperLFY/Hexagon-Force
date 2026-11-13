@@ -1,0 +1,40 @@
+{
+  "id": "spin",
+  "name": "Spin template",
+  "category": "template",
+  "description": "Base 1-2-3 movement unit. Spin 2, 3 and 4 repeat this cycle.",
+  "tags": [
+    "template",
+    "spin"
+  ],
+  "weight": 1,
+  "voidWeight": 1,
+  "directionMode": "relative",
+  "repeatTemplate": {
+    "cycleBeats": 6,
+    "repeatArgument": 2
+  },
+  "parts": [
+    {
+      "beat": 0,
+      "openOffsets": [
+        0
+      ],
+      "wallSpanBeats": 0.58
+    },
+    {
+      "beat": 2,
+      "openOffsets": [
+        1
+      ],
+      "wallSpanBeats": 0.58
+    },
+    {
+      "beat": 4,
+      "openOffsets": [
+        3
+      ],
+      "wallSpanBeats": 0.58
+    }
+  ]
+}
