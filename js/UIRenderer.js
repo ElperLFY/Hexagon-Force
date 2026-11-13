@@ -1,8 +1,9 @@
 // Canvas UI for HEXBEAT: title, stage select, results and the explicitly-WIP leaderboard.
 const timeLabel=value=>{
   if(!Number.isFinite(value)||value<0)return '--:--';
-  const minutes=Math.floor(value/60),seconds=(value%60).toFixed(2).padStart(5,'0');
-  return minutes?minutes+':'+seconds:seconds+'s';
+  const minutes=Math.floor(value/60);
+  const seconds=Math.floor(value%60).toString().padStart(2,'0');
+  return minutes+':'+seconds;
 };
 export class UIRenderer{
   constructor(renderer){this.r=renderer;}
@@ -58,7 +59,7 @@ export class UIRenderer{
   }
   selection(g,p){
     const W=this.W,H=this.H,U=this.U,now=performance.now()/1000,L=g.level;
-    this.header(p);
+    this.header(p,'TAB — HIGH SCORES','ESC — MAIN MENU');
     this.ring(W*.73,H*.49,U*.79,now*.32,p.b1,Math.max(2,U*.013));
     this.ring(W*.73,H*.49,U*.62,-now*.21,p.w,Math.max(1,U*.005));
     this.text('STAGE SELECT',W*.07,H*.2,U*.095,p.p,'left');
