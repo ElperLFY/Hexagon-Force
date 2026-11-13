@@ -344,7 +344,7 @@ export class PatternGenerator{
         const openings=i%2===0?firstOpen:secondOpen;
         events.push([
           .75+i*.75,
-          [...openings],
+          [...rails,...openings],
           .22
         ]);
       }
@@ -398,7 +398,7 @@ export class PatternGenerator{
     doubleC:(g,d)=>[0,1,2,3].map(i=>[i,[g+i*d,g+1+i*d],.42])
   };
 
-  constructor(L){this.L=L;this.rng=mul(L.seed);this.lastVoidPattern=null;this.lastVoidMulti=false;this.lastVoidOpenings=null;}
+  constructor(L){this.L=L;this.rng=mul(L.seed);this.lastVoidPattern=null;this.lastVoidMulti=false;this.lastVoidOpenings=null;this.postVoidLadderRemaining=0;}
 
   pool(x){
     const L=this.L;
@@ -431,8 +431,7 @@ export class PatternGenerator{
     return names[names.length-1];
   }
 
-  poolAfter(previousPattern,names){
-    if(previousPattern!=='ladder'&&previousPattern!=='zig')return names;
+  poolAfter(names){
     const safe=names.filter(name=>PatternGenerator.POST_LADDER.includes(name));
     return safe.length?safe:PatternGenerator.POST_LADDER.filter(name=>typeof PatternGenerator.PAT[name]==='function');
   }
@@ -443,6 +442,7 @@ export class PatternGenerator{
     const quiet=L.intensityThreshold??(L.hard ? .065 : .1);
     let beatCursor=Math.max(0,Math.ceil((t0+2-tg0)/(4*bd)-1e-6)*4);
     let previousPattern=null;
+    let postLadderRemaining=0;
     for(;;){
       const b0=beatCursor,tb=tg0+b0*bd;
       if(tb+4*bd>dur-1.5)break;
@@ -464,9 +464,18 @@ export class PatternGenerator{
       const x=L.hard?Math.max(.55,rawX):rawX;
       const g=r()*6|0,d=r()<.5?1:-1;
       const names=this.pool(x);
-      const candidates=this.poolAfter(previousPattern,names);
+      const enteringPostLadder=previousPattern==='ladder'||previousPattern==='zig';
+      const inPostLadder=enteringPostLadder||postLadderRemaining>0;
+      const candidates=inPostLadder?this.poolAfter(names):names;
       const name=this.choose(candidates,r);
       const pat=PatternGenerator.PAT[name](g,d,r);
+      if(name==='ladder'||name==='zig'){
+        postLadderRemaining=2;
+      }else if(enteringPostLadder){
+        postLadderRemaining=1;
+      }else if(postLadderRemaining>0){
+        postLadderRemaining--;
+      }
       const motifId=`${name}@${tb.toFixed(6)}`;
       const motifDuration=Math.max(...pat.map(([beat,,spanBeats=0])=>
         beat+(spanBeats>0?spanBeats:TH/((L.speed||1)*bd))
@@ -513,10 +522,14 @@ export class PatternGenerator{
   chooseVoid(r){
     const multi=['solo2','solo3','bat','dwhirl','stair1','rain','doubleC'];
     let names=this.voidPool();
-    if(this.lastVoidMulti===false)names=names.filter(name=>multi.includes(name));
-    else if(this.lastVoidMulti===true)names=names.filter(name=>!multi.includes(name));
-    if(this.lastVoidPattern==='ladder'||this.lastVoidPattern==='zig'){
+    const enteringPostLadder=this.lastVoidPattern==='ladder'||this.lastVoidPattern==='zig';
+    const inPostLadder=enteringPostLadder||this.postVoidLadderRemaining>0;
+    if(inPostLadder){
       names=names.filter(name=>PatternGenerator.POST_LADDER.includes(name));
+    }else if(this.lastVoidMulti===false){
+      names=names.filter(name=>multi.includes(name));
+    }else if(this.lastVoidMulti===true){
+      names=names.filter(name=>!multi.includes(name));
     }
     if(names.length>1&&this.lastVoidPattern)names=names.filter(name=>name!==this.lastVoidPattern);
     if(!names.length)names=this.voidPool();
@@ -534,6 +547,13 @@ export class PatternGenerator{
     }
     this.lastVoidPattern=chosen;
     this.lastVoidMulti=multi.includes(chosen);
+    if(chosen==='ladder'||chosen==='zig'){
+      this.postVoidLadderRemaining=2;
+    }else if(enteringPostLadder){
+      this.postVoidLadderRemaining=1;
+    }else if(this.postVoidLadderRemaining>0){
+      this.postVoidLadderRemaining--;
+    }
     return chosen;
   }
 
