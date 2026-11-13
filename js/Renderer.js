@@ -123,10 +123,11 @@ export class Renderer{
         c.fillStyle=p.w;
         for(const w of ch.rows){
           const m=RP+(w.t-t)*L.speed*this.mapMul;
-          if(m>5||m+TH<.1)continue;
+          const depth=w.th??TH;
+          if(m>5||m+depth<.1)continue;
           for(let s=0;s<6;s++)if(w.w[s]){
             const a=s*SIDE,b=a+SIDE;
-            poly(c,[P(a,m),P(b,m),P(b,m+TH),P(a,m+TH)]);
+            poly(c,[P(a,m),P(b,m),P(b,m+depth),P(a,m+depth)]);
             c.fill();
           }
         }
