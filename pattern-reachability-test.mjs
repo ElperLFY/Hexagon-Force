@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import {LEVELS,SIDE,TAU,TH,RP,PL} from './js/config.js';
+import {LEVELS,SIDE,TAU,TH,PART_DEPTH_SCALE,RP,PL} from './js/config.js';
 import {Chart,PatternGenerator} from './js/PatternGenerator.js';
 
 // Test the actual Chart.collision geometry, including the arrow's side hitbox.
@@ -32,11 +32,12 @@ function simulate(name,direction,level,bd,bpm,repeat=3){
       g:[...new Set(gaps.map(x=>norm(x,6)))],
       motifId,motifName:name,motifStart:0
     };
-    if(span>0)row.th=Math.max(TH,speed*bd*span);
+    const effectiveSpan=span>0?span*(routeSpan===0?1:PART_DEPTH_SCALE):TH/(speed*bd);
+    if(span>0)row.th=Math.max(TH,speed*bd*effectiveSpan);
     if(Number.isFinite(routeSpan)&&routeSpan>=0)row.routeDepth=speed*bd*routeSpan;
     maxDepth=Math.max(maxDepth,row.th??TH);
     rows.push(row);
-    endBeat=Math.max(endBeat,beat+span);
+    endBeat=Math.max(endBeat,beat+effectiveSpan);
   }
   rows.sort((a,b)=>a.t-b.t);
   const chart=new Chart(rows,bd,0,bpm,30,speed)
