@@ -61,6 +61,9 @@ body.settings-open { touch-action:auto; }
 .hb-settings__footer button { min-height:36px; border:1px solid var(--hb-line-strong); padding:0 14px; color:var(--hb-text); background:transparent; font:700 9px Orbitron,sans-serif; letter-spacing:.08em; cursor:pointer; }
 .hb-settings__footer .hb-settings__done { color:#050912; background:var(--hb-accent-strong); border-color:var(--hb-accent-strong); }
 .hb-settings__footer button:hover { filter:brightness(1.16); }
+.hb-settings button:focus-visible,.hb-settings select:focus-visible,.hb-settings input:focus-visible {
+ outline:2px solid var(--hb-accent-strong); outline-offset:3px;
+}
 @media(max-width:650px) {
  .hb-settings { padding:8px; } .hb-settings__dialog { max-height:96vh; }
  .hb-settings__body { grid-template-columns:1fr; grid-template-rows:auto minmax(0,1fr); }

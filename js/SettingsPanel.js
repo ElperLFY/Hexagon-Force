@@ -7,6 +7,7 @@ export class SettingsPanel{
     this.values={};
     this.activeGroup=null;
     this.isOpen=false;
+    this.previousFocus=null;
     this.ready=this.mount();
   }
 
@@ -198,6 +199,17 @@ export class SettingsPanel{
       if(event.code==='Escape'){
         event.preventDefault();event.stopPropagation();this.close();return;
       }
+      if(event.key==='Tab'){
+        const focusable=[...root.querySelectorAll(
+          'button:not([disabled]):not([tabindex="-1"]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])'
+        )].filter(element=>element.getClientRects().length>0);
+        const first=focusable[0],last=focusable[focusable.length-1];
+        if(first&&event.shiftKey&&document.activeElement===first){
+          event.preventDefault();last.focus();
+        }else if(last&&!event.shiftKey&&document.activeElement===last){
+          event.preventDefault();first.focus();
+        }
+      }
       event.stopPropagation();
     });
     root.addEventListener('keyup',event=>event.stopPropagation());
@@ -283,6 +295,7 @@ export class SettingsPanel{
     await this.ready;
     if(!this.root)return;
     if(this.isOpen)return;
+    this.previousFocus=document.activeElement;
     this.isOpen=true;
     this.game.uiOverlay='settings';
     document.body.classList.add('settings-open');
@@ -295,10 +308,13 @@ export class SettingsPanel{
   close(){
     if(!this.root||!this.isOpen)return;
     this.isOpen=false;
+    const previousFocus=this.previousFocus;
+    this.previousFocus=null;
     this.game.uiOverlay=null;
     document.body.classList.remove('settings-open');
     this.root.classList.remove('is-open');
     this.root.setAttribute('aria-hidden','true');
+    if(previousFocus?.isConnected&&typeof previousFocus.focus==='function')previousFocus.focus();
     const root=this.root;
     setTimeout(()=>{if(!this.isOpen)root.hidden=true;},260);
   }
