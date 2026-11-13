@@ -1,11 +1,11 @@
 import { LEVELS, SONG_DIR, VOID } from './config.js';
-import { Chart } from './PatternGenerator.js';
+import { Chart, PatternGenerator } from './PatternGenerator.js';
 import { BeatAnalyzer } from './BeatAnalyzer.js';
 import { AudioManager } from './AudioManager.js';
 import { Renderer } from './Renderer.js';
 import { Input } from './Input.js';
 import { VolumeControl } from './VolumeControl.js';
-import { ModMenu } from './ModMenu.js';
+import { SettingsPanel } from './SettingsPanel.js';
 import { Visualizer } from './Visualizer.js';
 
 // State flow: gate -> menu -> load -> play -> dead/win.
@@ -30,8 +30,15 @@ export class Game {
     this.audio = new AudioManager();
     this.view = new Renderer(canvas);
     this.input = new Input(this);
-    this.volUI = new VolumeControl(this.audio);
-    this.modMenu = new ModMenu(this);
+    this.volUI = new VolumeControl(this.audio, value => this.settingsPanel?.syncMusicVolume(value));
+    this.settingsPanel = new SettingsPanel(this);
+    this.settingsReady = this.settingsPanel.ready.catch(error => {
+      console.warn('[HEXBEAT] Settings panel unavailable:', error);
+      this.msg = 'SETTINGS UNAVAILABLE: ' + error.message;
+      return null;
+    });
+    this.frameRateCap = 60;
+    this.lastDraw = 0;
     this.vis = new Visualizer(this.audio);
     this.fx = null;
 
@@ -125,6 +132,10 @@ export class Game {
   back() {
     if (this.state === 'load') return;
 
+    if (this.uiOverlay === 'settings') {
+      this.settingsPanel.close();
+      return;
+    }
     this.uiOverlay = null;
     this.audio.stopNoise();
 
@@ -143,7 +154,6 @@ export class Game {
     }
 
     if (this.state === 'menu') {
-      this.modMenu.setOpen(false);
       this.audio.stop();
       this.state = 'gate';
       return;
@@ -161,7 +171,14 @@ export class Game {
 
   toggleHighScores() {
     if (this.state === 'load' || this.state === 'play') return;
+    if (this.uiOverlay === 'settings') this.settingsPanel.close();
     this.uiOverlay = this.uiOverlay === 'scores' ? null : 'scores';
+  }
+
+  toggleSettings() {
+    if (this.state === 'load' || this.state === 'play') return;
+    if (this.uiOverlay === 'scores') this.uiOverlay = null;
+    this.settingsPanel.toggle();
   }
 
   recordResult(time) {
@@ -185,9 +202,11 @@ export class Game {
   }
 
   pointer(x, y) {
+    if (this.uiOverlay === 'settings') return;
     if (this.uiOverlay === 'scores') { this.toggleHighScores(); return; }
     const state = this.state;
     if (state === 'gate') {
+      if (y > .89 && x > .32 && x < .68) { this.toggleSettings(); return; }
       if (y < .075 && x < .4) { this.toggleHighScores(); return; }
       if (y < .075 && x > .6) { this.quit(); return; }
       if (y > .5 && y < .72 && x < .25) { this.nav(-1); return; }
@@ -195,6 +214,7 @@ export class Game {
       this.confirm(); return;
     }
     if (state === 'menu') {
+      if (y > .89 && x > .72) { this.toggleSettings(); return; }
       if (y < .075 && x < .4) { this.toggleHighScores(); return; }
       if (y < .075 && x > .6) { this.back(); return; }
       if (y > .5 && y < .72 && x < .10) { this.nav(-1); return; }
@@ -213,11 +233,14 @@ export class Game {
 
     const level = this.level;
     this.tk++;
+    if (this.uiOverlay === 'settings') this.settingsPanel.close();
     this.uiOverlay = null;
     this.state = 'load';
     this.msg = '';
 
     try {
+      await this.settingsReady;
+      await PatternGenerator.loadCatalog();
       const audioBuffer = await this.audio.load(level);
 
       // Cache the source chart, then create a fresh variation for each attempt.
@@ -255,6 +278,7 @@ export class Game {
     const volume = Math.min(1, Math.max(0, this.audio.vol + delta));
     this.audio.setVolume(volume);
     this.volUI.input.value = volume;
+    this.settingsPanel?.syncMusicVolume(volume);
   }
 
   // Load a precomputed chart when available; otherwise analyze the audio.
@@ -389,8 +413,12 @@ export class Game {
 
     this.update(deltaTime);
     this.vis.update(deltaTime);
-    this.modMenu.show(this.state === 'menu');
-    this.view.draw(this);
+    const frameCap = Math.max(1, Number(this.frameRateCap) || 60);
+    const frameInterval = 1000 / frameCap;
+    if (now - this.lastDraw >= frameInterval - 0.25) {
+      this.view.draw(this);
+      this.lastDraw = now;
+    }
     requestAnimationFrame((nextFrameTime) => this.loop(nextFrameTime));
   }
 }
