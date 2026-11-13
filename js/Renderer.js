@@ -124,10 +124,14 @@ export class Renderer{
         for(const w of ch.rows){
           const m=RP+(w.t-t)*L.speed*this.mapMul;
           const depth=w.th??TH;
-          if(m>5||m+depth<.1)continue;
+          const outer=m+depth;
+          // Match Chart.collision(): never draw a negative radius, which mirrors
+          // a wall through the origin and makes it reappear from the Hub.
+          if(m>5||outer<=HUB)continue;
+          const innerVisible=Math.max(m,HUB);
           for(let s=0;s<6;s++)if(w.w[s]){
             const a=s*SIDE,b=a+SIDE;
-            poly(c,[P(a,m),P(b,m),P(b,m+depth),P(a,m+depth)]);
+            poly(c,[P(a,innerVisible),P(b,innerVisible),P(b,outer),P(a,outer)]);
             c.fill();
           }
         }
