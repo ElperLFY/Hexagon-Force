@@ -125,6 +125,28 @@ const ladderEnd=transitionRows.find(row=>row.motifName==='ladder')?.motifEnd;
 const exitStart=transitionRows.find(row=>row.motifName==='solo2')?.motifStart;
 if(!(Number.isFinite(ladderStart)&&Number.isFinite(ladderEnd)&&exitStart>=ladderEnd))throw new Error('Post-Ladder exit overlaps the Ladder phrase');
 
+// Bat uses the same two-pattern multi-opening exit rule as Ladder:
+// do not follow its opposite-lane sequence immediately with a single C/Spin.
+const batProbe=new PatternGenerator({...LEVELS.find(level=>level.id===105),seed:0xBA71});
+batProbe.pool=()=>['bat','solo','stair','solo2','dwhirl','spin4'];
+const batPools=[];
+let batPick=0;
+const forcedBatNames=['bat','solo2','dwhirl','spin4'];
+batProbe.choose=names=>{
+  batPools.push([...names]);
+  return forcedBatNames[Math.min(batPick++,forcedBatNames.length-1)];
+};
+const batRows=batProbe.generate(()=>1,60/129,0,45);
+if(batPools.length<4)throw new Error('Pattern generator did not schedule two post-Bat exit patterns');
+for(const pool of batPools.slice(1,3)){
+  if(pool.some(name=>!PatternGenerator.POST_BAT.includes(name)))throw new Error('Post-Bat selector included a pattern outside the safe multi-opening preset');
+  if(pool.includes('solo')||pool.includes('stair')||pool.includes('whirl')||pool.includes('spin4'))throw new Error('A single-opening C/Spin pattern may not occur in the two-pattern Bat exit preset');
+}
+if(!batPools[3].includes('spin4')||!batPools[3].includes('solo'))throw new Error('Normal pool should resume after the two-pattern Bat exit preset');
+const batEnd=batRows.find(row=>row.motifName==='bat')?.motifEnd;
+const batExit=batRows.find(row=>row.motifName==='solo2')?.motifStart;
+if(!(Number.isFinite(batEnd)&&batExit>=batEnd))throw new Error('Post-Bat exit overlaps the Bat phrase');
+
 // Motif grouping metadata must survive export/import so later randomization
 // cannot split a phrase at a section boundary.
 const roundTrip=Chart.fromJSON(ladderChart.toJSON(),LEVELS.find(level=>level.id===115));
@@ -243,17 +265,25 @@ for(const id of [100,105,110,115]){
   const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
   const choices=Array.from({length:18},()=>generator.chooseVoid(random));
   const multi=name=>['solo2','solo3','bat','dwhirl','stair1','rain','doubleC'].includes(name);
-  let previousPattern=null,previousMulti=null,exitRemaining=0;
+  let previousPattern=null,previousMulti=null,ladderExitRemaining=0,batExitRemaining=0;
   for(const name of choices){
-    const forcedExit=previousPattern==='ladder'||previousPattern==='zig'||exitRemaining>0;
-    if(forcedExit){
+    const enteringLadder=previousPattern==='ladder'||previousPattern==='zig';
+    const enteringBat=previousPattern==='bat'||previousPattern==='pairs';
+    const inLadderExit=enteringLadder||ladderExitRemaining>0;
+    const inBatExit=enteringBat||batExitRemaining>0;
+    if(inLadderExit){
       if(!PatternGenerator.POST_LADDER.includes(name))throw new Error(`Void post-Ladder preset failed in stage ${id}`);
-      if(previousPattern==='ladder'||previousPattern==='zig')exitRemaining=1;
-      else exitRemaining=Math.max(0,exitRemaining-1);
+      if(enteringLadder)ladderExitRemaining=1;
+      else ladderExitRemaining=Math.max(0,ladderExitRemaining-1);
+    }else if(inBatExit){
+      if(!PatternGenerator.POST_BAT.includes(name))throw new Error(`Void post-Bat preset failed in stage ${id}`);
+      if(enteringBat)batExitRemaining=1;
+      else batExitRemaining=Math.max(0,batExitRemaining-1);
     }else if(previousMulti!==null&&multi(name)===previousMulti){
       throw new Error(`Void pattern variety failed in stage ${id}`);
     }
-    if(name==='ladder'||name==='zig')exitRemaining=2;
+    if(name==='ladder'||name==='zig')ladderExitRemaining=2;
+    if(name==='bat'||name==='pairs')batExitRemaining=2;
     previousPattern=name;
     previousMulti=multi(name);
   }
