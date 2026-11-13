@@ -98,7 +98,9 @@ if(failures.length){
 // total sample volume as twelve isolated chunks, but covers real seam behavior.
 for(const level of LEVELS){
   const bd=60/(level.bpm??116);
-  const testLevel={...level,turnRate:8.5,reactionMargin:.04};
+  const speed=level.speed??1;
+  const testLevel={...level,turnRate:level.turnRate??6.4,reactionMargin:level.reactionMargin??.04};
+  const stepBins=Math.floor((testLevel.turnRate*DT)/(TAU/ANGLE_BINS));
   for(let seed=1;seed<=6;seed++){
     const generator=new PatternGenerator({...testLevel,seed});
     const rows=[];
@@ -111,15 +113,15 @@ for(const level of LEVELS){
       from=generator.voidNext;
     }
     const maxDepth=Math.max(TH,...rows.map(row=>row.th??TH));
-    const chart=new Chart(rows,bd,0,level.bpm??116,90,level.speed);
-    const duration=(rows.at(-1).t-rows[0].t)+maxDepth/level.speed+.2;
+    const chart=new Chart(rows,bd,0,level.bpm??116,90,speed);
+    const duration=(rows.at(-1).t-rows[0].t)+maxDepth/speed+.2;
     let reachable=new Uint8Array(ANGLE_BINS).fill(1);
     for(let t=rows[0].t-.5+DT;t<=rows[0].t+duration;t+=DT){
       const free=new Uint8Array(ANGLE_BINS);
       for(let i=0;i<ANGLE_BINS;i++)if(!chart.collision(t,i*TAU/ANGLE_BINS)?.type)free[i]=1;
       const next=new Uint8Array(ANGLE_BINS);
       for(let fromAngle=0;fromAngle<ANGLE_BINS;fromAngle++)if(reachable[fromAngle]){
-        for(let delta=-STEP_BINS;delta<=STEP_BINS;delta++){
+        for(let delta=-stepBins;delta<=stepBins;delta++){
           const to=norm(fromAngle+delta,ANGLE_BINS);
           if(!free[to])continue;
           let clear=true;
@@ -130,8 +132,8 @@ for(const level of LEVELS){
       if(!next.some(Boolean)){
         const active=rows.filter(row=>{
           const depth=row.th??TH;
-          const enters=row.t-(PL.tip-RP)/level.speed;
-          const leaves=row.t+(depth+RP-PL.back)/level.speed;
+          const enters=row.t-(PL.tip-RP)/speed;
+          const leaves=row.t+(depth+RP-PL.back)/speed;
           return t>=enters-1e-6&&t<=leaves+1e-6;
         }).map(row=>({t:+row.t.toFixed(3),g:row.g,th:+(row.th??TH).toFixed(3)}));
         const priorSectors=[...new Set(Array.from({length:ANGLE_BINS},(_,index)=>reachable[index]?Math.floor(index*TAU/ANGLE_BINS/SIDE):null).filter(value=>value!==null))];
