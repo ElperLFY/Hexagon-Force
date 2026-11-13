@@ -266,7 +266,8 @@ for(const id of [100,105,110,115]){
   const choices=Array.from({length:18},()=>generator.chooseVoid(random));
   const multi=name=>['solo2','solo3','alt3','bat','dwhirl','stair1','rain','doubleC'].includes(name);
   let previousPattern=null,previousMulti=null,ladderExitRemaining=0,batExitRemaining=0;
-  for(const name of choices){
+  for(let choiceIndex=0;choiceIndex<choices.length;choiceIndex++){
+    const name=choices[choiceIndex];
     const enteringLadder=previousPattern==='ladder'||previousPattern==='zig';
     const enteringBat=previousPattern==='bat'||previousPattern==='pairs';
     const inLadderExit=enteringLadder||ladderExitRemaining>0;
@@ -278,7 +279,7 @@ for(const id of [100,105,110,115]){
     }else if(inBatExit){
       if(!PatternGenerator.POST_BAT.includes(name))throw new Error(`Void post-Bat preset failed in stage ${id}`);
     }else if(previousMulti!==null&&multi(name)===previousMulti){
-      throw new Error(`Void pattern variety failed in stage ${id}`);
+      throw new Error(`Void pattern variety failed in stage ${id}: ${choices.slice(0,choiceIndex+1).join(' -> ')} (previousMulti=${previousMulti}, currentMulti=${multi(name)}, ladderExit=${ladderExitRemaining}, batExit=${batExitRemaining})`);
     }
 
     // Both exit states can overlap (for example, Bat may be the first of
