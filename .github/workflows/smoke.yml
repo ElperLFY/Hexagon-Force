@@ -2,7 +2,7 @@ name: HEXBEAT smoke tests
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, gameplay/edge-contact-esc]
 
 permissions:
   contents: read
