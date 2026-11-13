@@ -1,0 +1,47 @@
+{
+  "id": "doubleC",
+  "name": "Double C",
+  "category": "single-opening-pair",
+  "description": "Four Parts with two adjacent openings, advancing one sector per beat.",
+  "tags": [
+    "multi-opening",
+    "adjacent-openings"
+  ],
+  "weight": 1,
+  "voidWeight": 1.1,
+  "directionMode": "relative",
+  "parts": [
+    {
+      "beat": 0,
+      "openOffsets": [
+        0,
+        1
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 1,
+      "openOffsets": [
+        1,
+        2
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 2,
+      "openOffsets": [
+        2,
+        3
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 3,
+      "openOffsets": [
+        3,
+        4
+      ],
+      "wallSpanBeats": 0.42
+    }
+  ]
+}
