@@ -29,6 +29,7 @@ export class Renderer{
     this.hubLvl=0;
     this.camLvl=0;
     this.ui=new UIRenderer(this);
+    this.debugPatterns=new URLSearchParams(location.search).has('debugPatterns');
     addEventListener('resize',()=>this.resize());
     this.resize();
   }
@@ -243,6 +244,20 @@ export class Renderer{
     if(g.live){
       this.text((t-L.offset).toFixed(2)+'s',W-U*.12,U*.12,U*.07,p.p,'right');
       this.text('BPM '+ch.bpm.toFixed(1),U*.12,U*.1,U*.035,p.p,'left');
+      if(this.debugPatterns){
+        const active=ch.rows
+          .filter(row=>row.motifName&&Number.isFinite(row.motifStart)&&
+            t>=row.motifStart-1e-4&&t<=(row.motifEnd??row.motifStart)+1e-4)
+          .reduce((latest,row)=>!latest||row.motifStart>latest.motifStart?row:latest,null);
+        const label=active
+          ?`PATTERN ${String(active.motifName).toUpperCase()} · ${Math.max(0,t-active.motifStart).toFixed(2)}s`
+          :'PATTERN UNTAGGED';
+        c.save();
+        c.fillStyle='rgba(0,0,0,.58)';
+        c.fillRect(12,U*.135,U*.82,U*.075);
+        this.text(label,U*.045,U*.172,U*.026,p.p,'left');
+        c.restore();
+      }
       if(s!=='play'){
         this.text(s==='win'?'COMPLETATO!':'GAME OVER',W/2,H*.4,U*.14,p.p);
         this.text('SPAZIO / TOCCA · RIPROVA   ESC · MENU',W/2,H*.62,U*.045,p.p);
