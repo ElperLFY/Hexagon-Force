@@ -1,6 +1,6 @@
 // Costanti di gioco, livelli e palette. I parametri di rotazione sono separati
 // dalla velocita' dei muri: ogni livello puo' avere un ritmo visivo distinto.
-export const TAU=Math.PI*2,SIDE=TAU/6,K=1.1547,RP=.26,HUB=.18,TH=.1,PW=.035;
+export const TAU=Math.PI*2,SIDE=TAU/6,K=1.1547,RP=.27,HUB=.18,TH=.1,PW=.035;
 export const PL={tip:RP+.045,back:RP-.03,half:.035};
 export const SONG_DIR='MusicData/';
 
@@ -63,7 +63,7 @@ export const LEVELS=[
     id:105,name:'VERDE · GIALLO · ROSSO',offset:0,speed:1,seed:105,
     rotSpeed:1,rotAmp:.1,rotBeats:16,
     randomSectionBeats:16,randomLaneShiftChance:.05,randomDropChance:.025,randomAddChance:.08,
-    extra:['dwhirl','spin4','t321','rain'],
+    extra:['dwhirl','spin4','t321','rain','rain'],
     pal(tt){
       let p=(tt/30)%2;
       p=p>1?2-p:p;
@@ -86,7 +86,7 @@ export const LEVELS=[
     rotSpeed:1.5,rotAmp:0,rotBeats:14,
     randomSectionBeats:10,randomLaneShiftChance:.16,randomDropChance:.10,randomAddChance:.07,
     intensityThreshold:.065,
-    extra:['dwhirl','stair1','stair2','spin3','spin4','t321','rain','doubleC'],
+    extra:['dwhirl','stair1','stair2','spin4','t321','rain',],
     pal(){return{b1:hsl(215,70,64),b2:hsl(215,70,57),w:hsl(222,85,16),p:hsl(210,60,97)}}
   },
   {
@@ -94,7 +94,7 @@ export const LEVELS=[
     rotSpeed:2,rotAmp:0,rotBeats:12,trip:true,
     randomSectionBeats:4,randomLaneShiftChance:.22,randomDropChance:.14,randomAddChance:.05,
     intensityThreshold:.055,
-    extra:['dwhirl','stair1','stair2','spin3','spin4','t321','rain','doubleC',"zig","pairs"],
+    extra:['dwhirl','stair1','stair2','spin3','spin4','t321','rain','doubleC','zig','pairs'],
     patternWeights:{ladder:1.35,burst:1.3,whirl:1.25,dwhirl:1.2,stair2:1.2,spin3:1.2,t321:1.15},
     pal(tt){
       const s=Math.min(tt,120),h=(10*tt+25*s*s/120+50*(tt-s))%360;
