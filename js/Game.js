@@ -349,6 +349,12 @@ export class Game {
       const candidate=this.phi+angularDelta/substeps;
       const collision=chart.collision(time,candidate,this.mods.mapSpeed);
       if(collision==='tip'){
+        // If the flank was already touching a wall at the start of this frame,
+        // pushing farther into that same wall is a blocked turn, not a fatal tip hit.
+        if(currentCollision==='side'){
+          sideBlocked=true;
+          break;
+        }
         this.die(time);
         return;
       }
