@@ -259,6 +259,9 @@ export class SettingsPanel{
       if(row&&definition.requires){
         const disabled=this.values[definition.requires]!==true;
         row.classList.toggle('is-disabled',disabled);
+        // The Mod Menu toggle controls whether its subordinate settings exist
+        // in the visible panel, not merely whether their inputs accept changes.
+        row.hidden=disabled;
         const input=row.querySelector('input,select');
         if(input)input.disabled=disabled;
       }
