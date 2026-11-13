@@ -65,10 +65,10 @@ This is only a schema example, not a claim that it reproduces the guide's exact 
 
 The arena uses six sectors, each spanning `SIDE` radians. A wall sector is rendered as a quadrilateral between two radii:
 
-- inner radius: `m`
-- outer radius: `m + TH`
+- inner hexagon apothem offset: `m`
+- outer hexagon apothem offset: `m + TH`
 
-`TH` is currently a **global radial wall thickness** in world units, defined in `js/config.js`. It is not a per-pattern property.
+`TH` is currently a **global wall thickness between parallel hexagon boundaries** in world units, defined in `js/config.js`. It is not a per-pattern property.
 
 The current row schema stores only the time and open sectors. It cannot express different thickness per Part. To introduce pattern-specific thickness safely, the data model would need an optional field, for example:
 
@@ -92,7 +92,7 @@ These are textual descriptions from the guide, not image-verified reconstruction
 | Stair 1 | Several Parts with holes 3 units apart; each Part's holes move 1 unit apart |
 | 321 | M-shaped path with movements of 3, then 2, then 1 unit |
 | Multi C | Repeated movement in one direction |
-| Double Whirlpool | Two simultaneous whirlpools in the same rotational direction |
+| Double Whirlpool | Whirlpool on both sides; the guide describes the pair as rotating CW or CCW |
 | 2-Spin | Repeated 2L, 2R, 2L… |
 | 3-Spin | Starts with a hole on the left, then 3R, 3L, 3R, 3L |
 | 4-Spin | Starts with a hole on the right, then 4L, 4R |

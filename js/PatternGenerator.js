@@ -120,7 +120,7 @@ export class Chart{
     const body=playerPolygon(phi);
     const speed=(this.speed||1)*mapMul;
     const window=(TH+Math.abs(PL.tip-RP)+.08)/speed+.06;
-    let sideContact=false;
+    let sideContact=null;
 
     for(const row of this.rows){
       const dt=row.t-t;
@@ -134,17 +134,20 @@ export class Chart{
         const a=sector*SIDE,b=a+SIDE;
         const wall=[P(a,inner),P(b,inner),P(b,inner+TH),P(a,inner+TH)];
 
-        // The tip remains the only lethal point.
-        if(pointInConvexPolygon(tip,wall))return 'tip';
-        if(polygonsOverlap(body,wall))sideContact=true;
+        // The tip remains the only lethal point. Include the exact wall identity
+        // so a side scrape cannot shield the player from a different wall.
+        if(pointInConvexPolygon(tip,wall))return {type:'tip',row,sector};
+        if(!sideContact&&polygonsOverlap(body,wall)){
+          sideContact={type:'side',row,sector};
+        }
       }
     }
-    return sideContact?'side':null;
+    return sideContact;
   }
 
   // Backwards-compatible fatal-hit query.
   hit(t,phi,mapMul=1){
-    return this.collision(t,phi,mapMul)==='tip';
+    return this.collision(t,phi,mapMul)?.type==='tip';
   }
 
   // Return a per-run variation of the authored chart. Beat timestamps remain

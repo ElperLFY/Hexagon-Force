@@ -334,7 +334,7 @@ export class Game {
     // clamp angular movement at the last free position. Input is deliberately
     // left untouched: the held direction resumes as soon as the wall passes.
     const currentCollision=chart.collision(time,this.phi,this.mods.mapSpeed);
-    if(currentCollision==='tip'){
+    if(currentCollision?.type==='tip'){
       this.die(time);
       return;
     }
@@ -348,17 +348,21 @@ export class Game {
     for(let step=1;step<=substeps;step++){
       const candidate=this.phi+angularDelta/substeps;
       const collision=chart.collision(time,candidate,this.mods.mapSpeed);
-      if(collision==='tip'){
-        // If the flank was already touching a wall at the start of this frame,
-        // pushing farther into that same wall is a blocked turn, not a fatal tip hit.
-        if(currentCollision==='side'){
+      if(collision?.type==='tip'){
+        // If the flank was already touching this exact wall at the start of the
+        // frame, pushing farther into it is a blocked turn. A different wall
+        // still kills on tip contact.
+        const sameWall=currentCollision?.type==='side' &&
+          currentCollision.row===collision.row &&
+          currentCollision.sector===collision.sector;
+        if(sameWall){
           sideBlocked=true;
           break;
         }
         this.die(time);
         return;
       }
-      if(collision==='side'){
+      if(collision?.type==='side'){
         sideBlocked=true;
         break;
       }

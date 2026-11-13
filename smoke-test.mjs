@@ -16,7 +16,7 @@ if(!blocked.hit(10,SIDE/2)||open.hit(10,SIDE/2))throw new Error('Tip hitbox test
 const edgeContact=new Chart([{t:10,g:[0],w:mask([0])}],.5,0,120,20,1);
 // At 59 degrees the tip remains inside open sector 0 while the arrow's flank
 // grazes wall sector 1 just after the wall crosses the player's radial position.
-if(edgeContact.collision(10.01,SIDE-Math.PI/180)!=='side')throw new Error('Side scrape should be non-lethal contact');
+if(edgeContact.collision(10.01,SIDE-Math.PI/180)?.type!=='side')throw new Error('Side scrape should be non-lethal contact');
 if(edgeContact.hit(10.01,SIDE-Math.PI/180))throw new Error('Side scrape must not kill the player');
 const g=new PatternGenerator({...LEVELS[3],seed:90210,speed:1.7,turnRate:7.4});
 const voidRows=g.generateVoid(60.1,48,60/116,0);
