@@ -365,8 +365,8 @@ Chart.EMPTY=new Chart();
 export class PatternGenerator{
   // A Ladder is a complete phrase, not a bag of independent rows. The next
   // phrase is restricted to multi-opening patterns with a safe first Part.
-  static POST_LADDER=Object.freeze(['solo2','solo3','bat','dwhirl','stair1','doubleC']);
-  static POST_BAT=Object.freeze(['solo2','solo3','dwhirl','stair1','doubleC']);
+  static POST_LADDER=Object.freeze(['solo3','alt3']);
+  static POST_BAT=Object.freeze(['solo3','alt3']);
 
   static PAT={
     solo:g=>[[0,[g]]],
@@ -589,13 +589,13 @@ export class PatternGenerator{
   // Part is guaranteed at least every other motif, preventing endless single-C runs.
   voidPool(){
     return [
-      'solo2','solo3','ladder','stair','bat','tripleC','whirl','dwhirl',
+      'solo2','solo3','alt3','ladder','stair','bat','tripleC','whirl','dwhirl',
       'multiC','stair1','stair2','spin2','spin3','spin4','t321','rain','doubleC'
     ];
   }
 
   chooseVoid(r){
-    const multi=['solo2','solo3','bat','dwhirl','stair1','rain','doubleC'];
+    const multi=['solo2','solo3','alt3','bat','dwhirl','stair1','rain','doubleC'];
     let names=this.voidPool();
     const enteringPostLadder=this.lastVoidPattern==='ladder'||this.lastVoidPattern==='zig';
     const inPostLadder=enteringPostLadder||this.postVoidLadderRemaining>0;
