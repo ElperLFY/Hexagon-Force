@@ -16,14 +16,14 @@ export const VOID={
   alpha:[.3,.92],    // darkness at the far end: [at the start, at full strength] -> never fully black
   chunkBars:8,       // rows are generated this many bars at a time...
   ahead:14,          // ...and always at least this many seconds in advance
-  noise:{file:'wn01.wav',gain:.35,fade:1.5} // looped from the flip until you die (gain is relative to the volume slider)
+  noise:{file:'wn01.wav',gain:1,fade:1.5} // looped from the flip until you die (gain is relative to the volume slider)
 };
 const hsl=(h,s,l)=>`hsl(${h},${s}%,${l}%)`;
 
 export const LEVELS=[
   {
     id:105,name:'VERDE · GIALLO · ROSSO',offset:0,speed:1,seed:105,
-    rotSpeed:.38,rotAmp:.5,rotBeats:16,
+    rotSpeed:.60,rotAmp:.5,rotBeats:16,
     randomSectionBeats:16,randomLaneShiftChance:.05,randomDropChance:.025,randomAddChance:.08,
     pal(tt){
       let p=(tt/30)%2;
@@ -34,7 +34,12 @@ export const LEVELS=[
   },
   {
     id:100,name:'CREMISI · NERO',offset:39,speed:1.1,seed:100,inv:true,
-    rotSpeed:.5,rotAmp:.6,rotBeats:16,
+    rotSpeed:.35,rotAmp:.6,rotBeats:16,
+    patternWeights:{
+  ladder:2,
+  whirl:1.5,
+  solo:.5
+},
     randomSectionBeats:12,randomLaneShiftChance:.08,randomDropChance:.04,randomAddChance:.08,
     pal(tt,inv){
       return inv
@@ -44,7 +49,7 @@ export const LEVELS=[
   },
   {
     id:110,name:'BLU',offset:0,speed:1.3,seed:110,hard:true,diff:.25,ramp:45,
-    rotSpeed:.78,rotAmp:.72,rotBeats:14,
+    rotSpeed:.90,rotAmp:.72,rotBeats:14,
     randomSectionBeats:10,randomLaneShiftChance:.16,randomDropChance:.10,randomAddChance:.07,
     intensityThreshold:.065,
     extra:['dwhirl','stair1','stair2','spin3','spin4','t321','rain','doubleC'],
@@ -52,7 +57,7 @@ export const LEVELS=[
   },
   {
     id:115,name:'RGB',offset:0,speed:1.4,seed:115,hard:true,diff:.35,ramp:45,
-    rotSpeed:.98,rotAmp:.86,rotBeats:12,trip:true,
+    rotSpeed:1,rotAmp:.86,rotBeats:12,trip:true,
     randomSectionBeats:8,randomLaneShiftChance:.22,randomDropChance:.14,randomAddChance:.05,
     intensityThreshold:.055,
     extra:['dwhirl','stair1','stair2','spin3','spin4','t321','rain','doubleC'],
