@@ -106,9 +106,9 @@ These are textual descriptions from the guide, not image-verified reconstruction
 | 321 | M-shaped path with movements of 3, then 2, then 1 unit |
 | Multi C | Repeated movement in one direction |
 | Double Whirlpool | Whirlpool on both sides; the guide describes the pair as rotating CW or CCW |
-| 2-Spin | Repeated 2L, 2R, 2L… |
-| 3-Spin | Starts with a hole on the left, then 3R, 3L, 3R, 3L |
-| 4-Spin | Starts with a hole on the right, then 4L, 4R |
+| 2-Spin | User-provided reference: repeat the shared 1-2-3 motif twice |
+| 3-Spin | User-provided reference: repeat the shared 1-2-3 motif three times |
+| 4-Spin | User-provided reference: repeat the shared 1-2-3 motif four times |
 | Rain | Several three-hole Parts followed by a cap; the cap can be dangerous |
 | Stair 2 | RRLLL sequence |
 
