@@ -1,4 +1,4 @@
-import {LEVELS,SIDE,TAU,TH} from './js/config.js';
+import {LEVELS,SIDE,TAU,TH,RP,PL} from './js/config.js';
 import {Chart,PatternGenerator} from './js/PatternGenerator.js';
 
 // Test the actual Chart.collision geometry, including the arrow's side hitbox.
@@ -111,7 +111,13 @@ for(const level of LEVELS){
       }
       reachable=next;
       if(!reachable.some(Boolean)){
-        throw new Error(`Void reachability failed: level ${level.id}, seed ${seed}, t=${t.toFixed(3)}s`);
+        const active=rows.filter(row=>{
+          const depth=row.th??TH;
+          const enters=row.t-(PL.tip-RP)/level.speed;
+          const leaves=row.t+(depth+RP-PL.back)/level.speed;
+          return t>=enters-1e-6&&t<=leaves+1e-6;
+        }).map(row=>({t:+row.t.toFixed(3),g:row.g,th:+(row.th??TH).toFixed(3)}));
+        throw new Error(`Void reachability failed: level ${level.id}, seed ${seed}, t=${t.toFixed(3)}s, active=${JSON.stringify(active)}`);
       }
     }
   }
