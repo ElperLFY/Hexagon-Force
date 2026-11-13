@@ -7,6 +7,10 @@ await PatternGenerator.loadCatalog();
 // The catalog, each individual pattern JSON and Settings schema are the
 // source of truth. Validate that every manifest entry resolves to a factory.
 const patternCatalog=JSON.parse(fs.readFileSync('./js/SubData/PatternGenerator/catalog.json','utf8'));
+const patternCatalogSchema=JSON.parse(fs.readFileSync('./js/SubData/PatternGenerator/pattern-catalog.schema.json','utf8'));
+const patternDefinitionSchema=JSON.parse(fs.readFileSync('./js/SubData/PatternGenerator/pattern.schema.json','utf8'));
+if(!patternCatalogSchema.properties?.$schema||!patternDefinitionSchema.properties?.$schema)throw new Error('Pattern JSON Schemas must allow their $schema metadata');
+if(!patternCatalog.properties?.$schema)throw new Error('Pattern catalog must declare its JSON Schema');
 if('normalWeights' in patternCatalog||'voidWeights' in patternCatalog)throw new Error('Pattern weights must live beside their pattern definitions');
 for(const id of patternCatalog.patterns){
   const file=patternCatalog.definitionFiles[id];
@@ -21,6 +25,8 @@ if(PatternGenerator.PAT.pairs(0,1).length!==PatternGenerator.PAT.bat(0,1).length
 if(PatternGenerator.PAT.spin4(0,1).length!==12)throw new Error('Spin 4 JSON alias must repeat the 1-2-3 unit four times');
 
 const settingsSchema=JSON.parse(fs.readFileSync('./js/SubData/Settings/settings.json','utf8'));
+const settingsDefinitionSchema=JSON.parse(fs.readFileSync('./js/SubData/Settings/settings.schema.json','utf8'));
+if(!settingsDefinitionSchema.properties?.$schema||!settingsSchema.$schema)throw new Error('Settings JSON must declare a schema that accepts its $schema metadata');
 const settingIds=settingsSchema.groups.flatMap(group=>group.settings.map(setting=>setting.id));
 for(const id of ['frameRate','vsync','modMenuEnabled','mapSpeed','playerSpeed','musicVolume','soundVolume']){
   if(!settingIds.includes(id))throw new Error(`Settings JSON is missing ${id}`);
