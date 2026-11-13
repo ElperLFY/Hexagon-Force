@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import {LEVELS,SIDE,TH,VOID} from './js/config.js';
+import {LEVELS,SIDE,TAU,TH,VOID,RP,PL} from './js/config.js';
 import {Chart,PatternGenerator} from './js/PatternGenerator.js';
 
 const mask=gaps=>[0,1,2,3,4,5].map(sector=>!gaps.includes(sector));
@@ -35,11 +35,99 @@ for(const [name,repetitions] of [['spin2',2],['spin3',3],['spin4',4]]){
   }
 }
 
-// Ladder: two long single-sector rails and eight alternating two-sector rungs.
+// Ladder: two long opposing rails plus eight alternating single-sector rungs.
 const ladder=PatternGenerator.PAT.ladder(0,1);
 if(ladder.length!==10)throw new Error('Ladder must contain two rails and eight rungs');
 if(!ladder.slice(0,2).every(event=>event[2]===4&&event[1].length===5))throw new Error('Ladder rails must be long single-sector walls');
-if(!ladder.slice(2).every(event=>event[1].length===4&&event[2]===.22))throw new Error('Ladder rungs must be short two-sector walls');
+if(!ladder.slice(2).every(event=>event[1].length===5&&event[2]===.22))throw new Error('Ladder rungs must be single-sector walls');
+if(ladder.slice(2).some(event=>event[1].length===4))throw new Error('A Ladder rung must never combine two sectors and close the opposite route');
+// Time-expanded reachability audit. Treat every wall as active for the exact
+// interval during which its radial span crosses the pointer radius. The pointer
+// can rotate at the game's real maximum turn rate; an 8.5-degree body clearance
+// is reserved beside every blocked sector. This catches patterns that have
+// individually valid rows but no continuous path through their combined walls.
+function hasPlayablePath(rows,speed,turnRate=8.5,dt=1/60){
+  const bins=720,margin=8.5*Math.PI/180,offset=PL.tip-RP;
+  const depth=row=>row.th??TH;
+  const start=Math.min(...rows.map(row=>row.t-offset/speed))-dt;
+  const end=Math.max(...rows.map(row=>row.t+(depth(row)-offset)/speed))+dt;
+  const steps=Math.floor(turnRate*dt*bins/TAU+1e-9);
+  const sectors=new Uint8Array(bins),local=new Float64Array(bins);
+  for(let i=0;i<bins;i++){
+    const angle=i*TAU/bins;
+    sectors[i]=Math.floor(angle/SIDE);
+    local[i]=angle-sectors[i]*SIDE;
+  }
+  let reachable=new Uint8Array(bins).fill(1);
+  const expanded=new Uint8Array(bins),next=new Uint8Array(bins);
+  const prefix=new Int32Array(bins+1);
+  for(let time=start;time<=end+dt*.25;time+=dt){
+    const blocked=new Uint8Array(6);
+    for(const row of rows){
+      const d=depth(row);
+      const enters=row.t-offset/speed,leaves=row.t+(d-offset)/speed;
+      if(time<enters-1e-9||time>leaves+1e-9)continue;
+      for(let sector=0;sector<6;sector++)if(!row.g.includes(sector))blocked[sector]=1;
+    }
+    prefix[0]=0;
+    for(let i=0;i<bins;i++)prefix[i+1]=prefix[i]+reachable[i];
+    let any=false;
+    for(let i=0;i<bins;i++){
+      const lo=i-steps,hi=i+steps;
+      let count;
+      if(lo<0)count=prefix[hi+1]+prefix[bins]-prefix[bins+lo];
+      else if(hi>=bins)count=prefix[bins]-prefix[lo]+prefix[hi-bins+1];
+      else count=prefix[hi+1]-prefix[lo];
+      const sector=sectors[i],left=blocked[(sector+5)%6],right=blocked[(sector+1)%6];
+      const safe=!blocked[sector]&&!(left&&local[i]<margin)&&!(right&&SIDE-local[i]<margin);
+      next[i]=safe&&count>0?1:0;
+      if(next[i])any=true;
+    }
+    if(!any){
+      const closed=Array.from(blocked).map((value,index)=>value?index:null).filter(value=>value!==null);
+      return {ok:false,time,closed};
+    }
+    reachable.set(next);
+  }
+  return {ok:true};
+}
+
+// Review every pattern in every stage, in both movement directions, after the
+// same deterministic orientation/randomization and reachability repair used in runs.
+for(const id of [100,105,110,115]){
+  const level=LEVELS.find(item=>item.id===id);
+  for(const name of Object.keys(PatternGenerator.PAT)){
+    for(const direction of [-1,1]){
+      const events=PatternGenerator.PAT[name](0,direction,()=>.37);
+      const rows=events.map(([beat,gaps,span=0])=>({
+        t:beat*level.beatDur,
+        g:[...new Set(gaps.map(value=>((value%6)+6)%6))],
+        w:mask(gaps),
+        ...(span>0?{th:Math.max(TH,level.speed*level.beatDur*span)}:{})
+      }));
+      const chart=new Chart(rows,level.beatDur,0,level.bpm,60,level.speed)
+        .randomized({...level,offset:0},0x51A7+id+direction);
+      const result=hasPlayablePath(chart.rows,level.speed);
+      if(!result.ok)throw new Error(
+        `Unplayable pattern ${name} in stage ${id}, direction ${direction}, t=${result.time.toFixed(3)}, blocked=${result.closed.join(',')}`
+      );
+    }
+  }
+}
+
+// Audit actual Void sequences too, including pattern-to-pattern transitions.
+for(const id of [100,105,110,115]){
+  const level=LEVELS.find(item=>item.id===id);
+  for(const seed of [0xA11CE,0xBADC0DE]){
+    const generator=new PatternGenerator({...level,seed});
+    const rows=generator.generateVoid(0,32,60/level.bpm,0,0,null);
+    const result=hasPlayablePath(rows,level.speed,8.5,.05);
+    if(!result.ok)throw new Error(
+      `Unplayable generated Void sequence in stage ${id}, seed ${seed}, t=${result.time.toFixed(3)}, blocked=${result.closed.join(',')}`
+    );
+  }
+}
+
 const g=new PatternGenerator({...LEVELS[3],seed:90210,speed:1.7,turnRate:7.4});
 const voidRows=g.generateVoid(60.1,48,60/116,0);
 if(voidRows.length<80||!voidRows.every((row,index)=>index===0||row.t>=voidRows[index-1].t))throw new Error('Void generation test failed');
