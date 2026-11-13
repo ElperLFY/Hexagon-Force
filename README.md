@@ -67,23 +67,23 @@ This creates useful ambiguities that the pattern format must handle explicitly:
 - `4L ≡ 2R (mod 6)` and `4R ≡ 2L (mod 6)`.
 - The current chart rows record only *which sectors are open*. They do not record the intended turn direction or number of taps. A visual pattern that depends on distinguishing `3R` from `3L` needs additional path/orientation metadata; the existing gap-only JSON cannot preserve that distinction.
 
-Example:
+Example extended events:
 
 ```js
-ladder: (start, direction) => {
-  // Extended events can describe two long rails and short alternating rungs.
-  // See PatternGenerator.PAT.ladder for the complete six-sector construction.
-}
+[
+  [0,   [1, 2, 3, 4, 5], 4],  // long Part: four beats of radial depth
+  [0.5, [0, 3, 4, 5],    0.22] // short Part: two-sector wall rung
+]
 ```
 
-This is only a schema example, not a claim that it reproduces the guide's exact Ladder diagram.
+The full six-sector Ladder construction is in `PatternGenerator.PAT.ladder`.
 
 ## 3. Geometry and thickness
 
 The arena uses six sectors, each spanning `SIDE` radians. A wall sector is rendered as a quadrilateral between two radii:
 
 - inner hexagon apothem offset: `m`
-- outer hexagon apothem offset: `m + TH`
+- outer hexagon apothem offset: `m + (row.th ?? TH)`
 
 `TH` remains the global fallback wall thickness, defined in `js/config.js`. Pattern Parts can override it with `th`, a radial depth calculated from their authored span in beats.
 
