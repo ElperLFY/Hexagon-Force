@@ -26,6 +26,17 @@ for(const id of ['frameRate','vsync','modMenuEnabled','mapSpeed','playerSpeed','
 const soundSetting=settingsSchema.groups.flatMap(group=>group.settings).find(setting=>setting.id==='soundVolume');
 if(!soundSetting.disabled||soundSetting.status!=='WIP')throw new Error('Sound Volume must remain visibly marked as WIP');
 
+const settingsMarkup=fs.readFileSync('./js/SubData/Settings/settings.html','utf8');
+const settingsStyles=fs.readFileSync('./js/SubData/Settings/settings.css','utf8');
+const indexMarkup=fs.readFileSync('./index.html','utf8');
+const settingsController=fs.readFileSync('./js/SettingsPanel.js','utf8');
+const gameSource=fs.readFileSync('./js/Game.js','utf8');
+if(!settingsMarkup.includes('role="dialog"')||!settingsMarkup.includes('data-settings-content'))throw new Error('Settings HTML dialog structure is incomplete');
+if(!settingsStyles.includes('.hb-settings__dialog')||!settingsStyles.includes('@media'))throw new Error('Settings CSS is missing the dialog or responsive layout');
+if(!indexMarkup.includes('js/SubData/Settings/settings.css'))throw new Error('index.html does not load the Settings stylesheet');
+if(!settingsController.includes("new URL('settings.json',base)")||!settingsController.includes("new URL('settings.html',base)"))throw new Error('Settings controller is not loading the HTML and JSON assets');
+if(gameSource.includes("from './ModMenu.js'")||gameSource.includes('this.modMenu'))throw new Error('The old standalone Mod Menu is still wired into Game.js');
+
 
 const mask=gaps=>[0,1,2,3,4,5].map(sector=>!gaps.includes(sector));
 for(const id of [100,105,110,115]){
