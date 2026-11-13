@@ -10,5 +10,6 @@
     "spin"
   ],
   "weight": 1,
-  "voidWeight": 0.85
+  "voidWeight": 0.85,
+  "$schema": "./pattern.schema.json"
 }
