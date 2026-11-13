@@ -305,11 +305,11 @@ export class PatternGenerator{
     tripleC:g=>[[0,[g],.42],[1,[g+3],.42],[2,[g],.42]],
 
     // A continuous spiral lane. Double Whirlpool keeps a second, opposite lane.
-    whirl:(g,d)=>[0,1,2,3,4,5].map(i=>[i*.75,[g+i*d],.58]),
-    dwhirl:(g,d)=>[0,1,2,3,4,5].map(i=>[i*.75,[g+i*d,g+3+i*d],.58]),
+    whirl:(g,d)=>[0,1,2,3,4,5].map(i=>[i,[g+i*d],.58]),
+    dwhirl:(g,d)=>[0,1,2,3,4,5].map(i=>[i,[g+i*d,g+3+i*d],.58]),
 
     // Multi-C: consecutive single openings moving in one direction.
-    multiC:(g,d)=>[0,1,2,3,4].map(i=>[i*.75,[g+i*d],.58]),
+    multiC:(g,d)=>[0,1,2,3,4].map(i=>[i,[g+i*d],.58]),
 
     // Stair 1: two opposite openings, both advancing by one sector.
     stair1:(g,d)=>[0,1,2,3,4].map(i=>[i,[g+i*d,g+3+i*d],.42]),
@@ -327,7 +327,7 @@ export class PatternGenerator{
     // User reference: 2/3/4-Spin share the same 1-2-3 movement motif.
     // The number in the name is the number of times that motif is repeated.
     spin:(g,d,repeats)=>Array.from({length:repeats*3},(_,i)=>[
-      i*.5,[g+[0,1,3][i%3]*d],.36
+      i,[g+[0,1,3][i%3]*d],.58
     ]),
     spin2:(g,d)=>PatternGenerator.PAT.spin(g,d,2),
     spin3:(g,d)=>PatternGenerator.PAT.spin(g,d,3),
