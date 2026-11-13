@@ -660,14 +660,21 @@ export class PatternGenerator{
       // from the previous motif's final Part. This avoids an abrupt lane jump
       // at a motif seam that row-local repair cannot detect.
       if(this.lastVoidOpenings?.length){
+        const preferred=this.lastVoidOpenings[0];
         let best=-1,candidates=[];
         for(let candidate=0;candidate<6;candidate++){
           const first=PatternGenerator.PAT[name](candidate,d,()=>.5)[0]?.[1]??[];
-          const score=first.filter(sector=>this.lastVoidOpenings.includes(norm(sector))).length;
+          const normalized=first.map(norm);
+          // Prefer the first opening carried forward from the previous Part.
+          // A random tie-break could select a second, visually equivalent gap
+          // that the Pointer never reached before the next wall arrived.
+          const score=
+            (normalized.includes(preferred)?100:0)+
+            normalized.filter(sector=>this.lastVoidOpenings.includes(norm(sector))).length;
           if(score>best){best=score;candidates=[candidate];}
           else if(score===best)candidates.push(candidate);
         }
-        if(best>0)g=candidates[r()*candidates.length|0];
+        if(best>0)g=candidates[0];
       }
 
       const pat=PatternGenerator.PAT[name](g,d,r);
