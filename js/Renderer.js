@@ -78,9 +78,10 @@ export class Renderer{
     const c=this.c,tt=Math.max(0,t-L.offset),per=16*ch.beatDur;
     const n=L.inv?Math.max(0,Math.floor((t-ch.tg0)/per)):0;
     const r=Math.min(1,(t-ch.tg0-n*per)/.9);
+    //Pulse
     let f=(t-ch.tg0)/ch.beatDur;f-=Math.floor(f);
-    const tr=L.trip?1+2*Math.min(1,tt/120):0;
-    const sc=1+(1+2*tr)*Math.exp(-5*f),rot=ch.rot(t,L);
+    const tr=L.trip?0.5+1*Math.min(1,tt/120):0;
+    const sc=1+(0.60+0.90*tr)*Math.exp(-5*f),rot=ch.rot(t,L);
   
     c.save();
     c.translate(this.W/2,this.H/2);
