@@ -49,10 +49,19 @@ for(let start=0;start<6;start++)for(const direction of [-1,1]){
   const railWalls=[0,1,2,3,4,5].filter(sector=>!railOpenings.includes(sector));
   if(rails[0]!==0||railOpenings.length!==4||rails[2]!==6.22||rails[3]!==0)throw new Error('Ladder rail Part must be one continuous opposing pair');
   if(railWalls.length!==2||((railWalls[0]-railWalls[1]+6)%6)!==3)throw new Error('Ladder rails must occupy opposite sectors');
-  if(ladder.slice(1).some((event,index)=>event[1].length!==2||event[2]!==.22||Math.abs(event[0]-(.75+index*.75))>1e-9))throw new Error('Ladder mirrored rungs must have identical spacing and thickness');
+  if(ladder.slice(1).some((event,index)=>event[1].length!==4||event[2]!==.22||Math.abs(event[0]-(.75+index*.75))>1e-9))throw new Error('Ladder rungs must preserve the two rail sectors and use identical spacing and thickness');
   for(let i=1;i<ladder.length;i++){
     const openings=ladder[i][1].map(value=>((value%6)+6)%6);
-    if(((openings[0]-openings[1]+6)%6)!==3)throw new Error('Each Ladder rung must leave mirrored opposite openings');
+    if(openings.length!==4||!railOpenings.every(sector=>openings.includes(sector)))throw new Error('Each Ladder rung must leave both persistent rail sectors open in its own row');
+    const combinedOpen=railOpenings.filter(sector=>openings.includes(sector) &&
+      !railWalls.includes(sector));
+    const rungOpen=railOpenings.length===4
+      ?ladder[0][1].map(value=>((value%6)+6)%6).filter(sector=>openings.includes(sector)&&
+        !railWalls.includes(sector))
+      :[];
+    const sharedOpen=ladder[0][1].map(value=>((value%6)+6)%6)
+      .filter(sector=>openings.includes(sector)&&!railWalls.includes(sector));
+    if(sharedOpen.length!==2||((sharedOpen[0]-sharedOpen[1]+6)%6)!==3)throw new Error('The overlapping rail and rung rows must retain two opposite playable openings');
   }
   const ladderRows=ladder.map(([beat,gaps,span,routeSpan])=>({
     t:beat*.5,g:[...new Set(gaps.map(value=>((value%6)+6)%6))],
@@ -94,9 +103,12 @@ transitionProbe.choose=(names)=>{
   return transitionPick++===0?'ladder':'solo2';
 };
 const transitionRows=transitionProbe.generate(()=>1,60/140,0,35);
-if(receivedPools.length<2)throw new Error('Pattern generator did not schedule a post-Ladder pattern');
-if(receivedPools[1].some(name=>!PatternGenerator.POST_LADDER.includes(name)))throw new Error('Post-Ladder selector included a pattern outside the safe exit preset');
-if(receivedPools[1].includes('solo')||receivedPools[1].includes('stair'))throw new Error('A single-opening C pattern may not immediately follow Ladder');
+if(receivedPools.length<4)throw new Error('Pattern generator did not schedule two post-Ladder exit patterns');
+for(const pool of receivedPools.slice(1,3)){
+  if(pool.some(name=>!PatternGenerator.POST_LADDER.includes(name)))throw new Error('Post-Ladder selector included a pattern outside the safe exit preset');
+  if(pool.includes('solo')||pool.includes('stair')||pool.includes('whirl'))throw new Error('A single-opening C pattern may not immediately follow Ladder');
+}
+if(!receivedPools[3].includes('solo')||!receivedPools[3].includes('stair'))throw new Error('Normal pattern pool should resume after the two-pattern exit preset');
 const ladderStart=transitionRows.find(row=>row.motifName==='ladder')?.motifStart;
 const ladderEnd=transitionRows.find(row=>row.motifName==='ladder')?.motifEnd;
 const exitStart=transitionRows.find(row=>row.motifName==='solo2')?.motifStart;
