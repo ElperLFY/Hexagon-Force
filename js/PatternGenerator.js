@@ -369,7 +369,9 @@ export class PatternGenerator{
   static POST_BAT=Object.freeze(['solo3','alt3']);
 
   static PAT={
-    solo:g=>[[0,[g]]],
+    // Solo is a two-Part phrase in this reconstruction: two matching single-hole
+    // bodies keep one corridor open while making the repeated visual rhythm explicit.
+    solo:g=>[[0,[g],.22],[1,[g],.22]],
     solo2:g=>[[0,[g,g+3]]],
     solo3:g=>[[0,[g,g+2,g+4]]],
 
@@ -474,7 +476,7 @@ export class PatternGenerator{
     if(L.hard){
       if(x>=.3)p.push('solo3','dwhirl');
       if(x>=.5)p.push('stair1','multiC','doubleC');
-      if(x>=.68)p.push('stair2','spin4','spin3','t321','rain','dwhirl');
+      if(x>=.68)p.push('solo','stair2','spin4','spin3','t321','rain','dwhirl');
       if(x>=.5&&Array.isArray(L.extra))p.push(...L.extra);
     }
     return [...new Set(p)].filter(name=>typeof PatternGenerator.PAT[name]==='function');
