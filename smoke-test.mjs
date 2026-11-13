@@ -135,6 +135,8 @@ for(const id of [110,115]){
   const level=LEVELS.find(item=>item.id===id);
   const continuous=new PatternGenerator({...level,seed:1200+id}).generate(()=>0,.5,0,100);
   if(continuous.length<20)throw new Error(`Stage ${id} leaves silent pattern gaps on quiet audio`);
+  const maxGap=Math.max(...continuous.slice(1).map((row,index)=>row.t-continuous[index].t));
+  if(maxGap>1.05)throw new Error(`Stage ${id} generator leaves a ${maxGap.toFixed(2)}s interruption on quiet audio`);
 }
 
 // The Void chooser alternates multi-lane motifs with other families, so it
