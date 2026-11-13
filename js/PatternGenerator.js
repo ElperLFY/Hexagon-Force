@@ -365,7 +365,8 @@ Chart.EMPTY=new Chart();
 export class PatternGenerator{
   // A Ladder is a complete phrase, not a bag of independent rows. The next
   // phrase is restricted to multi-opening patterns with a safe first Part.
-  static POST_LADDER=Object.freeze(['solo2','solo3','bat','dwhirl','stair1','rain']);
+  static POST_LADDER=Object.freeze(['solo2','solo3','bat','dwhirl','stair1','doubleC']);
+  static POST_BAT=Object.freeze(['solo2','solo3','dwhirl','stair1','doubleC']);
 
   static PAT={
     solo:g=>[[0,[g]]],
