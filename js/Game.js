@@ -123,9 +123,25 @@ export class Game {
   }
 
   back() {
-    if (this.state === 'load' || this.state === 'play') return;
+    if (this.state === 'load') return;
+
     this.uiOverlay = null;
     this.audio.stopNoise();
+
+    // During a run, Escape abandons the attempt and returns to stage select.
+    // Reset input as well, so a held movement key cannot leak into the menu.
+    if (this.state === 'play') {
+      this.audio.stop();
+      this.input.L = 0;
+      this.input.R = 0;
+      this.playerOmega = 0;
+      this.noiseOn = false;
+      this.fx = null;
+      this.state = 'menu';
+      this.preview();
+      return;
+    }
+
     if (this.state === 'menu') {
       this.modMenu.setOpen(false);
       this.audio.stop();
@@ -307,12 +323,6 @@ export class Game {
     const chart = this.chart;
     const time = this.audio.time(level);
 
-    this.phi +=
-      (this.input.R - this.input.L) *
-      (level.turnRate ?? 8.5) *
-      this.mods.playerSpeed *
-      deltaTime;
-
     chart.ensure(time);
 
     if (!this.noiseOn && time >= chart.voidStart) {
@@ -320,9 +330,48 @@ export class Game {
       this.audio.startNoise();
     }
 
-    if (chart.hit(time, this.phi, this.mods.mapSpeed)) {
+    // The arrow tip is lethal. If either flank/base touches a wall first,
+    // clamp angular movement at the last free position. Input is deliberately
+    // left untouched: the held direction resumes as soon as the wall passes.
+    const currentCollision=chart.collision(time,this.phi,this.mods.mapSpeed);
+    if(currentCollision?.type==='tip'){
       this.die(time);
-    } else if (time >= (chart.stageEnd ?? chart.dur) - 0.05) {
+      return;
+    }
+
+    const direction=this.input.R-this.input.L;
+    const angularVelocity=direction*(level.turnRate??8.5)*this.mods.playerSpeed;
+    const angularDelta=angularVelocity*deltaTime;
+    const substeps=Math.max(1,Math.ceil(Math.abs(angularDelta)/.012));
+    let sideBlocked=false;
+
+    for(let step=1;step<=substeps;step++){
+      const candidate=this.phi+angularDelta/substeps;
+      const collision=chart.collision(time,candidate,this.mods.mapSpeed);
+      if(collision?.type==='tip'){
+        // If the flank was already touching this exact wall at the start of the
+        // frame, pushing farther into it is a blocked turn. A different wall
+        // still kills on tip contact.
+        const sameWall=currentCollision?.type==='side' &&
+          currentCollision.row===collision.row &&
+          currentCollision.sector===collision.sector;
+        if(sameWall){
+          sideBlocked=true;
+          break;
+        }
+        this.die(time);
+        return;
+      }
+      if(collision?.type==='side'){
+        sideBlocked=true;
+        break;
+      }
+      this.phi=candidate;
+    }
+
+    this.playerOmega=sideBlocked?0:angularVelocity;
+
+    if(time >= (chart.stageEnd ?? chart.dur) - 0.05){
       this.complete(time);
     }
   }

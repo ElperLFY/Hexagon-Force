@@ -33,6 +33,39 @@ function pointInConvexPolygon(point,poly){
   return true;
 }
 
+// Separating Axis Theorem for two convex polygons. Touching edges count as contact.
+// Used for non-lethal side scrapes; only the pointed vertex is fatal.
+function polygonsOverlap(a,b){
+  for(const polygon of [a,b]){
+    for(let i=0;i<polygon.length;i++){
+      const p=polygon[i],q=polygon[(i+1)%polygon.length];
+      const axisX=-(q[1]-p[1]),axisY=q[0]-p[0];
+      let aMin=Infinity,aMax=-Infinity,bMin=Infinity,bMax=-Infinity;
+      for(const v of a){
+        const projection=v[0]*axisX+v[1]*axisY;
+        aMin=Math.min(aMin,projection);aMax=Math.max(aMax,projection);
+      }
+      for(const v of b){
+        const projection=v[0]*axisX+v[1]*axisY;
+        bMin=Math.min(bMin,projection);bMax=Math.max(bMax,projection);
+      }
+      if(aMax<bMin-1e-9||bMax<aMin-1e-9)return false;
+    }
+  }
+  return true;
+}
+
+const PLAYER_HITBOX_SCALE=.70;
+function playerPolygon(phi){
+  const local=[
+    [PL.tip,0],
+    [PL.tip-(PL.tip-PL.back)*PLAYER_HITBOX_SCALE,PL.half*PLAYER_HITBOX_SCALE],
+    [PL.tip-(PL.tip-PL.back)*PLAYER_HITBOX_SCALE,-PL.half*PLAYER_HITBOX_SCALE]
+  ];
+  const c=Math.cos(phi),s=Math.sin(phi);
+  return local.map(([x,y])=>[x*c-y*s,x*s+y*c]);
+}
+
 // Restore at least one reachable opening after a randomized phrase change.
 function repairRows(rows,L,seed=null){
   let previous=seed; // seed = last row of the previous chunk, so reachability holds across chunk seams
@@ -80,12 +113,14 @@ export class Chart{
     return omega*t+amp*Math.sin(t*TAU/(beats*this.beatDur));
   }
 
-  hit(t,phi,mapMul=1){
-    // Only the sharp tip is lethal. The player's base and flanks may visually
-    // overlap a wall without causing a collision. mapMul = ModMenu "map speed".
+  collision(t,phi,mapMul=1){
+    // Result: "tip" = fatal point collision; "side" = body/edge contact;
+    // null = free. The body uses the same 70% triangle drawn by Renderer.
     const tip=[PL.tip*Math.cos(phi),PL.tip*Math.sin(phi)];
+    const body=playerPolygon(phi);
     const speed=(this.speed||1)*mapMul;
-    const window=(TH+Math.abs(PL.tip-RP)+.05)/speed+.05;
+    const window=(TH+Math.abs(PL.tip-RP)+.08)/speed+.06;
+    let sideContact=null;
 
     for(const row of this.rows){
       const dt=row.t-t;
@@ -93,14 +128,26 @@ export class Chart{
       if(dt > window)break;
       const inner=RP+dt*speed;
       if(inner+TH<=0)continue;
+
       for(let sector=0;sector<6;sector++){
         if(!row.w[sector])continue;
         const a=sector*SIDE,b=a+SIDE;
         const wall=[P(a,inner),P(b,inner),P(b,inner+TH),P(a,inner+TH)];
-        if(pointInConvexPolygon(tip,wall))return true;
+
+        // The tip remains the only lethal point. Include the exact wall identity
+        // so a side scrape cannot shield the player from a different wall.
+        if(pointInConvexPolygon(tip,wall))return {type:'tip',row,sector};
+        if(!sideContact&&polygonsOverlap(body,wall)){
+          sideContact={type:'side',row,sector};
+        }
       }
     }
-    return false;
+    return sideContact;
+  }
+
+  // Backwards-compatible fatal-hit query.
+  hit(t,phi,mapMul=1){
+    return this.collision(t,phi,mapMul)?.type==='tip';
   }
 
   // Return a per-run variation of the authored chart. Beat timestamps remain

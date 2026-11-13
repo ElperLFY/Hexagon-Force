@@ -11,10 +11,11 @@ export class Input {
         return;
       }
       if (code === 'Escape') {
+        if (event.repeat) return;
         if (game.uiOverlay === 'scores') game.toggleHighScores();
         else if (game.modMenu.open) game.modMenu.setOpen(false);
         else if (game.state === 'gate') game.quit();
-        else game.back();
+        else game.back(); // In play: abandon this run and return to stage select.
         return;
       }
       if (game.state === 'gate') {
