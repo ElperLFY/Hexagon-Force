@@ -114,7 +114,6 @@
   "voidPool": [
     "solo2",
     "solo3",
-    "alt3",
     "ladder",
     "stair",
     "bat",
@@ -134,7 +133,6 @@
   "voidMultiLanePatterns": [
     "solo2",
     "solo3",
-    "alt3",
     "bat",
     "dwhirl",
     "stair1",
@@ -158,8 +156,7 @@
     "spin4": 1.05,
     "t321": 1,
     "rain": 1.25,
-    "doubleC": 1.1,
-    "alt3": 0.9
+    "doubleC": 1.1
   },
   "transitions": {
     "afterLadder": {
