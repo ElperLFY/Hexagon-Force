@@ -98,9 +98,10 @@ const transitionProbe=new PatternGenerator({...LEVELS.find(level=>level.id===110
 transitionProbe.pool=()=>['ladder','solo','stair','solo2','dwhirl'];
 const receivedPools=[];
 let transitionPick=0;
+const forcedTransitionNames=['ladder','solo2','dwhirl','solo'];
 transitionProbe.choose=(names)=>{
   receivedPools.push([...names]);
-  return transitionPick++===0?'ladder':'solo2';
+  return forcedTransitionNames[Math.min(transitionPick++,forcedTransitionNames.length-1)];
 };
 const transitionRows=transitionProbe.generate(()=>1,60/140,0,35);
 if(receivedPools.length<4)throw new Error('Pattern generator did not schedule two post-Ladder exit patterns');
@@ -169,6 +170,11 @@ function hasPlayablePath(rows,speed,turnRate=8.5,dt=1/60){
   }
   return {ok:true};
 }
+
+// The full Ladder + two-motif exit + first normal C transition must remain
+// continuously traversable as a single time-expanded sequence.
+const ladderExitAudit=hasPlayablePath(transitionRows,LEVELS.find(level=>level.id===110).speed);
+if(!ladderExitAudit.ok)throw new Error(`Ladder exit preset is unplayable at t=${ladderExitAudit.time.toFixed(3)}s`);
 
 // Review every pattern in every stage, in both movement directions, after the
 // same deterministic orientation/randomization and reachability repair used in runs.
