@@ -265,7 +265,7 @@ export class Game {
 
     this.phi +=
       (this.input.R - this.input.L) *
-      (level.turnRate ?? 11) *
+      (level.turnRate ?? 8.5) *
       this.mods.playerSpeed *
       deltaTime;
 
