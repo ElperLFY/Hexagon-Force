@@ -1,6 +1,6 @@
 // Costanti di gioco, livelli e palette. I parametri di rotazione sono separati
 // dalla velocita' dei muri: ogni livello puo' avere un ritmo visivo distinto.
-export const TAU=Math.PI*2,SIDE=TAU/6,K=1.1547,RP=.27,HUB=.18,TH=.1,PW=.035;
+export const TAU=Math.PI*2,SIDE=TAU/6,K=1.1547,RP=.27,HUB=.18,TH=.09,PW=.035,PART_DEPTH_SCALE=.9;
 export const PL={tip:RP+.045,back:RP-.03,half:.035};
 export const SONG_DIR='MusicData/';
 
@@ -15,7 +15,7 @@ export const VOID={
   width:.6,          // softness of the gradient (arena units)
   alpha:[.3,.92],    // darkness at the far end: [at the start, at full strength] -> never fully black
   chunkBars:16,       // rows are generated this many bars at a time...
-  ahead;8,          // ...and always at least this many seconds in advance
+  ahead:8,          // ...and always at least this many seconds in advance
   noise:{file:'wn01.wav',gain:.38,fade:1.5} // looped from the flip until you die (gain is relative to the volume slider)
 };
 
