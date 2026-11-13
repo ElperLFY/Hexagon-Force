@@ -20,16 +20,22 @@ function simulate(name,direction,repeat=3){
   if(!events.length)throw new Error(`Pattern factory ${name} returned no events`);
   const rows=[];
   let endBeat=0,maxDepth=TH;
-  for(const [beat,gaps,span=0] of events){
-    const row={t:beat*BD,g:[...new Set(gaps.map(x=>norm(x,6)))]};
+  const motifId=`${name}-atomic`;
+  for(const [beat,gaps,span=0,routeSpan=null] of events){
+    const row={
+      t:beat*BD,
+      g:[...new Set(gaps.map(x=>norm(x,6)))],
+      motifId,motifName:name,motifStart:0
+    };
     if(span>0)row.th=Math.max(TH,SPEED*BD*span);
+    if(Number.isFinite(routeSpan)&&routeSpan>=0)row.routeDepth=SPEED*BD*routeSpan;
     maxDepth=Math.max(maxDepth,row.th??TH);
     rows.push(row);
     endBeat=Math.max(endBeat,beat+span);
   }
   rows.sort((a,b)=>a.t-b.t);
-  const repaired=new PatternGenerator(LEVEL).repair(rows);
-  const chart=new Chart(repaired,BD,0,116,30,SPEED);
+  const chart=new Chart(rows,BD,0,116,30,SPEED)
+    .randomized({...LEVEL,randomSectionBeats:4},0x1ADDE+name.length+direction);
   const endTime=endBeat*BD+maxDepth/SPEED+.15;
   let reachable=new Uint8Array(ANGLE_BINS).fill(1);
   let firstFailure=null;
