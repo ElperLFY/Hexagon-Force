@@ -1,0 +1,185 @@
+{
+  "$schema": "./pattern-catalog.schema.json",
+  "schemaVersion": 1,
+  "description": "Pattern catalog for HEXBEAT. Edit the individual JSON files; PatternGenerator.js only interprets this data.",
+  "patterns": [
+    "solo",
+    "solo2",
+    "solo3",
+    "wall",
+    "ladder",
+    "zig",
+    "stair",
+    "alt3",
+    "bat",
+    "pairs",
+    "burst",
+    "tripleC",
+    "whirl",
+    "dwhirl",
+    "multiC",
+    "stair1",
+    "stair2",
+    "t321",
+    "rain",
+    "spin",
+    "spin2",
+    "spin3",
+    "spin4",
+    "doubleC"
+  ],
+  "poolBands": [
+    {
+      "maxX": 0.3,
+      "patterns": [
+        "wall",
+        "solo",
+        "solo2"
+      ]
+    },
+    {
+      "maxX": 0.5,
+      "patterns": [
+        "ladder",
+        "wall",
+        "stair",
+        "bat",
+        "solo2",
+        "tripleC"
+      ]
+    },
+    {
+      "maxX": 0.7,
+      "patterns": [
+        "ladder",
+        "stair",
+        "bat",
+        "tripleC",
+        "whirl",
+        "spin2",
+        "doubleC"
+      ]
+    },
+    {
+      "maxX": 1.01,
+      "patterns": [
+        "burst",
+        "ladder",
+        "tripleC",
+        "whirl",
+        "bat",
+        "multiC",
+        "spin2",
+        "spin3",
+        "t321",
+        "rain",
+        "doubleC"
+      ]
+    }
+  ],
+  "hardAdditions": [
+    {
+      "minX": 0.3,
+      "patterns": [
+        "solo3",
+        "dwhirl"
+      ]
+    },
+    {
+      "minX": 0.5,
+      "patterns": [
+        "stair1",
+        "multiC",
+        "doubleC"
+      ]
+    },
+    {
+      "minX": 0.68,
+      "patterns": [
+        "solo",
+        "stair2",
+        "spin4",
+        "spin3",
+        "t321",
+        "rain",
+        "dwhirl"
+      ]
+    }
+  ],
+  "normalWeights": {
+    "ladder": 1.25,
+    "burst": 1.25,
+    "whirl": 1.25
+  },
+  "voidPool": [
+    "solo2",
+    "solo3",
+    "alt3",
+    "ladder",
+    "stair",
+    "bat",
+    "tripleC",
+    "whirl",
+    "dwhirl",
+    "multiC",
+    "stair1",
+    "stair2",
+    "spin2",
+    "spin3",
+    "spin4",
+    "t321",
+    "rain",
+    "doubleC"
+  ],
+  "voidMultiLanePatterns": [
+    "solo2",
+    "solo3",
+    "alt3",
+    "bat",
+    "dwhirl",
+    "stair1",
+    "rain",
+    "doubleC"
+  ],
+  "voidWeights": {
+    "solo2": 1,
+    "solo3": 0.75,
+    "ladder": 1.3,
+    "stair": 0.9,
+    "bat": 1.4,
+    "tripleC": 0.65,
+    "whirl": 1,
+    "dwhirl": 1.9,
+    "multiC": 0.9,
+    "stair1": 1.45,
+    "stair2": 1.1,
+    "spin2": 0.85,
+    "spin3": 1,
+    "spin4": 1.05,
+    "t321": 1,
+    "rain": 1.25,
+    "doubleC": 1.1,
+    "alt3": 0.9
+  },
+  "transitions": {
+    "afterLadder": {
+      "motifCount": 4,
+      "allowed": [
+        "solo3",
+        "alt3",
+        "stair1"
+      ],
+      "finalAllowed": [
+        "solo3",
+        "alt3"
+      ]
+    },
+    "afterBat": {
+      "motifCount": 2,
+      "allowed": [
+        "solo3",
+        "alt3"
+      ]
+    }
+  }
+}
