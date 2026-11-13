@@ -78,7 +78,8 @@ function repairRows(rows,L,seed=null){
     if(!row.g.length)row.g=previous?[...previous.g]:[0];
     if(previous){
       const dt=row.t-previous.t;
-      const available=Math.max(0,dt-TH/speed-reaction);
+      const previousDepth=previous.th??TH;
+      const available=Math.max(0,dt-previousDepth/speed-reaction);
       const maxSteps=Math.min(3,Math.max(0,Math.floor(available/stepTime)));
       let bestDistance=9,from=0,to=0;
       for(const a of previous.g)for(const b of row.g){
@@ -119,7 +120,8 @@ export class Chart{
     const tip=[PL.tip*Math.cos(phi),PL.tip*Math.sin(phi)];
     const body=playerPolygon(phi);
     const speed=(this.speed||1)*mapMul;
-    const window=(TH+Math.abs(PL.tip-RP)+.08)/speed+.06;
+    const maxDepth=this.rows.reduce((max,row)=>Math.max(max,row.th??TH),TH);
+    const window=(maxDepth+Math.abs(PL.tip-RP)+.08)/speed+.06;
     let sideContact=null;
 
     for(const row of this.rows){
@@ -127,12 +129,13 @@ export class Chart{
       if(dt < -window)continue;
       if(dt > window)break;
       const inner=RP+dt*speed;
-      if(inner+TH<=0)continue;
+      const depth=row.th??TH;
+      if(inner+depth<=0)continue;
 
       for(let sector=0;sector<6;sector++){
         if(!row.w[sector])continue;
         const a=sector*SIDE,b=a+SIDE;
-        const wall=[P(a,inner),P(b,inner),P(b,inner+TH),P(a,inner+TH)];
+        const wall=[P(a,inner),P(b,inner),P(b,inner+depth),P(a,inner+depth)];
 
         // The tip remains the only lethal point. Include the exact wall identity
         // so a side scrape cannot shield the player from a different wall.
@@ -185,7 +188,7 @@ export class Chart{
         const distance=r()<.65?2:3;
         gaps.push(norm(gaps[0]+(r()<.5?distance:-distance)));
       }
-      return{t:source.t,g:gaps};
+      return{t:source.t,g:gaps,th:source.th};
     });
 
     const repaired=repairRows(rows,L);
@@ -225,17 +228,29 @@ export class Chart{
     const{beatDur,tg0,bpm,dur,speed}=this;
     return{
       v:1,beatDur,tg0,bpm,dur,speed,
-      rows:this.rows.map(r=>[+r.t.toFixed(4),...r.g])
+      rows:this.rows.map(r=>r.th==null
+        ?[+r.t.toFixed(4),...r.g]
+        :{t:+r.t.toFixed(4),g:[...r.g],th:+r.th.toFixed(6)})
     };
   }
 
   static fromJSON(j,L){
     if(!j||!Array.isArray(j.rows))throw new Error('Chart JSON non valido');
-    const rows=j.rows.map(([t,...g])=>{
-      if(!Number.isFinite(t)||!g.length)throw new Error('Riga chart non valida');
+    const rows=j.rows.map(item=>{
+      let t,g,th;
+      if(Array.isArray(item)){
+        [t,...g]=item;
+      }else if(item&&typeof item==='object'){
+        ({t,g,th}=item);
+      }else{
+        throw new Error('Riga chart non valida');
+      }
+      if(!Number.isFinite(t)||!Array.isArray(g)||!g.length)throw new Error('Riga chart non valida');
       const gaps=unique(g.map(Number).filter(Number.isFinite));
       if(!gaps.length)throw new Error('Riga chart senza aperture');
-      return{t,g:gaps,w:wmask(gaps)};
+      const row={t,g:gaps,w:wmask(gaps)};
+      if(Number.isFinite(th)&&th>0)row.th=th;
+      return row;
     }).sort((a,b)=>a.t-b.t);
     return new Chart(rows,j.beatDur,j.tg0,j.bpm,j.dur,L.speed);
   }
@@ -250,55 +265,75 @@ export class PatternGenerator{
     solo2:g=>[[0,[g,g+3]]],
     solo3:g=>[[0,[g,g+2,g+4]]],
 
-    wall:(g,d,r)=>[[0,[g]],[2,[g+(r()*3|0)-1]]],
+    wall:(g,d,r)=>[[0,[g],.4],[2,[g+(r()*3|0)-1],.4]],
 
-    // Ladder: a genuine alternating zig-zag, faster than the former 4-step zig.
-    ladder:(g,d)=>[0,.5,1,1.5,2,2.5,3,3.5].map((b,i)=>[b,[g+(i%2)*d]]),
+    // Ladder geometry: two long, parallel rails plus short crossbars alternating
+    // between the two sides. Each event is [startBeat, openSectors, spanBeats].
+    ladder:(g,d)=>{
+      const sectors=[0,1,2,3,4,5];
+      const rails=[norm(g),norm(g+3)];
+      const events=rails.map(rail=>[
+        0,sectors.filter(sector=>sector!==rail),4
+      ]);
+      for(let i=0;i<8;i++){
+        const clockwise=(i%2===0)===(d>0);
+        const rungs=clockwise
+          ?[norm(g+1),norm(g+2)]
+          :[norm(g+4),norm(g+5)];
+        events.push([
+          .25+i*.5,
+          sectors.filter(sector=>!rungs.includes(sector)),
+          .22
+        ]);
+      }
+      return events;
+    },
     zig:(g,d)=>PatternGenerator.PAT.ladder(g,d),
 
     // One-way stair and three-hole alternating C shapes.
-    stair:(g,d)=>[0,1,2,3].map(i=>[i,[g+i*d]]),
-    alt3:g=>[0,1,2,3].map(i=>[i,[g+i%2,g+i%2+2,g+i%2+4]]),
+    stair:(g,d)=>[0,1,2,3].map(i=>[i,[g+i*d],.42]),
+    alt3:g=>[0,1,2,3].map(i=>[i,[g+i%2,g+i%2+2,g+i%2+4],.42]),
 
     // Bat: two opposed openings drift together around the hexagon.
-    bat:(g,d)=>[0,1,2,3].map(i=>[i,[g+(i%2)*d,g+3+(i%2)*d]]),
+    bat:(g,d)=>[0,1,2,3].map(i=>[i,[g+(i%2)*d,g+3+(i%2)*d],.42]),
     pairs:(g,d)=>PatternGenerator.PAT.bat(g,d),
 
-    burst:(g,d)=>[[0,[g]],[.5,[g]],[1,[g]],[1.5,[g]],[3,[g+2*d]]],
+    burst:(g,d)=>[[0,[g],.32],[.5,[g],.32],[1,[g],.32],[1.5,[g],.32],[3,[g+2*d],.42]],
 
-    // Three C-shaped parts, with successive openings three sectors apart.
-    tripleC:g=>[[0,[g]],[1,[g+3]],[2,[g]]],
+    // Three C-shaped Parts, with successive openings three sectors apart.
+    tripleC:g=>[[0,[g],.42],[1,[g+3],.42],[2,[g],.42]],
 
-    // Single and double whirlpools.
-    whirl:(g,d)=>[0,1,2,3,4,5].map(i=>[i*.75,[g+i*d]]),
-    dwhirl:(g,d)=>[0,1,2,3,4,5].map(i=>[i*.75,[g+i*d,g+3+i*d]]),
+    // A continuous spiral lane. Double Whirlpool keeps a second, opposite lane.
+    whirl:(g,d)=>[0,1,2,3,4,5].map(i=>[i*.75,[g+i*d],.58]),
+    dwhirl:(g,d)=>[0,1,2,3,4,5].map(i=>[i*.75,[g+i*d,g+3+i*d],.58]),
 
     // Multi-C: consecutive single openings moving in one direction.
-    multiC:(g,d)=>[0,1,2,3,4].map(i=>[i*.75,[g+i*d]]),
+    multiC:(g,d)=>[0,1,2,3,4].map(i=>[i*.75,[g+i*d],.58]),
 
     // Stair 1: two opposite openings, both advancing by one sector.
-    stair1:(g,d)=>[0,1,2,3,4].map(i=>[i,[g+i*d,g+3+i*d]]),
+    stair1:(g,d)=>[0,1,2,3,4].map(i=>[i,[g+i*d,g+3+i*d],.42]),
 
-    // Stair 2: RRLLL (or its mirror), expressed as cumulative sector offsets.
-    stair2:(g,d)=>[0,1,2,3,4,5].map((b,i)=>[b,[g+[0,1,2,1,0,-1][i]*d]]),
+    // Stair 2 follows the RRLLL cumulative sector offsets.
+    stair2:(g,d)=>[0,1,2,3,4,5].map((b,i)=>[b,[g+[0,1,2,1,0,-1][i]*d],.42]),
 
-    // 3-2-1: move three, then two, then one sector.
-    t321:(g,d)=>[[0,[g]],[2,[g+3]],[4,[g+3+2*d]],[5,[g+3+3*d]]],
+    // 3-2-1 is an M-shaped route: move 3, then 2, then 1 unit.
+    t321:(g,d)=>[[0,[g],.38],[2,[g+3],.38],[4,[g+3+2*d],.38],[5,[g+3+3*d],.38]],
 
     // Rain: alternating triple openings followed by a single-hole cap.
-    rain:g=>[0,1,2,3].map(i=>[i,[g+i%2,g+i%2+2,g+i%2+4]])
-      .concat([[4.5,[g+3]]]),
+    rain:g=>[0,1,2,3].map(i=>[i,[g+i%2,g+i%2+2,g+i%2+4],.42])
+      .concat([[4.5,[g+3],.42]]),
 
-    // 2-spin: 2L, 2R, 2L...; 3-spin: 3R, 3L, 3R...
-    spin2:(g,d)=>[0,1,2,3,4].map((b,i)=>[b,[g+(i%2)*2*d]]),
-    spin3:g=>[0,1,2,3,4].map((b,i)=>[b,[g+(i%2)*3]]),
-
-    // 4-spin is geometrically equivalent to alternating two-sector gaps
-    // in a six-sided arena; the pattern timing preserves the long turn cue.
-    spin4:(g,d)=>[[0,[g]],[1.5,[g-2*d]],[3,[g]]],
+    // User reference: 2/3/4-Spin share the same 1-2-3 movement motif.
+    // The number in the name is the number of times that motif is repeated.
+    spin:(g,d,repeats)=>Array.from({length:repeats*3},(_,i)=>[
+      i*.5,[g+[0,1,3][i%3]*d],.36
+    ]),
+    spin2:(g,d)=>PatternGenerator.PAT.spin(g,d,2),
+    spin3:(g,d)=>PatternGenerator.PAT.spin(g,d,3),
+    spin4:(g,d)=>PatternGenerator.PAT.spin(g,d,4),
 
     // Two adjacent C-shaped gaps, staggered as a compact double-C figure.
-    doubleC:(g,d)=>[0,1,2,3].map(i=>[i,[g+i*d,g+1+i*d]])
+    doubleC:(g,d)=>[0,1,2,3].map(i=>[i,[g+i*d,g+1+i*d],.42])
   };
 
   constructor(L){this.L=L;this.rng=mul(L.seed);}
@@ -356,9 +391,11 @@ export class PatternGenerator{
       const name=this.choose(names,r);
       const pat=PatternGenerator.PAT[name](g,d,r);
       let end=0;
-      for(const [beat,gaps] of pat){
-        rows.push({t:tb+beat*bd,g:unique(gaps)});
-        end=Math.max(end,beat);
+      for(const [beat,gaps,spanBeats=0] of pat){
+        const row={t:tb+beat*bd,g:unique(gaps)};
+        if(spanBeats>0)row.th=Math.max(TH,(L.speed||1)*bd*spanBeats);
+        rows.push(row);
+        end=Math.max(end,beat+spanBeats);
       }
       // Reserve enough beats for the whole motif; long motifs intentionally
       // leave a short breath before the next four-beat phrase.
@@ -386,9 +423,11 @@ export class PatternGenerator{
       const g=r()*6|0,d=r()<.5?1:-1;
       const name=this.choose(this.pool(x),r);
       let end=0;
-      for(const [beat,gaps] of PatternGenerator.PAT[name](g,d,r)){
-        rows.push({t:tb+beat*bd,g:unique(gaps)});
-        end=Math.max(end,beat);
+      for(const [beat,gaps,spanBeats=0] of PatternGenerator.PAT[name](g,d,r)){
+        const row={t:tb+beat*bd,g:unique(gaps)};
+        if(spanBeats>0)row.th=Math.max(TH,(L.speed||1)*bd*spanBeats);
+        rows.push(row);
+        end=Math.max(end,beat+spanBeats);
       }
       bar+=Math.max(1,Math.ceil((end+.5)/4));
     }
