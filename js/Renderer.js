@@ -9,7 +9,7 @@ const poly=(c,pts)=>{
 };
 const P=(a,m)=>[m*K*Math.cos(a),m*K*Math.sin(a)];
 
-const PLAYER_SIZE=.65;
+const PLAYER_SIZE=.70;
 const PLAYER_POINTS=[
   [0,0],
   [-(PL.tip-PL.back)*PLAYER_SIZE,PL.half*PLAYER_SIZE],
