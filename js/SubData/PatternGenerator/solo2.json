@@ -17,5 +17,6 @@
         3
       ]
     }
-  ]
+  ],
+  "$schema": "./pattern.schema.json"
 }
