@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import {LEVELS,SIDE,TAU,TH,PART_DEPTH_SCALE,VOID,RP,PL} from './js/config.js';
 import {Chart,PatternGenerator} from './js/PatternGenerator.js';
 
+await PatternGenerator.loadCatalog();
+
 const mask=gaps=>[0,1,2,3,4,5].map(sector=>!gaps.includes(sector));
 for(const id of [100,105,110,115]){
   const json=JSON.parse(fs.readFileSync(`./MusicData/${id}.json`,'utf8'));
