@@ -38,7 +38,7 @@ export const VIS={
   minPeak:.1,               // loudness reference never drops below this (stops silence from being amplified)
   floor:.12,                // 0..1  below this the visualizer stays still (kills constant jitter)
   gamma:1.2,                // >1 = only the strong hits pulse, <1 = reacts to everything
-  gain:1,                   // overall sensitivity
+  gain:3,                   // overall sensitivity
   attack:.03,               // seconds to rise to a hit (smaller = snappier)
   release:.17,              // seconds to fall back (bigger = floaty)
   // --- what moves ---
