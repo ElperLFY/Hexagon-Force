@@ -16,7 +16,7 @@ export const VOID={
   alpha:[.3,.92],    // darkness at the far end: [at the start, at full strength] -> never fully black
   chunkBars:8,       // rows are generated this many bars at a time...
   ahead:14,          // ...and always at least this many seconds in advance
-  noise:{file:'wn01.wav',gain:.35,fade:1.5} // looped from the flip until you die (gain is relative to the volume slider)
+  noise:{file:'wn01.wav',gain:.38,fade:1.5} // looped from the flip until you die (gain is relative to the volume slider)
 };
 
 // Music visualizer. The live audio is analysed every frame (frequency bands, like a spectrum analyser) and the
@@ -38,7 +38,7 @@ export const VIS={
   minPeak:.1,               // loudness reference never drops below this (stops silence from being amplified)
   floor:.12,                // 0..1  below this the visualizer stays still (kills constant jitter)
   gamma:1.2,                // >1 = only the strong hits pulse, <1 = reacts to everything
-  gain:3,                   // overall sensitivity
+  gain:10,                   // overall sensitivity
   attack:.03,               // seconds to rise to a hit (smaller = snappier)
   release:.17,              // seconds to fall back (bigger = floaty)
   // --- what moves ---
