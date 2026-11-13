@@ -11,8 +11,6 @@
     "hardAdditions",
     "voidPool",
     "voidMultiLanePatterns",
-    "normalWeights",
-    "voidWeights",
     "transitions"
   ],
   "properties": {
@@ -77,13 +75,6 @@
         }
       }
     },
-    "normalWeights": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "number",
-        "minimum": 0
-      }
-    },
     "voidPool": {
       "type": "array",
       "items": {
@@ -94,13 +85,6 @@
       "type": "array",
       "items": {
         "type": "string"
-      }
-    },
-    "voidWeights": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "number",
-        "minimum": 0
       }
     },
     "transitions": {
