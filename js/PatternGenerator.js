@@ -68,30 +68,86 @@ function playerPolygon(phi){
 
 // Restore at least one reachable opening after a randomized phrase change.
 function repairRows(rows,L,seed=null){
-  let previous=seed; // seed = last row of the previous chunk, so reachability holds across chunk seams
+  let previous=seed;
   const turnRate=L.turnRate??6.4;
   const stepTime=SIDE/turnRate;
   const reaction=L.reactionMargin??.04;
   const speed=L.speed||1;
-  for(const row of rows){
-    row.g=unique((row.g||[]).map(Number).filter(Number.isFinite));
-    if(!row.g.length)row.g=previous?[...previous.g]:[0];
+
+  // Process complete motifs as atomic phrases. If a phrase needs a different
+  // starting lane, rotate every Part together instead of opening/closing an
+  // individual row. This is essential for multi-beat structures such as Ladder.
+  for(let index=0;index<rows.length;){
+    const first=rows[index];
+    first.g=unique((first.g||[]).map(Number).filter(Number.isFinite));
+    if(!first.g.length)first.g=previous?[...previous.g]:[0];
+
+    let last=index+1;
+    if(first.motifId!=null){
+      while(last<rows.length&&rows[last].motifId===first.motifId)last++;
+    }
+
+    if(first.motifId!=null){
+      if(previous){
+        const from=previous.route!=null&&previous.g.includes(previous.route)
+          ?previous.route:previous.g[0];
+        // The motif has rotational symmetry in Z6. Find one global rotation
+        // that makes the current lane an opening in its first Part.
+        let shift=0,best=Infinity;
+        for(let candidate=0;candidate<6;candidate++){
+          const distance=Math.min(...first.g.map(g=>cd(from,norm(g+candidate))));
+          if(distance<best){best=distance;shift=candidate;}
+          if(distance===0)break;
+        }
+        if(shift){
+          for(let j=index;j<last;j++){
+            rows[j].g=unique((rows[j].g||[]).map(g=>norm(g+shift)));
+          }
+        }
+      }
+
+      for(let j=index;j<last;j++){
+        const row=rows[j];
+        row.g=unique((row.g||[]).map(Number).filter(Number.isFinite));
+        if(!row.g.length)row.g=previous?[...previous.g]:[0];
+        if(previous){
+          const dt=row.t-previous.t;
+          const previousDepth=previous.routeDepth??previous.th??TH;
+          const available=Math.max(0,dt-previousDepth/speed-reaction);
+          const maxSteps=Math.min(3,Math.max(0,Math.floor(available/stepTime)));
+          const from=previous.route!=null&&previous.g.includes(previous.route)
+            ?previous.route:previous.g[0];
+          let bestDistance=9,to=from;
+          for(const candidate of row.g){
+            const distance=cd(from,candidate);
+            if(distance<bestDistance){bestDistance=distance;to=candidate;}
+          }
+          // Keep the authored silhouette intact. If this route cannot be
+          // traversed, the kinematic audit must reject the motif; do not hide
+          // the defect by silently removing one of its structural walls.
+          row.route=to;
+          row.routeReachable=bestDistance<=maxSteps;
+        }else{
+          row.route=row.g[0];
+          row.routeReachable=true;
+        }
+        row.w=wmask(row.g);
+        previous=row;
+      }
+      index=last;
+      continue;
+    }
+
+    // Legacy, ungrouped chart rows keep the conservative bridge-opening repair.
     if(previous){
-      const dt=row.t-previous.t;
-      // routeDepth is the amount of wall depth that actually consumes
-      // lane-change time. A persistent Ladder rail remains visible, but its
-      // open corridor stays traversable while the rungs change.
+      const dt=first.t-previous.t;
       const previousDepth=previous.routeDepth??previous.th??TH;
       const available=Math.max(0,dt-previousDepth/speed-reaction);
       const maxSteps=Math.min(3,Math.max(0,Math.floor(available/stepTime)));
-
-      // Track one concrete reachable lane, not merely any gap that happened
-      // to be present in the previous Part. Otherwise a multi-gap row can
-      // advertise a distant opening the player never had time to reach.
       const from=previous.route!=null&&previous.g.includes(previous.route)
         ?previous.route:previous.g[0];
       let bestDistance=9,to=from;
-      for(const candidate of row.g){
+      for(const candidate of first.g){
         const distance=cd(from,candidate);
         if(distance<bestDistance){bestDistance=distance;to=candidate;}
       }
@@ -99,16 +155,17 @@ function repairRows(rows,L,seed=null){
         const clockwise=norm(to-from);
         const direction=clockwise<=3?1:-1;
         const bridge=norm(from+direction*Math.min(bestDistance,maxSteps));
-        row.g=unique([...row.g,bridge]);
-        row.route=bridge;
+        first.g=unique([...first.g,bridge]);
+        first.route=bridge;
       }else{
-        row.route=to;
+        first.route=to;
       }
     }else{
-      row.route=row.g[0];
+      first.route=first.g[0];
     }
-    row.w=wmask(row.g);
-    previous=row;
+    first.w=wmask(first.g);
+    previous=first;
+    index++;
   }
   return rows;
 }
