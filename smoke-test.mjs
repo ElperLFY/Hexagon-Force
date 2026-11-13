@@ -7,11 +7,13 @@ await PatternGenerator.loadCatalog();
 // The catalog, each individual pattern JSON and Settings schema are the
 // source of truth. Validate that every manifest entry resolves to a factory.
 const patternCatalog=JSON.parse(fs.readFileSync('./js/SubData/PatternGenerator/catalog.json','utf8'));
+if('normalWeights' in patternCatalog||'voidWeights' in patternCatalog)throw new Error('Pattern weights must live beside their pattern definitions');
 for(const id of patternCatalog.patterns){
   const file=patternCatalog.definitionFiles[id];
   if(!file)throw new Error(`Pattern catalog has no file mapping for ${id}`);
   const definition=JSON.parse(fs.readFileSync(`./js/SubData/PatternGenerator/${file}`,'utf8'));
   if(definition.id!==id)throw new Error(`Pattern JSON id mismatch: ${id}`);
+  if(!Number.isFinite(definition.weight)||!Number.isFinite(definition.voidWeight))throw new Error(`Pattern JSON is missing its selection weights: ${id}`);
   if(typeof PatternGenerator.PAT[id]!=='function')throw new Error(`Pattern JSON did not compile: ${id}`);
 }
 if(PatternGenerator.PAT.zig(0,1).length!==PatternGenerator.PAT.ladder(0,1).length)throw new Error('Zig alias must use the Ladder JSON definition');
