@@ -1,18 +1,63 @@
-// Tastiera e touch. Tiene lo stato di sinistra/destra e inoltra le azioni al Game.
-export class Input{
- constructor(g){this.L=0;this.R=0;
-  addEventListener('keydown',e=>{const c=e.code;
-   if(g.state==='gate'){g.confirm();return}
-   if(c==='ArrowLeft'||c==='KeyA'){this.L=1;g.nav(-1)}
-   if(c==='ArrowRight'||c==='KeyD'){this.R=1;g.nav(1)}
-   if((c==='Space'||c==='Enter')&&g.state!=='play'){e.preventDefault();document.activeElement?.blur?.();g.confirm()} // blur: uno slider/bottone col focus non deve rubare lo spazio
-   if(c==='KeyM'&&g.state==='menu')g.modMenu.toggle();
-   if(c==='ArrowUp')g.changeVolume(.05);
-   if(c==='ArrowDown')g.changeVolume(-.05);
-   if(c==='KeyJ')g.exportChart();
-   if(c==='Escape')g.modMenu.open?g.modMenu.setOpen(false):g.back()});
-  addEventListener('keyup',e=>{if(e.code==='ArrowLeft'||e.code==='KeyA')this.L=0;if(e.code==='ArrowRight'||e.code==='KeyD')this.R=0});
-  addEventListener('pointerdown',e=>{const fx=e.clientX/innerWidth,fy=e.clientY/innerHeight;
-   if(g.state==='play'){fx<.5?this.L=1:this.R=1}else g.pointer(fx,fy)});
-  addEventListener('pointerup',()=>{this.L=this.R=0})}
+// Keyboard, pointer and touch controls for HEXBEAT screens and gameplay.
+export class Input {
+  constructor(game) {
+    this.L = 0;
+    this.R = 0;
+    addEventListener('keydown', event => {
+      const code = event.code;
+      if (code === 'Tab' && game.state !== 'play' && game.state !== 'load') {
+        event.preventDefault();
+        game.toggleHighScores();
+        return;
+      }
+      if (code === 'Escape') {
+        if (game.uiOverlay === 'scores') game.toggleHighScores();
+        else if (game.modMenu.open) game.modMenu.setOpen(false);
+        else if (game.state === 'gate') game.quit();
+        else game.back();
+        return;
+      }
+      if (game.state === 'gate') {
+        if (code === 'ArrowLeft' || code === 'KeyA') game.nav(-1);
+        else if (code === 'ArrowRight' || code === 'KeyD') game.nav(1);
+        else if (code === 'Space' || code === 'Enter') {
+          event.preventDefault(); document.activeElement?.blur?.(); game.confirm();
+        }
+        return;
+      }
+      if (game.state === 'menu') {
+        if (code === 'ArrowLeft' || code === 'KeyA') { game.nav(-1); return; }
+        if (code === 'ArrowRight' || code === 'KeyD') { game.nav(1); return; }
+        if (code === 'KeyM') { game.modMenu.toggle(); return; }
+        if (code === 'Space' || code === 'Enter') {
+          event.preventDefault(); document.activeElement?.blur?.(); game.confirm(); return;
+        }
+        if (code === 'ArrowUp') game.changeVolume(.05);
+        if (code === 'ArrowDown') game.changeVolume(-.05);
+        if (code === 'KeyJ') game.exportChart();
+        return;
+      }
+      if (game.state === 'play') {
+        if (code === 'ArrowLeft' || code === 'KeyA') this.L = 1;
+        if (code === 'ArrowRight' || code === 'KeyD') this.R = 1;
+        return;
+      }
+      if ((game.state === 'dead' || game.state === 'win') &&
+          (code === 'Space' || code === 'Enter')) {
+        event.preventDefault(); game.confirm();
+      }
+    });
+    addEventListener('keyup', event => {
+      if (event.code === 'ArrowLeft' || event.code === 'KeyA') this.L = 0;
+      if (event.code === 'ArrowRight' || event.code === 'KeyD') this.R = 0;
+    });
+    addEventListener('pointerdown', event => {
+      const x = event.clientX / innerWidth;
+      const y = event.clientY / innerHeight;
+      if (game.state === 'play') { x < .5 ? this.L = 1 : this.R = 1; }
+      else game.pointer(x, y);
+    });
+    addEventListener('pointerup', () => { this.L = 0; this.R = 0; });
+    addEventListener('pointercancel', () => { this.L = 0; this.R = 0; });
+  }
 }
