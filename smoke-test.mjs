@@ -297,9 +297,13 @@ for(const id of [100,105,110,115]){
     if(row.t<run.voidStart)kept++;
     if(!row.g.length||row.w.length!==6)throw new Error(`Chart ${id}: invalid void row at ${row.t}`);
     if(i===0)return;
-    const prev=all[i-1],steps=Math.min(3,Math.max(0,Math.floor(Math.max(0,row.t-prev.t-TH/speed-reaction)/stepTime)));
-    if(Math.min(...prev.g.flatMap(a=>row.g.map(b=>dist(a,b))))>steps)throw new Error(
-      `Chart ${id}: row at ${row.t.toFixed(2)}s is unreachable; prev=${JSON.stringify({t:prev.t,g:prev.g,route:prev.route,routeDepth:prev.routeDepth,th:prev.th,motif:prev.motifName,motifId:prev.motifId})}; row=${JSON.stringify({t:row.t,g:row.g,route:row.route,routeDepth:row.routeDepth,th:row.th,motif:row.motifName,motifId:row.motifId})}; dt=${(row.t-prev.t).toFixed(3)}; steps=${steps}`
+    const prev=all[i-1];
+    const previousDepth=prev.routeDepth??prev.th??TH;
+    const steps=Math.min(3,Math.max(0,Math.floor(Math.max(0,row.t-prev.t-previousDepth/speed-reaction)/stepTime)));
+    const from=prev.route!=null&&prev.g.includes(prev.route)?prev.route:prev.g[0];
+    const distance=Math.min(...row.g.map(candidate=>dist(from,candidate)));
+    if(prev.routeReachable===false||distance>steps)throw new Error(
+      `Chart ${id}: row at ${row.t.toFixed(2)}s is unreachable; prev=${JSON.stringify({t:prev.t,g:prev.g,route:prev.route,routeReachable:prev.routeReachable,routeDepth:prev.routeDepth,th:prev.th,motif:prev.motifName,motifId:prev.motifId})}; row=${JSON.stringify({t:row.t,g:row.g,route:row.route,routeDepth:row.routeDepth,th:row.th,motif:row.motifName,motifId:row.motifId})}; dt=${(row.t-prev.t).toFixed(3)}; steps=${steps}; distance=${distance}`
     );
   });
   if(!kept)throw new Error(`Chart ${id}: authored rows before the void are gone`);
