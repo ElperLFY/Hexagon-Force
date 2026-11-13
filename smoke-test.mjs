@@ -24,6 +24,8 @@ const thinPart=new Chart([{t:10,g:[1],w:mask([1])}],.5,0,120,20,1);
 const deepPart=new Chart([{t:10,g:[1],w:mask([1]),th:.4}],.5,0,120,20,1);
 if(thinPart.hit(10.2,SIDE/2))throw new Error('Legacy TH should not reach the player yet');
 if(!deepPart.hit(10.2,SIDE/2))throw new Error('Custom Part depth must extend the collision wall');
+if(!deepPart.hit(10.35,SIDE/2))throw new Error('Thick Part must remain collidable until its outer edge clears the Pointer');
+if(deepPart.collision(10.5,SIDE/2)!==null)throw new Error('A wall fully inside the hub must not create a phantom collision');
 
 // Spin family: 2/3/4 variants repeat the same three-position 1-2-3 motif.
 for(const [name,repetitions] of [['spin2',2],['spin3',3],['spin4',4]]){
@@ -126,6 +128,24 @@ for(const id of [100,105,110,115]){
       `Unplayable generated Void sequence in stage ${id}, seed ${seed}, t=${result.time.toFixed(3)}, blocked=${result.closed.join(',')}`
     );
   }
+}
+
+// Blu/RGB must continue generating through zero-intensity music bars.
+for(const id of [110,115]){
+  const level=LEVELS.find(item=>item.id===id);
+  const continuous=new PatternGenerator({...level,seed:1200+id}).generate(()=>0,60/level.bpm,0,100);
+  if(continuous.length<20)throw new Error(`Stage ${id} leaves silent pattern gaps on quiet audio`);
+}
+
+// The Void chooser alternates multi-lane motifs with other families, so it
+// cannot degenerate into an indefinitely repeated single-opening C sequence.
+for(const id of [100,105,110,115]){
+  const level=LEVELS.find(item=>item.id===id);
+  const generator=new PatternGenerator({...level,seed:0xD00D+id});
+  const choices=Array.from({length:12},()=>generator.chooseVoid(()=>.42));
+  const multi=choices.map(name=>['solo2','solo3','bat','dwhirl','stair1','rain','doubleC'].includes(name));
+  if(multi.some((value,index)=>index>0&&value===multi[index-1]))throw new Error(`Void pattern variety failed in stage ${id}`);
+  if(new Set(choices).size<6)throw new Error(`Void pool lacks diversity in stage ${id}`);
 }
 
 const g=new PatternGenerator({...LEVELS[3],seed:90210,speed:1.7,turnRate:7.4});
