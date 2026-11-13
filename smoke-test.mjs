@@ -52,7 +52,7 @@ for(let start=0;start<6;start++)for(const direction of [-1,1]){
   if(ladder.slice(1).some((event,index)=>event[1].length!==4||event[2]!==.22||Math.abs(event[0]-(.75+index*.75))>1e-9))throw new Error('Ladder rungs must preserve the two rail sectors and use identical spacing and thickness');
   for(let i=1;i<ladder.length;i++){
     const openings=ladder[i][1].map(value=>((value%6)+6)%6);
-    if(openings.length!==4||!railOpenings.every(sector=>openings.includes(sector)))throw new Error('Each Ladder rung must leave both persistent rail sectors open in its own row');
+    if(openings.length!==4||!railWalls.every(sector=>openings.includes(sector)))throw new Error('Each Ladder rung must leave both persistent rail sectors open in its own row');
     const combinedOpen=railOpenings.filter(sector=>openings.includes(sector) &&
       !railWalls.includes(sector));
     const rungOpen=railOpenings.length===4
