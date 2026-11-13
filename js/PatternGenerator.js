@@ -426,11 +426,11 @@ export class PatternGenerator{
     tripleC:g=>[[0,[g],.42],[2.5,[g+3],.42],[5,[g],.42]],
 
     // A continuous spiral lane. Double Whirlpool keeps a second, opposite lane.
-    whirl:(g,d)=>[0,1,2,3,4,5].map(i=>[i,[g+i*d],.58]),
-    dwhirl:(g,d)=>[0,1,2,3,4,5].map(i=>[i,[g+i*d,g+3+i*d],.58]),
+    whirl:(g,d)=>[0,1,2,3,4,5].map(i=>[i*1.25,[g+i*d],.58]),
+    dwhirl:(g,d)=>[0,1,2,3,4,5].map(i=>[i*1.25,[g+i*d,g+3+i*d],.58]),
 
     // Multi-C: consecutive single openings moving in one direction.
-    multiC:(g,d)=>[0,1,2,3,4].map(i=>[i,[g+i*d],.58]),
+    multiC:(g,d)=>[0,1,2,3,4].map(i=>[i*1.25,[g+i*d],.58]),
 
     // Stair 1: two opposite openings, both advancing by one sector.
     stair1:(g,d)=>[0,1,2,3,4].map(i=>[i,[g+i*d,g+3+i*d],.42]),
