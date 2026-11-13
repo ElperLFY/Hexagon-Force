@@ -181,5 +181,31 @@
         "alt3"
       ]
     }
+  },
+  "definitionFiles": {
+    "solo": "solo.json",
+    "solo2": "solo2.json",
+    "solo3": "solo3.json",
+    "wall": "wall.json",
+    "ladder": "ladder.json",
+    "zig": "zig.json",
+    "stair": "stair.json",
+    "alt3": "alt3.json",
+    "bat": "bat.json",
+    "pairs": "pairs.json",
+    "burst": "burst.json",
+    "tripleC": "triple-c.json",
+    "whirl": "whirl.json",
+    "dwhirl": "double-whirlpool.json",
+    "multiC": "multi-c.json",
+    "stair1": "stair1.json",
+    "stair2": "stair2.json",
+    "t321": "321.json",
+    "rain": "rain.json",
+    "spin": "spin.json",
+    "spin2": "spin2.json",
+    "spin3": "spin3.json",
+    "spin4": "spin4.json",
+    "doubleC": "double-c.json"
   }
 }
