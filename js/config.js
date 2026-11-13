@@ -98,7 +98,7 @@ export const LEVELS=[
     patternWeights:{ladder:1.35,burst:1.3,whirl:1.25,dwhirl:1.2,stair2:1.2,spin3:1.2,t321:1.15},
     pal(tt){
       const s=Math.min(tt,120),h=(10*tt+25*s*s/120+50*(tt-s))%360;
-      return{b1:hsl(h,75,62),b2:hsl((h+30)%360,75,56),w:hsl(h,85,18),p:hsl(h,40,96)};
+      return{b1:hsl(h,62,64),b2:hsl((h+30)%360,62,57),w:hsl(h,70,22),p:hsl(h,40,96)};
     }
   }
 ];
