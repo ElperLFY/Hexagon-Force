@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import {LEVELS,SIDE,TAU,TH,RP,PL} from './js/config.js';
 import {Chart,PatternGenerator} from './js/PatternGenerator.js';
 
@@ -8,14 +9,14 @@ const DT=1/120;
 const ANGLE_BINS=180; // 2 degree resolution
 const norm=(x,n)=>((x%n)+n)%n;
 
-function simulate(name,direction,level,repeat=3){
+function simulate(name,direction,level,bd,bpm,repeat=3){
   const L={
     ...level,
     speed:level.speed??1,
     turnRate:level.turnRate??6.4,
     reactionMargin:level.reactionMargin??.04
   };
-  const bd=60/(level.bpm??116),speed=L.speed;
+  const speed=L.speed;
   const stepBins=Math.floor((L.turnRate*DT)/(TAU/ANGLE_BINS));
   const rng=()=>.5;
   const events=name==='spin'
@@ -38,7 +39,7 @@ function simulate(name,direction,level,repeat=3){
     endBeat=Math.max(endBeat,beat+span);
   }
   rows.sort((a,b)=>a.t-b.t);
-  const chart=new Chart(rows,bd,0,level.bpm??116,30,speed)
+  const chart=new Chart(rows,bd,0,bpm,30,speed)
     .randomized({...L,randomSectionBeats:4},0x1ADDE+name.length+direction+level.id);
   const endTime=endBeat*bd+maxDepth/speed+.15;
   let reachable=new Uint8Array(ANGLE_BINS).fill(1);
@@ -78,9 +79,12 @@ function simulate(name,direction,level,repeat=3){
 const names=Object.keys(PatternGenerator.PAT);
 const failures=[];
 for(const level of LEVELS){
+  const source=JSON.parse(fs.readFileSync(`./MusicData/${level.id}.json`,'utf8'));
+  const bd=source.beatDur??60/(source.bpm??116);
+  const bpm=source.bpm??116;
   for(const name of names){
     for(const direction of [1,-1]){
-      const result=simulate(name,direction,level,3);
+      const result=simulate(name,direction,level,bd,bpm,3);
       if(!result.ok)failures.push({level:level.id,name,direction,...result});
     }
   }
@@ -97,7 +101,9 @@ if(failures.length){
 // generator state across chunk seams. Six seeds × three chunks keeps the same
 // total sample volume as twelve isolated chunks, but covers real seam behavior.
 for(const level of LEVELS){
-  const bd=60/(level.bpm??116);
+  const source=JSON.parse(fs.readFileSync(`./MusicData/${level.id}.json`,'utf8'));
+  const bd=source.beatDur??60/(source.bpm??116);
+  const bpm=source.bpm??116;
   const speed=level.speed??1;
   const testLevel={...level,turnRate:level.turnRate??6.4,reactionMargin:level.reactionMargin??.04};
   const stepBins=Math.floor((testLevel.turnRate*DT)/(TAU/ANGLE_BINS));
@@ -113,7 +119,7 @@ for(const level of LEVELS){
       from=generator.voidNext;
     }
     const maxDepth=Math.max(TH,...rows.map(row=>row.th??TH));
-    const chart=new Chart(rows,bd,0,level.bpm??116,90,speed);
+    const chart=new Chart(rows,bd,0,bpm,90,speed);
     const duration=(rows.at(-1).t-rows[0].t)+maxDepth/speed+.2;
     let reachable=new Uint8Array(ANGLE_BINS).fill(1);
     for(let t=rows[0].t-.5+DT;t<=rows[0].t+duration;t+=DT){
@@ -135,7 +141,7 @@ for(const level of LEVELS){
           const enters=row.t-(PL.tip-RP)/speed;
           const leaves=row.t+(depth+RP-PL.back)/speed;
           return t>=enters-1e-6&&t<=leaves+1e-6;
-        }).map(row=>({t:+row.t.toFixed(3),g:row.g,th:+(row.th??TH).toFixed(3),motif:row.motifName,motifId:row.motifId,route:row.route}));
+        }).map(row=>({t:+row.t.toFixed(3),g:row.g,th:+(row.th??TH).toFixed(3),motif:row.motifName,motifId:row.motifId,route:row.route,routeReachable:row.routeReachable}));
         const priorSectors=[...new Set(Array.from({length:ANGLE_BINS},(_,index)=>reachable[index]?Math.floor(index*TAU/ANGLE_BINS/SIDE):null).filter(value=>value!==null))];
         const recent=rows.filter(row=>row.t>=t-2&&row.t<=t+.5).map(row=>({t:+row.t.toFixed(3),g:row.g,th:+(row.th??TH).toFixed(3)}));
         throw new Error(`Void reachability failed: level ${level.id}, seed ${seed}, t=${t.toFixed(3)}s, active=${JSON.stringify(active)}, priorSectors=${JSON.stringify(priorSectors)}, recent=${JSON.stringify(recent)}`);
