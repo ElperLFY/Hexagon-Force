@@ -225,10 +225,13 @@ for(const id of [100,105,110,115]){
 // Blu/RGB must continue generating through zero-intensity music bars.
 for(const id of [110,115]){
   const level=LEVELS.find(item=>item.id===id);
-  const continuous=new PatternGenerator({...level,seed:1200+id}).generate(()=>0,.5,0,100);
+  const beatDur=60/(level.bpm??120);
+  const continuous=new PatternGenerator({...level,seed:1200+id}).generate(()=>0,beatDur,0,100);
   if(continuous.length<20)throw new Error(`Stage ${id} leaves silent pattern gaps on quiet audio`);
-  const maxGap=Math.max(...continuous.slice(1).map((row,index)=>row.t-continuous[index].t));
-  if(maxGap>1.05)throw new Error(`Stage ${id} generator leaves a ${maxGap.toFixed(2)}s interruption on quiet audio`);
+  const maxGapBeats=Math.max(...continuous.slice(1).map((row,index)=>(row.t-continuous[index].t)/beatDur));
+  // A Triple C needs 2.5 beats for its three-sector jump. Reject skipped bars,
+  // not legitimate internal movement intervals of a pattern.
+  if(maxGapBeats>3.1)throw new Error(`Stage ${id} generator leaves a ${maxGapBeats.toFixed(2)}-beat interruption on quiet audio`);
 }
 
 // The Void chooser alternates multi-lane motifs with other families, so it
