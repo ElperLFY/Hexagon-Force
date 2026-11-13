@@ -623,13 +623,9 @@ export class PatternGenerator{
     if(inPostLadder){
       const ladderExitPreset=this.postVoidLadderRemaining===1
         ?PatternGenerator.POST_LADDER_FINAL:PatternGenerator.POST_LADDER;
-      // Exit motifs are injected into the transition window without adding
-      // them to the ordinary Endless Void pool.
-      names=[...new Set([...names,...ladderExitPreset])]
-        .filter(name=>ladderExitPreset.includes(name));
+      names=names.filter(name=>ladderExitPreset.includes(name));
     }else if(inPostBat){
-      names=[...new Set([...names,...PatternGenerator.POST_BAT])]
-        .filter(name=>PatternGenerator.POST_BAT.includes(name));
+      names=names.filter(name=>PatternGenerator.POST_BAT.includes(name));
     }else if(this.lastVoidMulti===false){
       names=names.filter(name=>multi.includes(name));
     }else if(this.lastVoidMulti===true){
