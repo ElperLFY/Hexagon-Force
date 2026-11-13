@@ -7,10 +7,12 @@ const poly=(c,pts)=>{
 };
 const P=(a,m)=>[m*K*Math.cos(a),m*K*Math.sin(a)];
 const PLAYER_SIZE = .65;
+// Keep the triangle's geometry relative to its orbital anchor. Leaning then rotates
+// the arrow in place instead of nudging its position around the arena.
 const PLAYER_POINTS = [
-  [PL.tip, 0],
-  [PL.tip - (PL.tip - PL.back) * PLAYER_SIZE, PL.half * PLAYER_SIZE],
-  [PL.tip - (PL.tip - PL.back) * PLAYER_SIZE, -PL.half * PLAYER_SIZE]
+  [PL.tip - RP, 0],
+  [PL.tip - (PL.tip - PL.back) * PLAYER_SIZE - RP, PL.half * PLAYER_SIZE],
+  [PL.tip - (PL.tip - PL.back) * PLAYER_SIZE - RP, -PL.half * PLAYER_SIZE]
 ];
 
 // Canvas renderer: arena, incoming walls, player and HUD.
@@ -20,6 +22,7 @@ export class Renderer{
     this.c=cv.getContext('2d');
     this.p=null;
     this.playerTilt=0;
+    this.playerTiltTime=null;
     this.mapMul=1; // ModMenu "map speed"
     this.hubLvl=0;this.camLvl=0; // visualizer levels (0..1) for this frame
     addEventListener('resize',()=>this.resize());
@@ -47,13 +50,21 @@ export class Renderer{
 
   drawPlayer(phi,color,turn=0){
     const c=this.c;
-    // Lean a little into the current turning direction, easing back to neutral on release.
-    this.playerTilt+=(turn * .5 - this.playerTilt) * .50;
-    const angle=phi+this.playerTilt;
+    // Smoothly ease the lean over time (independent of frame rate), with a
+    // gentle cap on elapsed time so a paused tab cannot cause a sudden snap.
+    const now=performance.now();
+    const dt=this.playerTiltTime===null?0:Math.min((now-this.playerTiltTime)/1000,.05);
+    this.playerTiltTime=now;
+    const targetTilt=turn*.48;
+    const ease=1-Math.exp(-dt/.14);
+    this.playerTilt+=(targetTilt-this.playerTilt)*ease;
+
+    // The orbital position follows phi; only the arrow's orientation leans.
+    const placePlayer=()=>{c.rotate(phi);c.translate(RP,0);c.rotate(this.playerTilt);};
 
     // A small dark drop-shadow keeps the pointer readable on bright palettes.
     c.save();
-    c.rotate(angle);
+    placePlayer();
     c.translate(-.006,.008);
     c.globalAlpha=.48;
     c.fillStyle='#000';
@@ -61,7 +72,7 @@ export class Renderer{
     c.restore();
 
     c.save();
-    c.rotate(angle);
+    placePlayer();
     c.shadowColor=color;
     c.shadowBlur=9;
     c.fillStyle=color;
