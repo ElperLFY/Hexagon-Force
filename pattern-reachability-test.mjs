@@ -14,7 +14,10 @@ const norm=(x,n)=>((x%n)+n)%n;
 
 function simulate(name,direction,repeat=3){
   const rng=()=>.5;
-  const events=PatternGenerator.PAT[name](0,direction,rng,repeat);
+  const events=name==='spin'
+    ?PatternGenerator.PAT[name](0,direction,repeat)
+    :PatternGenerator.PAT[name](0,direction,rng);
+  if(!events.length)throw new Error(`Pattern factory ${name} returned no events`);
   const rows=[];
   let endBeat=0,maxDepth=TH;
   for(const [beat,gaps,span=0] of events){
