@@ -44,10 +44,10 @@
       "settings": [
         {
           "id": "modMenuEnabled",
-          "label": "Advanced Modifiers",
+          "label": "MOD MENU",
           "type": "toggle",
           "default": true,
-          "description": "Enables the map-speed and player-speed controls previously shown in the Mod Menu."
+          "description": "Shows or hides the map-speed and player-speed difficulty controls."
         },
         {
           "id": "mapSpeed",
