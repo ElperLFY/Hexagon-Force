@@ -18,6 +18,28 @@ const edgeContact=new Chart([{t:10,g:[0],w:mask([0])}],.5,0,120,20,1);
 // grazes wall sector 1 just after the wall crosses the player's radial position.
 if(edgeContact.collision(10.01,SIDE-Math.PI/180)?.type!=='side')throw new Error('Side scrape should be non-lethal contact');
 if(edgeContact.hit(10.01,SIDE-Math.PI/180))throw new Error('Side scrape must not kill the player');
+
+// Optional Part depth must be shared by the collision geometry.
+const thinPart=new Chart([{t:10,g:[1],w:mask([1])}],.5,0,120,20,1);
+const deepPart=new Chart([{t:10,g:[1],w:mask([1]),th:.4}],.5,0,120,20,1);
+if(thinPart.hit(10.2,SIDE/2))throw new Error('Legacy TH should not reach the player yet');
+if(!deepPart.hit(10.2,SIDE/2))throw new Error('Custom Part depth must extend the collision wall');
+
+// Spin family: 2/3/4 variants repeat the same three-position 1-2-3 motif.
+for(const [name,repetitions] of [['spin2',2],['spin3',3],['spin4',4]]){
+  const events=PatternGenerator.PAT[name](0,1);
+  if(events.length!==repetitions*3)throw new Error(`${name} repetition count mismatch`);
+  for(let i=0;i<events.length;i++){
+    const expected=[0,1,3][i%3];
+    if(((events[i][1][0]%6)+6)%6!==expected)throw new Error(`${name} must repeat the 1-2-3 sector sequence`);
+  }
+}
+
+// Ladder: two long single-sector rails and eight alternating two-sector rungs.
+const ladder=PatternGenerator.PAT.ladder(0,1);
+if(ladder.length!==10)throw new Error('Ladder must contain two rails and eight rungs');
+if(!ladder.slice(0,2).every(event=>event[2]===4&&event[1].length===5))throw new Error('Ladder rails must be long single-sector walls');
+if(!ladder.slice(2).every(event=>event[1].length===4&&event[2]===.22))throw new Error('Ladder rungs must be short two-sector walls');
 const g=new PatternGenerator({...LEVELS[3],seed:90210,speed:1.7,turnRate:7.4});
 const voidRows=g.generateVoid(60.1,48,60/116,0);
 if(voidRows.length<80||!voidRows.every((row,index)=>index===0||row.t>=voidRows[index-1].t))throw new Error('Void generation test failed');
