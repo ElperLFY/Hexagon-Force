@@ -1,4 +1,4 @@
-import {TAU,SIDE,K,TH,RP,PL,VOID} from './config.js';
+import {TAU,SIDE,K,TH,RP,HUB,PL,VOID} from './config.js';
 
 // Deterministic PRNG: the same level seed produces the same chart.
 const mul=a=>()=>{
@@ -130,12 +130,18 @@ export class Chart{
       if(dt > window)break;
       const inner=RP+dt*speed;
       const depth=row.th??TH;
-      if(inner+depth<=0)continue;
+      const outer=inner+depth;
+
+      // Never pass a negative radius to P(): it mirrors the wall by 180 degrees,
+      // creating phantom collisions and geometry that appears to emerge from the hub.
+      if(outer<=HUB)continue;
+      const clippedInner=Math.max(inner,HUB);
+      if(outer<=clippedInner)continue;
 
       for(let sector=0;sector<6;sector++){
         if(!row.w[sector])continue;
         const a=sector*SIDE,b=a+SIDE;
-        const wall=[P(a,inner),P(b,inner),P(b,inner+depth),P(a,inner+depth)];
+        const wall=[P(a,clippedInner),P(b,clippedInner),P(b,outer),P(a,outer)];
 
         // The tip remains the only lethal point. Include the exact wall identity
         // so a side scrape cannot shield the player from a different wall.
@@ -205,7 +211,7 @@ export class Chart{
     this.rows=this.rows.filter(r=>r.t<this.voidStart);
     this.voidSide=mul(seed>>>0)()<.5?-1:1; // which side of the screen the darkness comes from
     this.gen=new PatternGenerator({...L,seed});
-    this.voidNext=this.voidStart+.1;
+    this.voidNext=this.voidStart;
     this.voidPrev=this.rows[this.rows.length-1]||null;
     this.dur=Infinity; // never "completed"
     return this;
@@ -338,7 +344,7 @@ export class PatternGenerator{
     doubleC:(g,d)=>[0,1,2,3].map(i=>[i,[g+i*d,g+1+i*d],.42])
   };
 
-  constructor(L){this.L=L;this.rng=mul(L.seed);}
+  constructor(L){this.L=L;this.rng=mul(L.seed);this.lastVoidPattern=null;}
 
   pool(x){
     const L=this.L;
