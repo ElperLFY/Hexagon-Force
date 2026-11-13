@@ -643,7 +643,10 @@ export class PatternGenerator{
 
       const pat=PatternGenerator.PAT[name](g,d,r);
       const motifId=`${name}@${tb.toFixed(6)}`;
-      const motifDuration=Math.max(...pat.map(([beat,,spanBeats=0])=>beat+spanBeats));
+      const defaultSpan=TH/((L.speed||1)*bd);
+      const motifDuration=Math.max(...pat.map(([beat,,spanBeats=0])=>
+        beat+(spanBeats>0?spanBeats:defaultSpan)
+      ));
       let end=0;
       for(const [beat,gaps,spanBeats=0,routeSpanBeats=null] of pat){
         const row={
@@ -655,7 +658,7 @@ export class PatternGenerator{
           row.routeDepth=(L.speed||1)*bd*routeSpanBeats;
         }
         rows.push(row);
-        end=Math.max(end,beat+spanBeats);
+        end=Math.max(end,beat+(spanBeats>0?spanBeats:defaultSpan));
       }
       this.lastVoidOpenings=unique(pat[pat.length-1]?.[1]??[]);
       tb+=(end+(L.voidGapBeats??.32))*bd;
