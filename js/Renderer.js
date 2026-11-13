@@ -19,6 +19,7 @@ export class Renderer{
     this.cv=cv;
     this.c=cv.getContext('2d');
     this.p=null;
+    this.playerTilt=0;
     this.mapMul=1; // ModMenu "map speed"
     this.hubLvl=0;this.camLvl=0; // visualizer levels (0..1) for this frame
     addEventListener('resize',()=>this.resize());
@@ -44,12 +45,15 @@ export class Renderer{
     this.c.fill();
   }
 
-  drawPlayer(phi,color){
+  drawPlayer(phi,color,turn=0){
     const c=this.c;
+    // Lean a little into the current turning direction, easing back to neutral on release.
+    this.playerTilt+=(turn*.08-this.playerTilt)*.22;
+    const angle=phi+this.playerTilt;
 
     // A small dark drop-shadow keeps the pointer readable on bright palettes.
     c.save();
-    c.rotate(phi);
+    c.rotate(angle);
     c.translate(-.006,.008);
     c.globalAlpha=.48;
     c.fillStyle='#000';
@@ -57,7 +61,7 @@ export class Renderer{
     c.restore();
 
     c.save();
-    c.rotate(phi);
+    c.rotate(angle);
     c.shadowColor=color;
     c.shadowBlur=9;
     c.fillStyle=color;
@@ -69,7 +73,7 @@ export class Renderer{
     c.restore();
   }
 
-  scene(L,t,ch,walls,phi,fx){
+  scene(L,t,ch,walls,phi,fx,turn=0){
     const c=this.c,tt=Math.max(0,t-L.offset),per=16*ch.beatDur;
     const n=L.inv?Math.max(0,Math.floor((t-ch.tg0)/per)):0;
     const r=Math.min(1,(t-ch.tg0-n*per)/.9);
@@ -124,7 +128,7 @@ export class Renderer{
     if(walls){
       c.rotate(rot);
       if(fx)this.shards(fx);
-      else this.drawPlayer(phi,this.p.p);
+      else this.drawPlayer(phi,this.p.p,turn);
     }
     c.restore();
   }
@@ -183,7 +187,8 @@ export class Renderer{
       const k=Math.exp(-fx.tau*7);
       c.save();c.translate((Math.random()-.5)*U*.06*k,(Math.random()-.5)*U*.06*k);
     }
-    this.scene(L,t,ch,g.live,g.phi,fx);
+    const turn=g.input?(g.input.R-g.input.L):0;
+    this.scene(L,t,ch,g.live,g.phi,fx,turn);
     if(fx){
       c.restore();c.fillStyle='#fff';c.globalAlpha=.55*Math.exp(-fx.tau*9);
       c.fillRect(0,0,W,H);c.globalAlpha=1;
