@@ -83,45 +83,53 @@ if(failures.length){
   console.log(`Pattern reachability OK: ${names.length} factories × 2 directions; ${ANGLE_BINS} angular bins, 120 Hz simulation.`);
 }
 
-// Also exercise actual random Void chunks (the phase in which the reported
-// failure occurred), across every shipped level and fixed reproducible seeds.
+// Also exercise chained Void chunks, carrying the exact previous Part and
+// generator state across chunk seams. Six seeds × three chunks keeps the same
+// total sample volume as twelve isolated chunks, but covers real seam behavior.
 for(const level of LEVELS){
   const bd=60/(level.bpm??116);
   const testLevel={...level,turnRate:8.5,reactionMargin:.04};
-  for(let seed=1;seed<=12;seed++){
+  for(let seed=1;seed<=6;seed++){
     const generator=new PatternGenerator({...testLevel,seed});
-    const rows=generator.generateVoid(60,8,bd,0,60,null);
-    if(!rows.length)throw new Error(`Void produced no rows for level ${level.id}, seed ${seed}`);
+    const rows=[];
+    let from=60,previous=null;
+    for(let chunk=0;chunk<3;chunk++){
+      const chunkRows=generator.generateVoid(from,8,bd,0,60,previous);
+      if(!chunkRows.length)throw new Error(`Void produced no rows for level ${level.id}, seed ${seed}, chunk ${chunk}`);
+      rows.push(...chunkRows);
+      previous=chunkRows[chunkRows.length-1];
+      from=generator.voidNext;
+    }
     const maxDepth=Math.max(TH,...rows.map(row=>row.th??TH));
-    const chart=new Chart(rows,bd,0,level.bpm??116,30,level.speed);
+    const chart=new Chart(rows,bd,0,level.bpm??116,90,level.speed);
     const duration=(rows.at(-1).t-rows[0].t)+maxDepth/level.speed+.2;
     let reachable=new Uint8Array(ANGLE_BINS).fill(1);
     for(let t=rows[0].t-.5+DT;t<=rows[0].t+duration;t+=DT){
       const free=new Uint8Array(ANGLE_BINS);
       for(let i=0;i<ANGLE_BINS;i++)if(!chart.collision(t,i*TAU/ANGLE_BINS)?.type)free[i]=1;
       const next=new Uint8Array(ANGLE_BINS);
-      for(let from=0;from<ANGLE_BINS;from++)if(reachable[from]){
+      for(let fromAngle=0;fromAngle<ANGLE_BINS;fromAngle++)if(reachable[fromAngle]){
         for(let delta=-STEP_BINS;delta<=STEP_BINS;delta++){
-          const to=norm(from+delta,ANGLE_BINS);
+          const to=norm(fromAngle+delta,ANGLE_BINS);
           if(!free[to])continue;
           let clear=true;
-          for(let k=1;k<Math.abs(delta);k++)if(!free[norm(from+Math.sign(delta)*k,ANGLE_BINS)]){clear=false;break;}
+          for(let k=1;k<Math.abs(delta);k++)if(!free[norm(fromAngle+Math.sign(delta)*k,ANGLE_BINS)]){clear=false;break;}
           if(clear)next[to]=1;
         }
       }
-      reachable=next;
-      if(!reachable.some(Boolean)){
+      if(!next.some(Boolean)){
         const active=rows.filter(row=>{
           const depth=row.th??TH;
           const enters=row.t-(PL.tip-RP)/level.speed;
           const leaves=row.t+(depth+RP-PL.back)/level.speed;
           return t>=enters-1e-6&&t<=leaves+1e-6;
         }).map(row=>({t:+row.t.toFixed(3),g:row.g,th:+(row.th??TH).toFixed(3)}));
-        const reachableSectors=[...new Set(Array.from({length:ANGLE_BINS},(_,index)=>reachable[index]?Math.floor(index*TAU/ANGLE_BINS/SIDE):null).filter(value=>value!==null))];
+        const priorSectors=[...new Set(Array.from({length:ANGLE_BINS},(_,index)=>reachable[index]?Math.floor(index*TAU/ANGLE_BINS/SIDE):null).filter(value=>value!==null))];
         const recent=rows.filter(row=>row.t>=t-2&&row.t<=t+.5).map(row=>({t:+row.t.toFixed(3),g:row.g,th:+(row.th??TH).toFixed(3)}));
-        throw new Error(`Void reachability failed: level ${level.id}, seed ${seed}, t=${t.toFixed(3)}s, active=${JSON.stringify(active)}, reachableSectors=${JSON.stringify(reachableSectors)}, recent=${JSON.stringify(recent)}`);
+        throw new Error(`Void reachability failed: level ${level.id}, seed ${seed}, t=${t.toFixed(3)}s, active=${JSON.stringify(active)}, priorSectors=${JSON.stringify(priorSectors)}, recent=${JSON.stringify(recent)}`);
       }
+      reachable=next;
     }
   }
 }
-console.log('Void reachability OK: 4 levels × 12 deterministic seeds.');
+console.log('Void reachability OK: 4 levels × 6 seeds × 3 chained chunks.');
