@@ -1,0 +1,32 @@
+{
+  "id": "wall",
+  "name": "Wall",
+  "category": "single-opening",
+  "description": "A single opening followed by a nearby randomized opening.",
+  "tags": [
+    "single-opening"
+  ],
+  "weight": 1,
+  "voidWeight": 1,
+  "directionMode": "fixed",
+  "parts": [
+    {
+      "beat": 0,
+      "openOffsets": [
+        0
+      ],
+      "wallSpanBeats": 0.4
+    },
+    {
+      "beat": 2,
+      "openOffsets": [
+        0
+      ],
+      "randomSectorOffset": [
+        -1,
+        1
+      ],
+      "wallSpanBeats": 0.4
+    }
+  ]
+}
