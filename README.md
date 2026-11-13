@@ -48,6 +48,18 @@ Every pattern factory returns an array of events:
 
 `[[beatOffset, [openSector, ...]], ...]`
 
+### Cyclic-sector arithmetic
+
+Sector positions live in the cyclic group `Z₆`. All sector arithmetic is modulo 6:
+
+`sector(next) = (sector(current) + signedUnits) mod 6`
+
+This creates useful ambiguities that the pattern format must handle explicitly:
+
+- `+3 ≡ -3 (mod 6)`: in a six-sector arena, a 3-unit clockwise destination is the same sector as a 3-unit counter-clockwise destination.
+- `4L ≡ 2R (mod 6)` and `4R ≡ 2L (mod 6)`.
+- The current chart rows record only *which sectors are open*. They do not record the intended turn direction or number of taps. A visual pattern that depends on distinguishing `3R` from `3L` needs additional path/orientation metadata; the existing gap-only JSON cannot preserve that distinction.
+
 Example:
 
 ```js
