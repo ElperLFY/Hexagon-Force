@@ -47,9 +47,6 @@ export class Renderer{
 
   drawPlayer(phi,color,turn){
     const c=this.c;
-    if(turn)this.turnTrail=turn;
-    else this.turnTrail*=.86;
-    const direction=this.turnTrail;
 
     // A small dark drop-shadow keeps the pointer readable on bright palettes.
     c.save();
@@ -59,7 +56,11 @@ export class Renderer{
     c.fillStyle='#000';
     poly(c,PLAYER_POINTS);c.fill();
     c.restore();
-    
+    c.save();
+    c.rotate(phi);
+    c.shadowColor=color;
+    c.shadowBlur=9;
+    c.fillStyle=color;
     poly(c,PLAYER_POINTS);c.fill();
     c.shadowBlur=0;
     c.lineWidth=.006;
