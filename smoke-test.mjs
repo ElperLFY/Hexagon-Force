@@ -78,7 +78,7 @@ const ladderChart=new Chart(ladderEvents.map(([beat,gaps,span,routeSpan])=>({
   t:beat*(60/140),g:[...new Set(gaps.map(value=>((value%6)+6)%6))],
   w:mask(gaps),motifId:'ladder-atomic-test',motifName:'ladder',
   motifStart:0,motifEnd:ladderDuration,
-  ...(span>0?{th:span*(60/140)}:{}),
+  ...(span>0?{th:1.3*span*(60/140)}:{}),
   ...(routeSpan!=null?{routeDepth:routeSpan*(60/140)}:{})
 })),60/140,0,140,30,1.3);
 const ladderRandomized=ladderChart.randomized({...LEVELS.find(level=>level.id===115),offset:0,randomSectionBeats:4},0xB1A1);
@@ -298,7 +298,9 @@ for(const id of [100,105,110,115]){
     if(!row.g.length||row.w.length!==6)throw new Error(`Chart ${id}: invalid void row at ${row.t}`);
     if(i===0)return;
     const prev=all[i-1],steps=Math.min(3,Math.max(0,Math.floor(Math.max(0,row.t-prev.t-TH/speed-reaction)/stepTime)));
-    if(Math.min(...prev.g.flatMap(a=>row.g.map(b=>dist(a,b))))>steps)throw new Error(`Chart ${id}: row at ${row.t.toFixed(2)}s is unreachable`);
+    if(Math.min(...prev.g.flatMap(a=>row.g.map(b=>dist(a,b))))>steps)throw new Error(
+      `Chart ${id}: row at ${row.t.toFixed(2)}s is unreachable; prev=${JSON.stringify({t:prev.t,g:prev.g,route:prev.route,routeDepth:prev.routeDepth,th:prev.th})}; row=${JSON.stringify({t:row.t,g:row.g,route:row.route,routeDepth:row.routeDepth,th:row.th})}; dt=${(row.t-prev.t).toFixed(3)}; steps=${steps}`
+    );
   });
   if(!kept)throw new Error(`Chart ${id}: authored rows before the void are gone`);
   if(all.every(r=>r.t<run.voidStart+60))throw new Error(`Chart ${id}: void generated nothing`);
