@@ -419,8 +419,11 @@ export class PatternGenerator{
 
     burst:(g,d)=>[[0,[g],.32],[.5,[g],.32],[1,[g],.32],[1.5,[g],.32],[3,[g+2*d],.42]],
 
-    // Three C-shaped Parts, with successive openings three sectors apart.
-    tripleC:g=>[[0,[g],.42],[1,[g+3],.42],[2,[g],.42]],
+    // Three C-shaped Parts. The openings alternate across the arena; the
+    // three-sector M jump needs enough time to cross the full diameter.
+    // One beat was not enough at the slower turn-rate stages once wall depth
+    // and reaction margin were deducted, so use a 2.5-beat interval.
+    tripleC:g=>[[0,[g],.42],[2.5,[g+3],.42],[5,[g],.42]],
 
     // A continuous spiral lane. Double Whirlpool keeps a second, opposite lane.
     whirl:(g,d)=>[0,1,2,3,4,5].map(i=>[i,[g+i*d],.58]),
