@@ -9,5 +9,6 @@
     "alias"
   ],
   "weight": 1,
-  "voidWeight": 1
+  "voidWeight": 1,
+  "$schema": "./pattern.schema.json"
 }
