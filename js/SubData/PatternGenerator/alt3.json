@@ -1,0 +1,51 @@
+{
+  "id": "alt3",
+  "name": "Alt 3",
+  "category": "wide-opening",
+  "description": "Four Parts alternating between the two complementary three-opening masks.",
+  "tags": [
+    "multi-opening",
+    "wide-opening"
+  ],
+  "weight": 1,
+  "voidWeight": 1,
+  "directionMode": "fixed",
+  "parts": [
+    {
+      "beat": 0,
+      "openOffsets": [
+        0,
+        2,
+        4
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 1,
+      "openOffsets": [
+        1,
+        3,
+        5
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 2,
+      "openOffsets": [
+        0,
+        2,
+        4
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 3,
+      "openOffsets": [
+        1,
+        3,
+        5
+      ],
+      "wallSpanBeats": 0.42
+    }
+  ]
+}
