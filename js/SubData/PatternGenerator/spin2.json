@@ -1,0 +1,14 @@
+{
+  "id": "spin2",
+  "name": "2-Spin",
+  "category": "spin",
+  "description": "The 1-2-3 Spin unit, repeated twice.",
+  "aliasOf": "spin",
+  "repeatCount": 2,
+  "tags": [
+    "single-opening",
+    "spin"
+  ],
+  "weight": 1,
+  "voidWeight": 0.85
+}
