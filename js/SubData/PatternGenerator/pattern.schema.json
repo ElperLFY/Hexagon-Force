@@ -5,11 +5,14 @@
   "description": "One pattern factory expressed as ordered beat/Part data.",
   "type": "object",
   "required": [
+    "$schema",
     "id",
     "name",
     "category",
     "description",
-    "tags"
+    "tags",
+    "weight",
+    "voidWeight"
   ],
   "properties": {
     "$schema": {
