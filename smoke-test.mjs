@@ -105,10 +105,10 @@ if(Math.abs(transformedRows[0].th-expectedRailDepth)>1e-8)throw new Error('Ladde
 // A Ladder must transition into an authored multi-opening exit preset, never
 // straight into a single-opening C-shaped family such as Stair/Whirlpool.
 const transitionProbe=new PatternGenerator({...LEVELS.find(level=>level.id===110),seed:0xA771});
-transitionProbe.pool=()=>['ladder','solo','stair','solo2','dwhirl'];
+transitionProbe.pool=()=>['ladder','solo','stair','solo2','dwhirl','solo3','alt3'];
 const receivedPools=[];
 let transitionPick=0;
-const forcedTransitionNames=['ladder','solo2','dwhirl','solo'];
+const forcedTransitionNames=['ladder','solo3','alt3','solo'];
 transitionProbe.choose=(names)=>{
   receivedPools.push([...names]);
   return forcedTransitionNames[Math.min(transitionPick++,forcedTransitionNames.length-1)];
@@ -122,16 +122,16 @@ for(const pool of receivedPools.slice(1,3)){
 if(!receivedPools[3].includes('solo')||!receivedPools[3].includes('stair'))throw new Error('Normal pattern pool should resume after the two-pattern exit preset');
 const ladderStart=transitionRows.find(row=>row.motifName==='ladder')?.motifStart;
 const ladderEnd=transitionRows.find(row=>row.motifName==='ladder')?.motifEnd;
-const exitStart=transitionRows.find(row=>row.motifName==='solo2')?.motifStart;
+const exitStart=transitionRows.find(row=>row.motifName==='solo3')?.motifStart;
 if(!(Number.isFinite(ladderStart)&&Number.isFinite(ladderEnd)&&exitStart>=ladderEnd))throw new Error('Post-Ladder exit overlaps the Ladder phrase');
 
 // Bat uses the same two-pattern multi-opening exit rule as Ladder:
 // do not follow its opposite-lane sequence immediately with a single C/Spin.
 const batProbe=new PatternGenerator({...LEVELS.find(level=>level.id===105),seed:0xBA71});
-batProbe.pool=()=>['bat','solo','stair','solo2','dwhirl','spin4'];
+batProbe.pool=()=>['bat','solo','stair','solo2','dwhirl','spin4','solo3','alt3'];
 const batPools=[];
 let batPick=0;
-const forcedBatNames=['bat','solo2','dwhirl','spin4'];
+const forcedBatNames=['bat','solo3','alt3','spin4'];
 batProbe.choose=names=>{
   batPools.push([...names]);
   return forcedBatNames[Math.min(batPick++,forcedBatNames.length-1)];
@@ -144,7 +144,7 @@ for(const pool of batPools.slice(1,3)){
 }
 if(!batPools[3].includes('spin4')||!batPools[3].includes('solo'))throw new Error('Normal pool should resume after the two-pattern Bat exit preset');
 const batEnd=batRows.find(row=>row.motifName==='bat')?.motifEnd;
-const batExit=batRows.find(row=>row.motifName==='solo2')?.motifStart;
+const batExit=batRows.find(row=>row.motifName==='solo3')?.motifStart;
 if(!(Number.isFinite(batEnd)&&batExit>=batEnd))throw new Error('Post-Bat exit overlaps the Bat phrase');
 
 // Motif grouping metadata must survive export/import so later randomization
@@ -264,7 +264,7 @@ for(const id of [100,105,110,115]){
   let seed=0xA55A+id;
   const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
   const choices=Array.from({length:18},()=>generator.chooseVoid(random));
-  const multi=name=>['solo2','solo3','bat','dwhirl','stair1','rain','doubleC'].includes(name);
+  const multi=name=>['solo2','solo3','alt3','bat','dwhirl','stair1','rain','doubleC'].includes(name);
   let previousPattern=null,previousMulti=null,ladderExitRemaining=0,batExitRemaining=0;
   for(const name of choices){
     const enteringLadder=previousPattern==='ladder'||previousPattern==='zig';
