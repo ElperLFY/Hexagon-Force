@@ -285,6 +285,7 @@ export class SettingsPanel{
     if(this.isOpen)return;
     this.isOpen=true;
     this.game.uiOverlay='settings';
+    document.body.classList.add('settings-open');
     this.root.hidden=false;
     this.root.setAttribute('aria-hidden','false');
     requestAnimationFrame(()=>this.root?.classList.add('is-open'));
@@ -295,6 +296,7 @@ export class SettingsPanel{
     if(!this.root||!this.isOpen)return;
     this.isOpen=false;
     this.game.uiOverlay=null;
+    document.body.classList.remove('settings-open');
     this.root.classList.remove('is-open');
     this.root.setAttribute('aria-hidden','true');
     const root=this.root;
