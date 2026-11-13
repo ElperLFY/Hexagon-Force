@@ -215,7 +215,7 @@ export class Renderer{
       c.save();c.translate((Math.random()-.5)*U*.06*k,(Math.random()-.5)*U*.06*k);
     }
 
-    const maxOmega=(L.turnRate??6.4)*(g.mods?.playerSpeed??1)*(g.voidActive?1.08:1);
+    const maxOmega=(L.turnRate??8)*(g.mods?.playerSpeed??1)*(g.voidActive?1.08:1);
     const turn=Number.isFinite(g.playerOmega)
       ?clamp(g.playerOmega/Math.max(.001,maxOmega),-1,1)
       :(g.input?(g.input.R-g.input.L):0);
