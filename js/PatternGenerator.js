@@ -344,7 +344,7 @@ export class PatternGenerator{
     doubleC:(g,d)=>[0,1,2,3].map(i=>[i,[g+i*d,g+1+i*d],.42])
   };
 
-  constructor(L){this.L=L;this.rng=mul(L.seed);this.lastVoidPattern=null;}
+  constructor(L){this.L=L;this.rng=mul(L.seed);this.lastVoidPattern=null;this.lastVoidMulti=false;}
 
   pool(x){
     const L=this.L;
