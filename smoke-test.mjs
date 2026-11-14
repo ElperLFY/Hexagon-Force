@@ -97,6 +97,7 @@ if(!gameSource.includes('this.progress.completedLevels.push(key)'))throw new Err
 if(!gameSource.includes('path?.levels?.find(item=>item.id===index)'))throw new Error('Level completion checks must accept JSON level IDs as well as UI indices');
 if(!gameSource.includes('this.isPathCompleted(rule.pathId)'))throw new Error('Path unlock must depend on all stages in the prerequisite route being completed');
 if(!gameSource.includes("level.chartMode==='authored'"))throw new Error('Path level charts should be beat-sensitive unless explicitly marked authored');
+if(!gameSource.includes('getChart(level,audioBuffer,seed=level.seed)')||!gameSource.includes('this.getChart(level,audioBuffer,seed)'))throw new Error('Each retry must receive a fresh seed for beat-sensitive pattern-family selection');
 const rendererSource=fs.readFileSync('./js/Renderer.js','utf8');
 if(!rendererSource.includes('drawPlayer(phi,this.p.w,turn)'))throw new Error('Player pointer colour must match the wall colour');
 if(!rendererSource.includes('w.th??L.wallThickness??TH'))throw new Error('Renderer must use each Path level wall thickness');

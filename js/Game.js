@@ -462,12 +462,11 @@ export class Game {
       await PatternGenerator.loadCatalog();
       const audioBuffer=await this.audio.load(level);
 
-      if(!this.baseCharts[cacheKey]){
-        this.baseCharts[cacheKey]=await this.getChart(level,audioBuffer);
-      }
-
       const seed=(level.seed^(Date.now()>>>0)^(Math.random()*0x100000000>>>0))>>>0;
-      const run=this.baseCharts[cacheKey]
+      // Reuse the decoded soundtrack, but build a fresh beat-sensitive motif sequence per attempt.
+      const baseChart=await this.getChart(level,audioBuffer,seed);
+      this.baseCharts[cacheKey]=baseChart;
+      const run=baseChart
         .randomized(level,seed)
         .endless(level,seed,level.offset+VOID.start,level.offset+(level.goalSeconds??this.baseCharts[cacheKey].dur-level.offset));
 
@@ -494,7 +493,7 @@ export class Game {
 
   // Beat-sensitive paths are generated from the actual soundtrack. Authored
   // JSON charts remain available as an explicit per-level option.
-  async getChart(level,audioBuffer) {
+  async getChart(level,audioBuffer,seed=level.seed) {
     if(level.chartMode==='authored'){
       try{
         const response=await fetch(`${SONG_DIR}${level.id}.json`);
@@ -504,7 +503,7 @@ export class Game {
       }
     }
     await new Promise(resolve=>setTimeout(resolve,40));
-    return new BeatAnalyzer(level).analyze(audioBuffer);
+    return new BeatAnalyzer({...level,seed}).analyze(audioBuffer);
   }
 
   async exportChart() {
