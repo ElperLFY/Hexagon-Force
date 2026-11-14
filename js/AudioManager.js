@@ -181,6 +181,26 @@ export class AudioManager {
     this.playCue('sounds', name);
   }
 
+  // Start a group of one-shot clips on the exact same AudioContext time.
+  // This is used for the paired "start" + spoken "begin" cue.
+  playTogether(entries) {
+    Promise.all(entries.map(([folder, name]) => this.loadCue(folder, name)))
+      .then(buffers => {
+        if (!this.ctx || !this.effects) return;
+        const startAt = this.ctx.currentTime;
+        for (const buffer of buffers) {
+          if (!buffer) continue;
+          const source = this.ctx.createBufferSource();
+          const gain = this.ctx.createGain();
+          source.buffer = buffer;
+          gain.gain.value = 1;
+          source.connect(gain).connect(this.effects);
+          source.start(startAt);
+        }
+      })
+      .catch(error => console.warn('[HEXBEAT] Paired audio cues failed:', error));
+  }
+
   playSequence(entries) {
     const token = ++this.sequenceToken;
     const playNext = index => {

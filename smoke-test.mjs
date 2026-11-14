@@ -64,7 +64,7 @@ if(SOUND_CUES.join(',')!=='start,die,begin,gameover,menuchoose,menuselect')throw
 for(const path of ['./SongData/README.md','./SongData/Music/README.md','./SongData/Sounds/README.md']){
   if(!fs.existsSync(path))throw new Error(`Missing audio asset instructions: ${path}`);
 }
-for(const method of ['preloadCues()','playMusicCue(name)','playSound(name)','playSequence(entries)','cancelSequences()']){
+for(const method of ['preloadCues()','playMusicCue(name)','playSound(name)','playTogether(entries)','playSequence(entries)','cancelSequences()']){
   if(!audioManagerSource.includes(method))throw new Error(`AudioManager is missing ${method}`);
 }
 for(const cue of ['awesome','excellent','wonderful','start','die','begin','gameover','menuchoose','menuselect']){
@@ -72,7 +72,7 @@ for(const cue of ['awesome','excellent','wonderful','start','die','begin','gameo
 }
 if(!gameSource.includes('elapsed >= 30')||!gameSource.includes('elapsed >= 60')||!gameSource.includes("playMusicCue('wonderful')"))throw new Error('30s, 60s and new-best announcements are not wired correctly');
 if(!gameSource.includes("playSequence([['sounds', 'die'], ['sounds', 'gameover']])"))throw new Error('Death and Game Over voice must play sequentially');
-if(!gameSource.includes("playSound('start')")||!gameSource.includes("playSound('begin')"))throw new Error('Start and Begin must play together when a run starts');
+if(!gameSource.includes("playTogether([['sounds', 'start'], ['sounds', 'begin']])"))throw new Error('Start and Begin must be scheduled together when a run starts');
 if(!gameSource.includes("playSound('menuchoose')")||!gameSource.includes("playSound('menuselect')"))throw new Error('Menu confirmation and navigation sounds are not wired');
 if(!inputSource.includes("code === 'KeyQ'")||!inputSource.includes("event.code === 'KeyE'"))throw new Error('Gameplay keyboard aliases must be released correctly');
 if(settingsSchema.groups.find(group=>group.id==='audio').settings.find(setting=>setting.id==='soundVolume').description.includes('not implemented'))throw new Error('Sound Volume help text still claims that effects are not implemented');

@@ -293,8 +293,7 @@ export class Game {
       this.fx = null;
       this.runCallouts.clear();
       this.state = 'play';
-      this.audio.playSound('start');
-      this.audio.playSound('begin');
+      this.audio.playTogether([['sounds', 'start'], ['sounds', 'begin']]);
     } catch (error) {
       this.msg = error.message;
       this.state = 'menu';
