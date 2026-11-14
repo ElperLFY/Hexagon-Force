@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import {LEVELS,SIDE,TAU,TH,PART_DEPTH_SCALE,VOID,RP,PL} from './js/config.js';
+import {LEVELS,SIDE,TAU,TH,PART_DEPTH_SCALE,VOID,RP,PL,MUSIC_CUE_DIR,SOUND_CUE_DIR,MUSIC_CUES,SOUND_CUES} from './js/config.js';
 import {Chart,PatternGenerator} from './js/PatternGenerator.js';
 
 await PatternGenerator.loadCatalog();
@@ -43,6 +43,8 @@ const settingsStyles=fs.readFileSync('./js/SubData/Settings/settings.css','utf8'
 const indexMarkup=fs.readFileSync('./index.html','utf8');
 const settingsController=fs.readFileSync('./js/SettingsPanel.js','utf8');
 const gameSource=fs.readFileSync('./js/Game.js','utf8');
+const audioManagerSource=fs.readFileSync('./js/AudioManager.js','utf8');
+const inputSource=fs.readFileSync('./js/Input.js','utf8');
 if(!settingsMarkup.includes('role="dialog"')||!settingsMarkup.includes('data-settings-content'))throw new Error('Settings HTML dialog structure is incomplete');
 if(settingsMarkup.includes('HEXBEAT / SYSTEM')||settingsMarkup.includes('Tune the experience. Keep the rhythm.'))throw new Error('Settings header must contain only the SETTINGS title');
 if(!settingsStyles.includes('.hb-settings__dialog')||!settingsStyles.includes('@media'))throw new Error('Settings CSS is missing the dialog or responsive layout');
@@ -54,6 +56,26 @@ if(!settingsController.includes("event.key==='Tab'")||!settingsController.includ
 if(!indexMarkup.includes('js/SubData/Settings/settings.css'))throw new Error('index.html does not load the Settings stylesheet');
 if(!settingsController.includes("new URL('settings.json',base)")||!settingsController.includes("new URL('settings.html',base)"))throw new Error('Settings controller is not loading the HTML and JSON assets');
 if(gameSource.includes("from './ModMenu.js'")||gameSource.includes('this.modMenu'))throw new Error('The old standalone Mod Menu is still wired into Game.js');
+
+// Optional OGG assets and their semantic triggers are defined in SongData.
+if(MUSIC_CUE_DIR!=='SongData/Music/'||SOUND_CUE_DIR!=='SongData/Sounds/')throw new Error('Audio cue directories changed unexpectedly');
+if(MUSIC_CUES.join(',')!=='awesome,excellent,wonderful')throw new Error('Music cue manifest must contain the three level/best announcements');
+if(SOUND_CUES.join(',')!=='start,die,begin,gameover,menuchoose,menuselect')throw new Error('Sound cue manifest must contain the six UI/gameplay effects');
+for(const path of ['./SongData/README.md','./SongData/Music/README.md','./SongData/Sounds/README.md']){
+  if(!fs.existsSync(path))throw new Error(`Missing audio asset instructions: ${path}`);
+}
+for(const method of ['preloadCues()','playMusicCue(name)','playSound(name)','playSequence(entries)','cancelSequences()']){
+  if(!audioManagerSource.includes(method))throw new Error(`AudioManager is missing ${method}`);
+}
+for(const cue of ['awesome','excellent','wonderful','start','die','begin','gameover','menuchoose','menuselect']){
+  if(!audioManagerSource.includes(`'${cue}'`)&&!gameSource.includes(`'${cue}'`))throw new Error(`Audio cue ${cue} is not wired into the game`);
+}
+if(!gameSource.includes('elapsed >= 30')||!gameSource.includes('elapsed >= 60')||!gameSource.includes("playMusicCue('wonderful')"))throw new Error('30s, 60s and new-best announcements are not wired correctly');
+if(!gameSource.includes("playSequence([['sounds', 'die'], ['sounds', 'gameover']])"))throw new Error('Death and Game Over voice must play sequentially');
+if(!gameSource.includes("playSound('start')")||!gameSource.includes("playSound('begin')"))throw new Error('Start and Begin must play together when a run starts');
+if(!gameSource.includes("playSound('menuchoose')")||!gameSource.includes("playSound('menuselect')"))throw new Error('Menu confirmation and navigation sounds are not wired');
+if(!inputSource.includes("code === 'KeyQ'")||!inputSource.includes("event.code === 'KeyE'"))throw new Error('Gameplay keyboard aliases must be released correctly');
+if(settingsSchema.groups.find(group=>group.id==='audio').settings.find(setting=>setting.id==='soundVolume').description.includes('not implemented'))throw new Error('Sound Volume help text still claims that effects are not implemented');
 
 
 const mask=gaps=>[0,1,2,3,4,5].map(sector=>!gaps.includes(sector));

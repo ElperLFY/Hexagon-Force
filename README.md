@@ -188,7 +188,7 @@ The general Settings source is `js/SubData/Settings/`:
 - `settings.schema.json` describes the JSON format.
 - `js/SettingsPanel.js` loads those assets and connects the controls to the game. It is intentionally the controller, not the location where settings are defined or styled.
 
-The Mod Menu is now a section inside Settings (shortcut `M` or `S`); there is no separate slide-down Mod Menu. Framerate is a render-rate cap, while V-Sync is shown as browser-managed because a web page cannot reliably toggle hardware V-Sync. Sound Volume remains disabled/WIP until the game has a separate sound-effects bus.
+The Mod Menu is now a section inside Settings (shortcut `M` or `S`); there is no separate slide-down Mod Menu. Framerate is a render-rate cap, while V-Sync is shown as browser-managed because a web page cannot reliably toggle hardware V-Sync. Sound Volume remains disabled/WIP because the new OGG cues currently share the main volume control; independent adjustment is still planned.
 
 `js/config.js` remains the source for existing level/game constants and is not part of the editable pattern or Settings data model.
 

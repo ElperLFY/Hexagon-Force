@@ -1,6 +1,10 @@
 export const TAU=Math.PI*2,SIDE=TAU/6,K=1.1547,RP=.27,HUB=.18,TH=.09,PW=.035,PART_DEPTH_SCALE=.9;
 export const PL={tip:RP+.045,back:RP-.03,half:.035};
 export const SONG_DIR='MusicData/';
+export const MUSIC_CUE_DIR='SongData/Music/';
+export const SOUND_CUE_DIR='SongData/Sounds/';
+export const MUSIC_CUES=['awesome','excellent','wonderful'];
+export const SOUND_CUES=['start','die','begin','gameover','menuchoose','menuselect'];
 
 // Endless "void" phase.
 export const VOID={

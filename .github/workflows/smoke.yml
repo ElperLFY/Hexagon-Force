@@ -1,6 +1,8 @@
 name: HEXBEAT smoke tests
 
 on:
+  push:
+    branches: [gameplay/edge-contact-esc]
   pull_request:
     branches: [main, gameplay/edge-contact-esc]
 
@@ -17,6 +19,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Check JavaScript syntax
+        run: |
+          for file in js/*.js; do node --check "$file"; done
       - name: Run deterministic smoke tests
         run: node smoke-test.mjs
       - name: Run pattern and Void reachability audit

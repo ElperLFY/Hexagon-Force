@@ -23,6 +23,7 @@ export class Game {
 
     this.best = JSON.parse(localStorage.getItem('hxb') || '{}');
     this.lastScores = JSON.parse(localStorage.getItem('hxl') || '{}');
+    this.runCallouts = new Set();
     this.uiOverlay = null;
     this.noiseOn = false;
     this.mods = this.loadMods();
@@ -115,10 +116,14 @@ export class Game {
   // --- User actions ---
   confirm() {
     const state = this.state;
+    this.audio.playSound('menuchoose');
 
     if (state === 'gate') {
       this.state = 'menu';
-      this.audio.unlock().then(() => this.preview());
+      this.audio.unlock().then(() => {
+        void this.audio.preloadCues();
+        this.preview();
+      });
     } else if (state === 'menu' || state === 'dead' || state === 'win') {
       this.play();
     }
@@ -127,11 +132,13 @@ export class Game {
   nav(direction) {
     if (this.state !== 'menu' && this.state !== 'gate') return;
     this.lv = (this.lv + direction + LEVELS.length) % LEVELS.length;
+    this.audio.playSound('menuselect');
     if (this.state === 'menu') this.preview();
   }
 
   back() {
     if (this.state === 'load') return;
+    this.audio.cancelSequences();
 
     if (this.uiOverlay === 'settings') {
       this.settingsPanel.close();
@@ -186,9 +193,25 @@ export class Game {
     const elapsed = Math.max(0, time - this.level.offset);
     this.lastScores[this.lv] = elapsed;
     localStorage.setItem('hxl', JSON.stringify(this.lastScores));
-    if (!(this.best[this.lv] >= elapsed)) {
+
+    const isNewBest = !(this.best[this.lv] >= elapsed);
+    if (isNewBest) {
       this.best[this.lv] = elapsed;
       localStorage.setItem('hxb', JSON.stringify(this.best));
+      this.audio.playMusicCue('wonderful');
+    }
+    return isNewBest;
+  }
+
+  checkMilestoneCues(time) {
+    const elapsed = Math.max(0, time - this.level.offset);
+    if (elapsed >= 30 && !this.runCallouts.has('awesome')) {
+      this.runCallouts.add('awesome');
+      this.audio.playMusicCue('awesome');
+    }
+    if (elapsed >= 60 && !this.runCallouts.has('excellent')) {
+      this.runCallouts.add('excellent');
+      this.audio.playMusicCue('excellent');
     }
   }
 
@@ -234,6 +257,7 @@ export class Game {
 
     const level = this.level;
     this.tk++;
+    this.audio.cancelSequences();
     if (this.uiOverlay === 'settings') this.settingsPanel.close();
     this.uiOverlay = null;
     this.state = 'load';
@@ -267,7 +291,10 @@ export class Game {
       this.audio.play(level, false, run);
       this.phi = 0;
       this.fx = null;
+      this.runCallouts.clear();
       this.state = 'play';
+      this.audio.playSound('start');
+      this.audio.playSound('begin');
     } catch (error) {
       this.msg = error.message;
       this.state = 'menu';
@@ -337,6 +364,7 @@ export class Game {
     };
 
     this.audio.stopNoise();
+    this.audio.playSequence([['sounds', 'die'], ['sounds', 'gameover']]);
     this.audio.duck(0.35);
     this.audio.loopNow(level);
 
@@ -349,6 +377,7 @@ export class Game {
     const level = this.level;
     const chart = this.chart;
     const time = this.audio.time(level);
+    this.checkMilestoneCues(time);
 
     chart.ensure(time);
 
