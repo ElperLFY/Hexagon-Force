@@ -185,7 +185,7 @@ export class Game {
     return true;
   }
 
-  selectPath(pathOrId){
+  selectPath(pathOrId,startIndex=null){
     const path=typeof pathOrId==='string'
       ?this.paths.find(item=>item.id===pathOrId)
       :this.paths[pathOrId];
@@ -197,7 +197,8 @@ export class Game {
     }
     this.tk++; // invalidate any preview that may still be loading for the previous Path
     this.pathIndex=this.paths.indexOf(path);
-    this.lv=this.firstAvailableLevelIndex(path);
+    this.lv=Number.isInteger(startIndex)&&startIndex>=0&&startIndex<path.levels.length
+      ?startIndex:this.firstAvailableLevelIndex(path);
     this.msg=path.levels.length?'':'NEW LEVELS COMING SOON';
     this.audio.playSound('menuselect');
     this.persistProgress();
@@ -313,28 +314,39 @@ export class Game {
   }
 
   nav(direction) {
-    if(this.state!=='menu'&&this.state!=='gate')return;
+    if(this.state!=='menu')return;
+    const step=Math.sign(direction);
+    if(!step)return;
     if(!this.levels.length){
       this.msg='NEW LEVELS COMING SOON';
       return;
     }
 
-    const next=this.lv+Math.sign(direction);
-    if(next>=0&&next<this.levels.length){
-      this.selectLevel(next,true);
+    const nextLevel=this.lv+step;
+    if(nextLevel>=0&&nextLevel<this.levels.length){
+      this.selectLevel(nextLevel,true);
       return;
     }
-    if(direction>0&&next>=this.levels.length&&this.activePath.id==='path-of-joy'){
-      const pain=this.paths.find(path=>path.id==='path-of-pain');
-      if(pain&&this.isPathUnlocked(pain)){
-        this.selectPath(pain.id);
-      }else{
-        this.msg="PATH OF PAIN ISN'T UNLOCKED YET";
-        this.audio.playSound('menuselect');
-      }
+
+    // Treat every Path as part of one circular route. Path of Pain is simply
+    // unavailable until Path of Joy has been fully cleared.
+    const nextPathIndex=(this.pathIndex+step+this.paths.length)%this.paths.length;
+    const nextPath=this.paths[nextPathIndex];
+    if(!nextPath||!this.isPathUnlocked(nextPath)){
+      this.msg=nextPath?.id==='path-of-pain'
+        ?"PATH OF PAIN ISN'T UNLOCKED YET"
+        :'PATH ISN’T UNLOCKED YET';
+      this.audio.playSound('menuselect');
       return;
     }
-    this.msg=direction>0?'NO MORE LEVELS IN THIS PATH':'';
+    if(!nextPath.levels.length){
+      this.msg='NEW LEVELS COMING SOON';
+      this.audio.playSound('menuselect');
+      return;
+    }
+
+    const destination=step>0?0:nextPath.levels.length-1;
+    this.selectPath(nextPath.id,destination);
   }
 
   back() {
@@ -445,9 +457,8 @@ export class Game {
       if(y>.89&&x>.32&&x<.68){this.toggleSettings();return;}
       if(y<.075&&x<.4){this.toggleHighScores();return;}
       if(y<.075&&x>.6){this.quit();return;}
-      if(y>.5&&y<.72&&x<.25){this.nav(-1);return;}
-      if(y>.5&&y<.72&&x>.75){this.nav(1);return;}
-      this.confirm();return;
+      if(y>.56&&y<.73&&x>.30&&x<.70){this.confirm();return;}
+      return;
     }
     if(state==='menu'){
       if(y>.89&&x>.72){this.toggleSettings();return;}

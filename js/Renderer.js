@@ -233,7 +233,7 @@ export class Renderer{
 
     // Results use the level palette rather than keeping the gameplay Void
     // compositing over the stage-complete presentation.
-    const inverted=g.state!=='win'&&this.post(g,t,ch);
+    const inverted=g.state==='play'&&this.post(g,t,ch);
     if(inverted)c.globalCompositeOperation='difference';
     const p=inverted?{...this.p,p:'#fff',w:'#fff'}:this.p,s=g.state;
     if(g.uiOverlay==='scores'){this.ui.leaderboard(g,p);return;}

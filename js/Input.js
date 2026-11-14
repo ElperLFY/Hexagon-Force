@@ -37,9 +37,7 @@ export class Input {
       }
 
       if (game.state === 'gate') {
-        if (code === 'ArrowLeft' || code === 'KeyA') game.nav(-1);
-        else if (code === 'ArrowRight' || code === 'KeyD') game.nav(1);
-        else if (code === 'Space' || code === 'Enter') {
+        if (code === 'Space' || code === 'Enter') {
           event.preventDefault();
           document.activeElement?.blur?.();
           game.confirm();

@@ -30,33 +30,43 @@ export class UIRenderer{
       :[[x-size*.38,y-size],[x+size*.38,y],[x-size*.38,y+size],[x-size*.08,y+size],[x+size*.72,y],[x-size*.08,y-size]],color);
   }
   header(p,left='TAB — HIGH SCORES',right='ESC — STAGE SELECT'){
-    const h=Math.max(28,this.H*.06);
-    this.panel(0,0,this.W*.39,h,p.b1,'rgba(0,0,0,.78)',h*.18);
-    this.panel(this.W*.61,0,this.W*.39,h,p.b1,'rgba(0,0,0,.78)',h*.18);
-    this.text(left,this.W*.02,h*.49,Math.min(this.U*.075,this.W*.023),p.p,'left');
-    this.text(right,this.W*.98,h*.49,Math.min(this.U*.075,this.W*.023),p.p,'right');
+    const W=this.W,h=Math.max(28,this.H*.06),sideWidth=Math.min(W*.43,this.U*1.55),inset=Math.max(W*.02,this.U*.08);
+    this.panel(0,0,sideWidth,h,p.b1,'rgba(0,0,0,.78)',h*.18);
+    this.mirroredPanel(W-sideWidth,0,sideWidth,h,p.b1,'rgba(0,0,0,.78)',h*.18);
+    const size=Math.min(this.U*.095,W*.027);
+    this.text(left,inset,h*.49,size,p.p,'left');
+    this.text(right,W-inset,h*.49,size,p.p,'right');
   }
   title(g,p){
-    const c=this.c,W=this.W,H=this.H,U=this.U,now=performance.now()/1000,L=g.level;
-    this.header(p,'TAB — HIGH SCORES','ESC — QUIT');
-    this.ring(W*.5,H*.43,U*.76,now*.22,p.b1,Math.max(2,U*.012));
-    this.ring(W*.5,H*.43,U*.59,-now*.31,p.w,Math.max(1,U*.004));
-    c.save();c.globalAlpha=.14;
-    this.polygon([[0,H*.18],[W*.28,H*.18],[W*.5,H*.5],[W*.19,H*.83],[0,H*.83]],p.b1);
-    this.polygon([[W,H*.18],[W*.72,H*.18],[W*.5,H*.5],[W*.81,H*.83],[W,H*.83]],p.b1);
+    const c=this.c,W=this.W,H=this.H,U=this.U;
+    // Neutral, geometric title backdrop matching the supplied menu reference.
+    c.save();
+    c.fillStyle='#252525';
+    c.fillRect(0,0,W,H);
+    this.polygon([[0,0],[W*.30,0],[W*.46,H],[0,H]],'#292929');
+    this.polygon([[W*.30,0],[W*.72,0],[W*.58,H],[W*.46,H]],'#242424');
+    this.polygon([[W*.72,0],[W,H*.22],[W,H],[W*.58,H]],'#2b2b2b');
     c.restore();
-    this.text('HEXBEAT',W*.5,H*.235,U*.31,p.p);
-    this.text('RHYTHM SURVIVAL',W*.5,H*.315,U*.052,p.w);
-    this.text('CURRENT PATH: '+(g.activePath?.title??'PATH OF JOY'),W*.5,H*.385,U*.032,p.w);
-    this.text('LEVEL '+String(g.lv+1).padStart(2,'0')+'   /   '+L.name,W*.5,H*.49,U*.047,p.p);
-    const bw=Math.min(W*.34,U*1.55),bh=H*.105,bx=(W-bw)/2,by=H*.61;
-    this.panel(bx,by,bw,bh,p.b1,'rgba(0,0,0,.76)',bh*.22);
-    this.text('START GAME',W*.5,by+bh*.5,U*.075,p.p);
-    this.chevron(W*.15,by+bh*.5,U*.095,-1,p.p);this.chevron(W*.85,by+bh*.5,U*.095,1,p.p);
-    this.text('PRESS SPACE TO SELECT',W*.5,H*.79,U*.047,p.w);
-    this.text('← / →  CHANGE SHOWCASE',W*.5,H*.86,U*.031,p.w);
-    this.text('SETTINGS  ·  M / S',W*.5,H*.93,U*.027,p.w);
-    if(g.msg)this.text(g.msg,W*.5,H*.975,U*.022,p.w);
+
+    const neutral={b1:'#858585',b2:'#b0b0b0',w:'#999999',p:'#f5f5f5'};
+    // Only the right-hand quit plaque belongs on the title screen.
+    this.mirroredPanel(W*.78,0,W*.22,H*.06,neutral.b1,'#555555',H*.018);
+    this.text('ESC — QUIT',W*.985,H*.03,Math.min(U*.075,W*.023),neutral.p,'right');
+
+    this.text('SUPER',W*.5,H*.30,U*.31,neutral.p);
+    this.text('HEXAGON',W*.5,H*.445,U*.215,neutral.p);
+
+    const buttonY=H*.62,buttonH=H*.085,buttonW=W*.31,buttonX=(W-buttonW)/2;
+    // Large side controls are visual level arrows; level browsing begins after Space.
+    const arrowW=W*.16,arrowH=H*.14,arrowY=H*.59,arrowCut=U*.07;
+    this.panel(W*.08,arrowY,arrowW,arrowH,'#858585','#555555',arrowCut);
+    this.mirroredPanel(W*.76,arrowY,arrowW,arrowH,'#858585','#555555',arrowCut);
+    this.chevron(W*.16,arrowY+arrowH*.5,U*.082,-1,'#050505');
+    this.chevron(W*.84,arrowY+arrowH*.5,U*.082,1,'#050505');
+    this.panel(buttonX,buttonY,buttonW,buttonH,'#999999','#555555',H*.025);
+    this.text('START GAME',W*.5,buttonY+buttonH*.5,U*.071,'#d8d8d8');
+    this.text('PRESS SPACE TO SELECT',W*.5,H*.835,U*.050,neutral.p);
+    if(g.msg)this.text(g.msg,W*.5,H*.965,U*.022,neutral.p);
   }
   selection(g,p){
     const W=this.W,H=this.H,U=this.U,now=performance.now()/1000;
@@ -94,22 +104,48 @@ export class UIRenderer{
     if(g.msg)this.text(g.msg,W*.5,H*.975,U*.022,'#858b98');
   }
   results(g,p,complete){
-    const W=this.W,H=this.H,U=this.U,now=performance.now()/1000,L=g.level,cx=W*.55,cy=H*.51;
-    this.ring(cx,cy,U*1.05,now*.28,p.b1,Math.max(2,U*.013));
-    this.ring(cx,cy,U*.82,-now*.19,p.w,Math.max(1,U*.004));
-    this.header(p,'TAB — HIGH SCORES','ESC — STAGE SELECT');
-    this.text('LEVEL '+String(g.lv+1).padStart(2,'0'),W*.055,H*.36,U*.142,p.p,'left');
-    this.text(L.name,W*.065,H*.445,U*.05,p.w,'left');
-    this.ring(W*.418,H*.385,U*.12,-now*.72,p.b1,Math.max(2,U*.018));
-    this.text(complete?'STAGE COMPLETED':'GAME OVER',W*.065,H*.575,U*.063,p.p,'left');
+    const W=this.W,H=this.H,U=this.U,L=g.level,goal=Math.round(L.goalSeconds??60);
     const key=g.recordKey(L,g.activePath);
-    const last=g.lastScores?.[key]??Math.max(0,(g.tF||0)-L.offset),best=g.best[key],x=W*.58,w=W*.36,h=H*.115;
-    this.panel(x,H*.34,w,h,p.b1,'rgba(0,0,0,.84)',h*.15);this.panel(x,H*.49,w,h,p.b1,'rgba(0,0,0,.84)',h*.15);
-    this.text('LAST',x+w*.06,H*.397,U*.061,p.p,'left');this.text(timeLabel(last),x+w*.94,H*.397,U*.095,'#e4e4e4','right');
-    this.text('BEST',x+w*.06,H*.547,U*.061,p.p,'left');this.text(timeLabel(best),x+w*.94,H*.547,U*.095,'#e4e4e4','right');
-    const by=H*.86,bw=Math.min(W*.48,U*2.05),bx=(W-bw)/2;
-    this.panel(bx,by,bw,H*.10,p.b1,'rgba(0,0,0,.86)',H*.025);
-    this.text(complete?'PRESS SPACE TO CONTINUE':'PRESS SPACE TO RETRY',W*.5,by+H*.05,U*.061,p.p);
+    const last=g.lastScores?.[key]??Math.max(0,(g.tF||0)-L.offset);
+    const best=g.best[key];
+    const panelFill='rgba(0,0,0,.91)';
+    this.header(p,'TAB — HIGH SCORES','ESC — STAGE SELECT');
+
+    // Main stage banner.
+    const leftY=H*.326,leftH=H*.30,leftW=W*.53;
+    this.panel(0,leftY,leftW,H*.30,p.b1,panelFill,H*.045);
+    this.text('LEVEL '+String(L.number??g.lv+1),W*.018,H*.407,U*.172,p.p,'left');
+    this.text(L.name,W*.075,H*.475,U*.082,p.p,'left');
+    this.text('NEXT LEVEL AT',W*.18,H*.545,U*.080,p.p);
+    this.text(goal+' SECONDS',W*.18,H*.595,U*.080,p.p);
+
+    // Level emblem and the small player marker.
+    const triX=W*.405,triY=H*.418,triR=U*.052;
+    this.polygon([
+      [triX,triY-triR],
+      [triX+triR*.94,triY+triR*.72],
+      [triX-triR*.94,triY+triR*.72]
+    ],null,p.b1,Math.max(3,U*.006));
+    const playerX=W*.772,playerY=H*.445,playerR=U*.023;
+    this.polygon([
+      [playerX,playerY-playerR],
+      [playerX+playerR*.76,playerY+playerR*.62],
+      [playerX-playerR*.76,playerY+playerR*.62]
+    ],p.b1);
+
+    // Matched right-hand strips. Both use the mirrored cut geometry.
+    const rightX=W*.54,rightW=W-rightX,stripH=H*.105;
+    this.mirroredPanel(rightX,H*.326,rightW,stripH,p.b1,panelFill,H*.026);
+    this.mirroredPanel(rightX,H*.515,rightW,stripH,p.b1,panelFill,H*.026);
+    this.text('LAST',rightX+W*.026,H*.385,U*.090,p.p,'left');
+    this.text(Number.isFinite(last)?last.toFixed(2):'--.--',W*.966,H*.385,U*.175,'#dedede','right');
+    this.text('BEST',rightX+W*.026,H*.574,U*.090,p.p,'left');
+    this.text(Number.isFinite(best)?best.toFixed(2):'--.--',W*.966,H*.574,U*.175,'#dedede','right');
+
+    const by=H*.928,bw=Math.min(W*.53,U*2.95),bh=H*.075,bx=(W-bw)/2;
+    this.panel(bx,by,bw,bh,p.b1,panelFill,H*.025);
+    this.text(complete?'PRESS SPACE TO CONTINUE':'PRESS SPACE TO RETRY',W*.5,by+bh*.53,U*.090,p.p);
+    if(g.msg)this.text(g.msg,W*.5,H*.985,U*.022,p.w);
   }
   leaderboard(g,p){
     const c=this.c,W=this.W,H=this.H,U=this.U,now=performance.now()/1000;
