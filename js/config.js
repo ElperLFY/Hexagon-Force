@@ -92,7 +92,7 @@ export const LEVELS=[
   {
     id:115,name:'RGB',offset:0,speed:1.4,seed:115,hard:true,diff:.35,ramp:45,
     rotSpeed:2,rotAmp:0,rotBeats:12,trip:true,
-    randomSectionBeats:4,randomLaneShiftChance:.22,randomDropChance:.14,randomAddChance:.05,
+    randomSectionBeats:4,randomLaneShiftChance:.22,randomDropChance:.14,randomAddChance:.05,inv:true,
     intensityThreshold:.090,
     extra:['dwhirl','stair1','stair2','spin3','spin4','t321','rain','doubleC','zig','pairs'],
     patternWeights:{ladder:1.35,burst:1.3,whirl:1.25,dwhirl:1.2,stair2:1.2,spin3:1.2,t321:1.15},
