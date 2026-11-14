@@ -73,6 +73,7 @@ function repairRows(rows,L,seed=null){
   const stepTime=SIDE/turnRate;
   const reaction=L.reactionMargin??.04;
   const speed=L.speed||1;
+  const baseThickness=L.wallThickness??TH;
 
   // Process complete motifs as atomic phrases. If a phrase needs a different
   // starting lane, rotate every Part together instead of opening/closing an
@@ -112,7 +113,7 @@ function repairRows(rows,L,seed=null){
         if(!row.g.length)row.g=previous?[...previous.g]:[0];
         if(previous){
           const dt=row.t-previous.t;
-          const previousDepth=previous.routeDepth??previous.th??TH;
+          const previousDepth=previous.routeDepth??previous.th??baseThickness;
           const available=Math.max(0,dt-previousDepth/speed-reaction);
           const maxSteps=Math.min(3,Math.max(0,Math.floor(available/stepTime)));
           const from=previous.route!=null&&previous.g.includes(previous.route)
@@ -141,7 +142,7 @@ function repairRows(rows,L,seed=null){
     // Legacy, ungrouped chart rows keep the conservative bridge-opening repair.
     if(previous){
       const dt=first.t-previous.t;
-      const previousDepth=previous.routeDepth??previous.th??TH;
+      const previousDepth=previous.routeDepth??previous.th??baseThickness;
       const available=Math.max(0,dt-previousDepth/speed-reaction);
       const maxSteps=Math.min(3,Math.max(0,Math.floor(available/stepTime)));
       const from=previous.route!=null&&previous.g.includes(previous.route)
@@ -172,8 +173,8 @@ function repairRows(rows,L,seed=null){
 
 // The chart is the authored, song-synchronised wall sequence.
 export class Chart{
-  constructor(rows=[],beatDur=.5,tg0=0,bpm=0,dur=0,speed=1){
-    Object.assign(this,{rows,beatDur,tg0,bpm,dur,speed});
+  constructor(rows=[],beatDur=.5,tg0=0,bpm=0,dur=0,speed=1,wallThickness=TH){
+    Object.assign(this,{rows,beatDur,tg0,bpm,dur,speed,wallThickness});
   }
 
   // Each level has its own arena spin. The small beat-synchronised oscillation
@@ -191,7 +192,7 @@ export class Chart{
     const tip=[PL.tip*Math.cos(phi),PL.tip*Math.sin(phi)];
     const body=playerPolygon(phi);
     const speed=(this.speed||1)*mapMul;
-    const maxDepth=this.rows.reduce((max,row)=>Math.max(max,row.th??TH),TH);
+    const maxDepth=this.rows.reduce((max,row)=>Math.max(max,row.th??this.wallThickness),this.wallThickness);
     const window=(maxDepth+Math.abs(PL.tip-RP)+.08)/speed+.06;
     let sideContact=null;
 
@@ -200,7 +201,7 @@ export class Chart{
       if(dt < -window)continue;
       if(dt > window)break;
       const inner=RP+dt*speed;
-      const depth=row.th??TH;
+      const depth=row.th??this.wallThickness;
       const outer=inner+depth;
 
       // Never pass a negative radius to P(): it mirrors the wall by 180 degrees,
@@ -283,14 +284,14 @@ export class Chart{
     });
 
     const repaired=repairRows(rows,L);
-    return new Chart(repaired,this.beatDur,this.tg0,this.bpm,this.dur,L.speed);
+    return new Chart(repaired,this.beatDur,this.tg0,this.bpm,this.dur,L.speed,L.wallThickness??this.wallThickness);
   }
 
   // Endless "void" phase. From `start` (snapped to the next beat, so the flip lands on the music)
   // the authored rows are dropped and replaced by generated ones, produced lazily by ensure().
-  endless(L,seed,start){
+  endless(L,seed,start,stageEnd=this.dur){
     const bd=this.beatDur;
-    this.stageEnd=this.dur;
+    this.stageEnd=Math.min(this.dur,Number.isFinite(stageEnd)?stageEnd:this.dur);
     this.voidStart=this.tg0+Math.ceil((start-this.tg0)/bd-1e-6)*bd;
     this.rows=this.rows.filter(r=>r.t<this.voidStart);
     this.voidSide=mul(seed>>>0)()<.5?-1:1; // which side of the screen the darkness comes from
@@ -316,9 +317,9 @@ export class Chart{
   }
 
   toJSON(){
-    const{beatDur,tg0,bpm,dur,speed}=this;
+    const{beatDur,tg0,bpm,dur,speed,wallThickness}=this;
     return{
-      v:1,beatDur,tg0,bpm,dur,speed,
+      v:1,beatDur,tg0,bpm,dur,speed,wallThickness,
       rows:this.rows.map(r=>{
         const extended=r.th!=null||r.routeDepth!=null||r.motifId!=null;
         if(!extended)return[+r.t.toFixed(4),...r.g];
@@ -355,7 +356,7 @@ export class Chart{
       if(Number.isFinite(me))row.motifEnd=me;
       return row;
     }).sort((a,b)=>a.t-b.t);
-    return new Chart(rows,j.beatDur,j.tg0,j.bpm,j.dur,L.speed);
+    return new Chart(rows,j.beatDur,j.tg0,j.bpm,j.dur,L.speed,L.wallThickness??j.wallThickness??TH);
   }
 }
 Chart.EMPTY=new Chart();
@@ -483,7 +484,7 @@ export class PatternGenerator{
     catch(error){this.loading=null;throw error;}
   }
 
-  constructor(L){this.L=L;this.rng=mul(L.seed);this.lastVoidPattern=null;this.lastVoidMulti=false;this.lastVoidOpenings=null;this.postVoidLadderRemaining=0;this.postVoidBatRemaining=0;}
+  constructor(L){this.L=L;this.rng=mul(L.seed);this.lastVoidPattern=null;this.lastVoidMulti=false;this.lastVoidOpenings=null;this.postVoidLadderRemaining=0;this.postVoidBatRemaining=0;this.recentPatterns=[];}
 
   pool(x){
     const L=this.L,catalog=PatternGenerator.catalog;
@@ -494,19 +495,38 @@ export class PatternGenerator{
       for(const rule of catalog.hardAdditions){
         if(x>=rule.minX)names.push(...rule.patterns);
       }
-      if(x>=.5&&Array.isArray(L.extra))names.push(...L.extra);
     }
+    const extraMinX=L.extraMinX??(L.hard?.5:1.1);
+    if(x>=extraMinX&&Array.isArray(L.extra))names.push(...L.extra);
     return [...new Set(names)].filter(name=>typeof PatternGenerator.PAT[name]==='function');
   }
 
-  choose(names,r){
+  choose(names,r,feel=null){
     const levelWeights=this.L.patternWeights||{};
     const definitions=PatternGenerator.definitions??{};
-    const weight=name=>Math.max(.1,Number(levelWeights[name]??definitions[name]?.weight??1));
-    const total=names.reduce((sum,name)=>sum+weight(name),0);
-    let value=r()*total;
-    for(const name of names){value-=weight(name);if(value<=0)return name;}
-    return names[names.length-1];
+    const recent=this.recentPatterns.slice(-2);
+    const fresh=names.filter(name=>!recent.includes(name));
+    const candidates=fresh.length?fresh:names;
+    const multiLane=['solo2','solo3','alt3','bat','dwhirl','ladder','rain','doubleC','pairs'];
+    const rhythmic=['whirl','dwhirl','spin2','spin3','spin4','multiC','t321','zig'];
+    const dense=['ladder','burst','rain','stair1','stair2','wall'];
+    const weight=name=>{
+      let value=Math.max(.1,Number(levelWeights[name]??definitions[name]?.weight??1));
+      if(feel){
+        if(feel.syncopation>.28&&rhythmic.includes(name))value*=1.45;
+        if(feel.density>.52&&multiLane.includes(name))value*=1.25;
+        if(feel.variation>.18&&(rhythmic.includes(name)||multiLane.includes(name)))value*=1.2;
+        if(feel.peak>.78&&dense.includes(name))value*=1.28;
+        if(feel.density<.24&&['solo','stair','spin'].includes(name))value*=1.12;
+      }
+      return value;
+    };
+    const total=candidates.reduce((sum,name)=>sum+weight(name),0);
+    let value=r()*total,chosen=candidates[candidates.length-1];
+    for(const name of candidates){value-=weight(name);if(value<=0){chosen=name;break;}}
+    this.recentPatterns.push(chosen);
+    if(this.recentPatterns.length>4)this.recentPatterns.shift();
+    return chosen;
   }
 
   poolAfter(_names,preset=PatternGenerator.POST_LADDER){
@@ -524,24 +544,40 @@ export class PatternGenerator{
     let postLadderRemaining=0;
     let postBatRemaining=0;
     for(;;){
-      const b0=beatCursor,tb=tg0+b0*bd;
-      if(tb+4*bd>dur-1.5)break;
+      const b0=beatCursor;
+      if(tg0+b0*bd+4*bd>dur-1.5)break;
 
-      let intensity=0;
-      for(let h=0;h<8;h++)intensity+=Math.max(0,Math.min(1,Number(S(b0+h/2))||0));
-      intensity/=8;
+      const samples=Array.from({length:8},(_,index)=>
+        Math.max(0,Math.min(1,Number(S(b0+index/2))||0))
+      );
+      const intensity=samples.reduce((sum,value)=>sum+value,0)/samples.length;
+      const peak=Math.max(...samples);
+      const mean=intensity;
+      const variance=samples.reduce((sum,value)=>sum+(value-mean)**2,0)/samples.length;
+      const variation=Math.sqrt(variance);
+      const onBeat=samples[0]+samples[2]+samples[4]+samples[6];
+      const offBeat=samples[1]+samples[3]+samples[5]+samples[7];
+      const syncopation=offBeat/(onBeat+offBeat+1e-6);
+      const density=samples.filter(value=>value>Math.max(.12,peak*.58)).length/samples.length;
+      const peakIndex=samples.indexOf(peak);
+      const feel={intensity,peak,variation,syncopation,density,peakIndex};
 
-      // Blu/RGB must not leave empty bars when the music becomes quiet.
-      // On hard stages intensity affects pattern weighting only; generation continues.
-      if(intensity<quiet&&!L.hard){
+      // Authored legacy charts can still skip silence; Path levels marked
+      // continuousPatterns keep generating, but use quiet beats to choose simpler motifs.
+      if(intensity<quiet&&!L.hard&&!L.continuousPatterns){
         beatCursor+=4;
         continue;
       }
 
-      const ramp=Math.min(1,Math.max(0,(tb-t0)/(L.ramp||90)));
-      const noise=(r()-.5)*(L.hard ? .18 : .3);
-      const rawX=intensity*.42+ramp*.58+(L.diff||0)+(L.hard ? .08 : 0)+noise;
-      const x=L.hard?Math.max(.55,rawX):rawX;
+      const ramp=Math.min(1,Math.max(0,(tg0+b0*bd-t0)/(L.ramp||90)));
+      const noise=(r()-.5)*(L.hard ? .14 : .18);
+      const rawX=intensity*.23+peak*.10+variation*.2+syncopation*.15+density*.1+ramp*.22+(L.diff||0)+(L.hard ? .08 : 0)+noise;
+      const x=Math.max(0,Math.min(1,L.hard?Math.max(.5,rawX):rawX));
+      // Strong off-beat accents move the motif start by an eighth-note pair;
+      // the wall events themselves remain locked to the detected beat grid.
+      const swingShift=syncopation>.57||(peakIndex%2===1&&peak>.48)?0.5:0;
+      const patternBeat=b0+swingShift;
+      const tb=tg0+patternBeat*bd;
       const g=r()*6|0,d=r()<.5?1:-1;
       const names=this.pool(x);
       const enteringPostLadder=previousPattern==='ladder'||previousPattern==='zig';
@@ -555,7 +591,7 @@ export class PatternGenerator{
         :inPostBat
           ?this.poolAfter(names,PatternGenerator.POST_BAT)
           :names;
-      const name=this.choose(candidates,r);
+      const name=this.choose(candidates,r,feel);
       const pat=PatternGenerator.PAT[name](g,d,r);
       if(name==='ladder'||name==='zig'){
         postLadderRemaining=4;
@@ -572,7 +608,8 @@ export class PatternGenerator{
         postBatRemaining--;
       }
       const motifId=`${name}@${tb.toFixed(6)}`;
-      const defaultSpan=TH/((L.speed||1)*bd);
+      const baseThickness=L.wallThickness??TH;
+      const defaultSpan=baseThickness/((L.speed||1)*bd);
       const partSpan=(spanBeats,routeSpanBeats=null)=>spanBeats>0
         ?spanBeats*(routeSpanBeats===0?1:PART_DEPTH_SCALE)
         :defaultSpan;
@@ -586,7 +623,7 @@ export class PatternGenerator{
           t:tb+beat*bd,g:unique(gaps),
           motifId,motifName:name,motifStart:tb,motifEnd:tb+motifDuration*bd
         };
-        if(spanBeats>0)row.th=Math.max(TH,(L.speed||1)*bd*effectiveSpan);
+        if(spanBeats>0)row.th=Math.max(baseThickness,(L.speed||1)*bd*effectiveSpan);
         if(Number.isFinite(routeSpanBeats)&&routeSpanBeats>=0){
           row.routeDepth=(L.speed||1)*bd*routeSpanBeats;
         }
@@ -594,17 +631,15 @@ export class PatternGenerator{
         end=Math.max(end,beat+effectiveSpan);
       }
       previousPattern=name;
-
-      if(L.hard){
-        // Continue after the final wall thickness clears, with only a short
-        // clearance gap. Do not impose a full-beat pause on single-Part motifs.
-        beatCursor+=Math.max(.1,end+(L.patternGapBeats??.42));
+      if(L.hard||L.continuousPatterns){
+        beatCursor=patternBeat+Math.max(.1,end+(L.patternGapBeats??.62));
       }else{
-        beatCursor+=Math.max(4,Math.ceil((end+.5)/4)*4);
+        beatCursor=patternBeat+Math.max(4,Math.ceil((end+.5)/4)*4);
       }
     }
     return this.repair(rows.filter(row=>row.t<dur-1).sort((a,b)=>a.t-b.t));
   }
+
   repair(rows,seed=null){
     return repairRows(rows,this.L,seed);
   }
@@ -699,7 +734,7 @@ export class PatternGenerator{
 
       const pat=PatternGenerator.PAT[name](g,d,r);
       const motifId=`${name}@${tb.toFixed(6)}`;
-      const defaultSpan=TH/((L.speed||1)*bd);
+      const defaultSpan=(L.wallThickness??TH)/((L.speed||1)*bd);
       const partSpan=(spanBeats,routeSpanBeats=null)=>spanBeats>0
         ?spanBeats*(routeSpanBeats===0?1:PART_DEPTH_SCALE)
         :defaultSpan;
@@ -713,7 +748,7 @@ export class PatternGenerator{
           t:tb+beat*bd,g:unique(gaps),
           motifId,motifName:name,motifStart:tb,motifEnd:tb+motifDuration*bd
         };
-        if(spanBeats>0)row.th=Math.max(TH,(L.speed||1)*bd*effectiveSpan);
+        if(spanBeats>0)row.th=Math.max(L.wallThickness??TH,(L.speed||1)*bd*effectiveSpan);
         if(Number.isFinite(routeSpanBeats)&&routeSpanBeats>=0){
           row.routeDepth=(L.speed||1)*bd*routeSpanBeats;
         }

@@ -58,19 +58,59 @@ export class UIRenderer{
     if(g.msg)this.text(g.msg,W*.5,H*.975,U*.022,p.w);
   }
   selection(g,p){
-    const W=this.W,H=this.H,U=this.U,now=performance.now()/1000,L=g.level;
-    this.header(p,'TAB — HIGH SCORES','ESC — MAIN MENU');
-    this.ring(W*.73,H*.49,U*.79,now*.32,p.b1,Math.max(2,U*.013));
-    this.ring(W*.73,H*.49,U*.62,-now*.21,p.w,Math.max(1,U*.005));
-    this.text('STAGE SELECT',W*.07,H*.2,U*.095,p.p,'left');
-    this.text('LEVEL '+String(g.lv+1).padStart(2,'0'),W*.07,H*.37,U*.145,p.p,'left');
-    this.text(L.name,W*.075,H*.46,U*.048,p.w,'left');
-    this.panel(W*.07,H*.56,W*.38,H*.105,p.b1,'rgba(0,0,0,.78)',H*.02);
-    this.text('START STAGE',W*.26,H*.612,U*.061,p.p);
-    this.chevron(W*.065,H*.615,U*.065,-1,p.p);this.chevron(W*.47,H*.615,U*.065,1,p.p);
-    this.text('BEST  '+timeLabel(g.best[g.lv]),W*.26,H*.735,U*.043,p.w);
-    this.text('PRESS SPACE TO PLAY',W*.26,H*.84,U*.04,p.p);
-    this.text('ESC — BACK',W*.07,H*.94,U*.03,p.w,'left');
+    const W=this.W,H=this.H,U=this.U,now=performance.now()/1000;
+    const path=g.activePath,levels=g.levels,L=levels[g.lv]??null;
+    this.header(p,'PAGE UP / DOWN — PATH','ESC — MAIN MENU');
+    this.text('SELECT YOUR PATH',W*.5,H*.075,U*.043,p.w);
+
+    const pathCount=g.paths.length,pathGap=W*.02,pathWidth=W*.42;
+    const pathStart=(W-(pathWidth*pathCount+pathGap*(pathCount-1)))/2;
+    g.paths.forEach((item,index)=>{
+      const x=pathStart+index*(pathWidth+pathGap),y=H*.12,h=H*.085;
+      const unlocked=g.isPathUnlocked(item),selected=item.id===path.id,completed=g.isPathCompleted(item);
+      const tint=selected?p.b1:unlocked?p.w:'#586174';
+      this.panel(x,y,pathWidth,h,tint,selected?'rgba(0,0,0,.82)':'rgba(0,0,0,.62)',h*.16);
+      this.text(item.title,x+pathWidth*.5,y+h*.4,U*.047,unlocked?p.p:'#9299a8');
+      this.text(!unlocked?'LOCKED':completed?'CLEARED':item.levels.length?item.levels.length+' LEVELS':'COMING SOON',
+        x+pathWidth*.5,y+h*.77,U*.025,selected?p.b2:p.w);
+      if(!unlocked)this.text('🔒',x+pathWidth*.91,y+h*.49,U*.036,p.w);
+    });
+
+    if(!levels.length){
+      this.ring(W*.5,H*.49,U*.3,now*.18,p.b1,Math.max(2,U*.01));
+      this.text('PATH OF PAIN',W*.5,H*.38,U*.10,p.p);
+      this.text('NEW LEVELS COMING SOON',W*.5,H*.51,U*.046,p.w);
+      this.text('CLEAR PATH OF JOY TO UNLOCK THIS ROUTE',W*.5,H*.62,U*.029,p.w);
+      this.text('SETTINGS  ·  M / S',W*.94,H*.94,U*.027,p.w,'right');
+      if(g.msg)this.text(g.msg,W*.5,H*.975,U*.022,p.w);
+      return;
+    }
+
+    this.text(path.title,W*.5,H*.245,U*.054,p.p);
+    const count=levels.length,gap=W*.014,width=(W*.88-gap*(count-1))/count,start=(W-(width*count+gap*(count-1)))/2;
+    levels.forEach((level,index)=>{
+      const x=start+index*(width+gap),y=H*.30,h=H*.225;
+      const unlocked=g.isLevelUnlocked(index,path),completed=g.isLevelCompleted(level.id,path),selected=index===g.lv;
+      const stroke=selected?p.b1:completed?p.b2:unlocked?p.w:'#4d5565';
+      this.panel(x,y,width,h,stroke,selected?'rgba(0,0,0,.85)':'rgba(0,0,0,.60)',h*.10);
+      this.text(String(level.number??index+1).padStart(2,'0'),x+width*.5,y+h*.28,U*.105,unlocked?p.p:'#687184');
+      this.text(unlocked?level.name:'LOCKED',x+width*.5,y+h*.60,U*(count>3?.024:.032),unlocked?p.w:'#9299a8');
+      this.text(completed?'CLEARED':unlocked?'60s · SURVIVE':'🔒',x+width*.5,y+h*.83,U*.025,completed?p.b2:p.w);
+      if(selected){
+        this.c.save();this.c.globalAlpha=.65;this.c.fillStyle=p.b1;this.c.fillRect(x+width*.18,y+h*.95,width*.64,Math.max(2,U*.006));this.c.restore();
+      }
+    });
+
+    this.ring(W*.78,H*.69,U*.43,now*.24,p.b1,Math.max(2,U*.009));
+    this.ring(W*.78,H*.69,U*.32,-now*.17,p.w,Math.max(1,U*.004));
+    const key=L?g.recordKey(L,path):'';
+    const best=L?g.best[key]:null;
+    this.text(L?('LEVEL '+String(L.number??g.lv+1).padStart(2,'0')+' · '+L.name):'NO LEVEL SELECTED',W*.07,H*.615,U*.047,p.p,'left');
+    this.text(L?'BEST  '+timeLabel(best):'PATH IS READY FOR FUTURE LEVELS',W*.07,H*.675,U*.036,p.w,'left');
+    const bx=W*.07,by=H*.65,bw=W*.38,bh=H*.092;
+    this.panel(bx,by,bw,bh,p.b1,'rgba(0,0,0,.82)',bh*.18);
+    this.text('START LEVEL',bx+bw*.5,by+bh*.5,U*.052,p.p);
+    this.text('← / → LEVELS     PAGE UP / DOWN PATHS',W*.5,H*.875,U*.026,p.w);
     this.text('SETTINGS  ·  M / S',W*.94,H*.94,U*.027,p.w,'right');
     if(g.msg)this.text(g.msg,W*.5,H*.975,U*.022,p.w);
   }
@@ -78,18 +118,27 @@ export class UIRenderer{
     const W=this.W,H=this.H,U=this.U,now=performance.now()/1000,L=g.level,cx=W*.55,cy=H*.51;
     this.ring(cx,cy,U*1.05,now*.28,p.b1,Math.max(2,U*.013));
     this.ring(cx,cy,U*.82,-now*.19,p.w,Math.max(1,U*.004));
-    this.header(p,'TAB — HIGH SCORES','ESC — STAGE SELECT');
-    this.text('LEVEL '+String(g.lv+1).padStart(2,'0'),W*.055,H*.36,U*.142,p.p,'left');
-    this.text(L.name,W*.065,H*.445,U*.05,p.w,'left');
-    this.ring(W*.418,H*.385,U*.12,-now*.72,p.b1,Math.max(2,U*.018));
-    this.text(complete?'STAGE COMPLETE':'GAME OVER',W*.065,H*.575,U*.063,p.p,'left');
-    const last=g.lastScores?.[g.lv]??Math.max(0,(g.tF||0)-L.offset),best=g.best[g.lv],x=W*.58,w=W*.36,h=H*.115;
-    this.panel(x,H*.34,w,h,p.b1,'rgba(0,0,0,.84)',h*.15);this.panel(x,H*.49,w,h,p.b1,'rgba(0,0,0,.84)',h*.15);
-    this.text('LAST',x+w*.06,H*.397,U*.061,p.p,'left');this.text(timeLabel(last),x+w*.94,H*.397,U*.095,'#e4e4e4','right');
-    this.text('BEST',x+w*.06,H*.547,U*.061,p.p,'left');this.text(timeLabel(best),x+w*.94,H*.547,U*.095,'#e4e4e4','right');
-    const by=H*.86,bw=Math.min(W*.48,U*2.05),bx=(W-bw)/2;
+    this.header(p,'TAB — HIGH SCORES','ESC — PATH SELECT');
+    this.text('LEVEL '+String(L.number??g.lv+1).padStart(2,'0'),W*.055,H*.34,U*.125,p.p,'left');
+    this.text(L.name,W*.065,H*.425,U*.045,p.w,'left');
+    this.text(complete?'STAGE COMPLETE':'GAME OVER',W*.065,H*.55,U*.06,p.p,'left');
+    const key=g.recordKey(L),last=g.lastScores?.[key],best=g.best?.[key],x=W*.58,w=W*.36,h=H*.115;
+    this.panel(x,H*.32,w,h,p.b1,'rgba(0,0,0,.84)',h*.15);
+    this.panel(x,H*.47,w,h,p.b1,'rgba(0,0,0,.84)',h*.15);
+    this.text('LAST',x+w*.06,H*.377,U*.061,p.p,'left');
+    this.text(timeLabel(last),x+w*.94,H*.377,U*.095,'#e4e4e4','right');
+    this.text('BEST',x+w*.06,H*.527,U*.061,p.p,'left');
+    this.text(timeLabel(best),x+w*.94,H*.527,U*.095,'#e4e4e4','right');
+
+    const nextUnlocked=g.lv+1<g.levels.length&&g.isLevelUnlocked(g.lv+1);
+    const nextPath=g.paths.find(path=>path.unlock?.type==='complete-path'&&path.unlock.pathId===g.activePath.id&&g.isPathUnlocked(path));
+    const message=complete
+      ?nextPath?'PATH OF PAIN UNLOCKED':nextUnlocked?'NEXT LEVEL UNLOCKED':'PATH CLEARED'
+      :'ATTEMPT ENDED — TRY AGAIN';
+    this.text(message,W*.5,H*.68,U*.045,p.b2);
+    const by=H*.84,bw=Math.min(W*.55,U*2.25),bx=(W-bw)/2;
     this.panel(bx,by,bw,H*.10,p.b1,'rgba(0,0,0,.86)',H*.025);
-    this.text('PRESS SPACE TO RETRY',W*.5,by+H*.05,U*.061,p.p);
+    this.text(complete?(nextUnlocked?'ENTER — NEXT LEVEL':'ENTER — CONTINUE'):'ENTER — RETRY',W*.5,by+H*.05,U*.052,p.p);
   }
   leaderboard(g,p){
     const c=this.c,W=this.W,H=this.H,U=this.U,now=performance.now()/1000;
@@ -103,9 +152,16 @@ export class UIRenderer{
     this.text('ONLINE SCORES — NOT CONNECTED',W*.25,H*.47,U*.031,p.w);
     this.text('FRIEND LIST — NOT CONNECTED',W*.75,H*.47,U*.031,p.w);
     this.text('PERSONAL RECORDS',W*.5,H*.59,U*.058,p.p);
-    const entries=g.levels.map((level,i)=>({name:level.name,best:g.best[i]})).filter(row=>Number.isFinite(row.best)).sort((a,b)=>a.best-b.best);
+    const entries=g.allLevels.map(level=>{
+      const path=g.paths.find(item=>item.levels.some(entry=>entry.id===level.id));
+      return {path: path?.title??'',name:level.name,best:g.best[g.recordKey(level,path)]};
+    }).filter(row=>Number.isFinite(row.best)).sort((a,b)=>b.best-a.best);
     if(!entries.length)this.text('NO RECORDS YET',W*.5,H*.69,U*.043,p.w);
-    else entries.slice(0,5).forEach((row,i)=>{const y=H*(.68+i*.055);this.text(String(i+1).padStart(2,'0')+'   '+row.name,W*.31,y,U*.035,p.w,'left');this.text(timeLabel(row.best),W*.69,y,U*.038,p.p,'right');});
+    else entries.slice(0,5).forEach((row,i)=>{
+      const y=H*(.68+i*.055);
+      this.text(row.path+' · '+row.name,W*.31,y,U*.031,p.w,'left');
+      this.text(timeLabel(row.best),W*.69,y,U*.038,p.p,'right');
+    });
     this.text('TAB / ESC — CLOSE',W*.5,H*.94,U*.036,p.w);
     c.restore();
   }

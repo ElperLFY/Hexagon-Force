@@ -1,6 +1,6 @@
 # SongData / Sounds
 
-These are short gameplay and interface effects.
+These are short gameplay, interface and announcement effects.
 
 | File | Trigger |
 |---|---|
@@ -10,5 +10,8 @@ These are short gameplay and interface effects.
 | `gameover.ogg` | Spoken “Game Over”, immediately after `die.ogg` finishes |
 | `menuselect.ogg` | When changing the selected level with the left/right navigation |
 | `menuchoose.ogg` | When confirming the current menu selection |
+| `rankup.ogg` | Synchronized, quieter backing flourish under `awesome`, `excellent` and `wonderful` |
 
-Use these exact lowercase filenames. Missing or not-yet-uploaded OGG files are skipped and do not block the game.
+The three voice announcements are loaded from `SongData/Music/`. `rankup.ogg` starts at the exact same AudioContext time as each voice and is mixed at 22% gain, so the spoken words remain prominent.
+
+Use these exact lowercase filenames. Missing OGG files are skipped and do not block gameplay.

@@ -124,7 +124,7 @@ export class Renderer{
         c.fillStyle=p.w;
         for(const w of ch.rows){
           const m=RP+(w.t-t)*L.speed*this.mapMul;
-          const depth=w.th??TH;
+          const depth=w.th??L.wallThickness??TH;
           const outer=m+depth;
           // Match Chart.collision(): never draw a negative radius, which mirrors
           // a wall through the origin and makes it reappear from the Hub.
@@ -159,7 +159,7 @@ export class Renderer{
     if(walls){
       c.rotate(rot);
       if(fx)this.shards(fx);
-      else this.drawPlayer(phi,this.p.p,turn);
+      else this.drawPlayer(phi,this.p.w,turn);
     }
     c.restore();
   }
@@ -167,7 +167,7 @@ export class Renderer{
   shards(f){
     const c=this.c,ox=RP*Math.cos(f.phi),oy=RP*Math.sin(f.phi);
     const al=Math.max(0,1-f.tau/1.2);
-    c.fillStyle=c.strokeStyle=this.p.p;c.globalAlpha=al;c.lineWidth=.012;
+    c.fillStyle=c.strokeStyle=this.p.w;c.globalAlpha=al;c.lineWidth=.012;
     c.beginPath();c.arc(ox,oy,f.tau*1.6,0,TAU);c.stroke();
     for(const q of f.parts){
       c.save();c.translate(ox+Math.cos(q.a)*q.v*f.tau,oy+Math.sin(q.a)*q.v*f.tau);

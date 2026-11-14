@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "title",
+    "unlock",
+    "completion",
+    "levels"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "unlock": {
+      "type": "object"
+    },
+    "completion": {
+      "type": "object",
+      "required": [
+        "mode",
+        "seconds"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "survive"
+          ]
+        },
+        "seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "levels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "number",
+          "name",
+          "offset",
+          "speed",
+          "seed",
+          "goalSeconds",
+          "wallThickness",
+          "palette"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "number": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "name": {
+            "type": "string"
+          },
+          "goalSeconds": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "wallThickness": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "palette": {
+            "type": "object"
+          },
+          "patternGapBeats": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

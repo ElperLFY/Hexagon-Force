@@ -1,4 +1,4 @@
-import { LEVELS, SONG_DIR, VOID } from './config.js';
+import { SONG_DIR, VOID } from './config.js';
 import { Chart, PatternGenerator } from './PatternGenerator.js';
 import { BeatAnalyzer } from './BeatAnalyzer.js';
 import { AudioManager } from './AudioManager.js';
@@ -11,9 +11,15 @@ import { Visualizer } from './Visualizer.js';
 // State flow: gate -> menu -> load -> play -> dead/win.
 // The selected level's music continues in the background between runs.
 export class Game {
-  constructor(canvas) {
+  constructor(canvas,pathRegistry) {
     this.state = 'gate';
-    this.lv = 0;
+    this.paths = pathRegistry?.paths ?? [];
+    if(!this.paths.length)throw new Error('No playable Path definitions were loaded');
+    this.progress = this.loadProgress();
+    const savedPathIndex=this.paths.findIndex(path=>path.id===this.progress.activePathId&&this.isPathUnlocked(path));
+    const defaultIndex=this.paths.findIndex(path=>path.id===pathRegistry.defaultPathId);
+    this.pathIndex=savedPathIndex>=0?savedPathIndex:Math.max(0,defaultIndex);
+    this.lv=this.firstAvailableLevelIndex();
     this.phi = 0;
     this.tF = 0;
     this.msg = '';
@@ -23,7 +29,7 @@ export class Game {
 
     this.best = JSON.parse(localStorage.getItem('hxb') || '{}');
     this.lastScores = JSON.parse(localStorage.getItem('hxl') || '{}');
-    this.runCallouts = new Set();
+    this.migrateLegacyScores();
     this.uiOverlay = null;
     this.noiseOn = false;
     this.mods = this.loadMods();
@@ -44,34 +50,170 @@ export class Game {
     this.vis = new Visualizer(this.audio);
     this.fx = null;
 
+    this.persistProgress();
     this.last = performance.now();
     requestAnimationFrame((now) => this.loop(now));
   }
 
+  get activePath(){return this.paths[this.pathIndex]??this.paths[0];}
+
   get level() {
-    return LEVELS[this.lv];
+    return this.activePath?.levels?.[this.lv]??this.paths.find(path=>path.levels.length)?.levels[0]??null;
   }
 
-  get levels() { return LEVELS; }
+  get levels() { return this.activePath?.levels??[]; }
+
+  get allLevels() { return this.paths.flatMap(path=>path.levels); }
 
   get live() {
     return this.state === 'play' || this.state === 'dead' || this.state === 'win';
   }
 
+  levelKey(level=this.level,path=this.activePath){
+    return path&&level?`${path.id}:${level.id}`:'';
+  }
+
+  recordKey(level=this.level,path=this.activePath){return this.levelKey(level,path);}
+
   get chart() {
-    return this.live ? this.charts[this.lv] : Chart.EMPTY;
+    return this.live ? (this.charts[this.levelKey()]??Chart.EMPTY) : Chart.EMPTY;
+  }
+
+  loadProgress(){
+    const fallback={version:1,completedLevels:[],announcements:{},activePathId:'path-of-joy'};
+    try{
+      const saved=JSON.parse(localStorage.getItem('hxp')||'{}');
+      return {
+        ...fallback,...saved,
+        completedLevels:Array.isArray(saved.completedLevels)?saved.completedLevels:[],
+        announcements:saved.announcements&&typeof saved.announcements==='object'?saved.announcements:{}
+      };
+    }catch(error){return fallback;}
+  }
+
+  persistProgress(){
+    this.progress.activePathId=this.activePath?.id??this.progress.activePathId;
+    try{localStorage.setItem('hxp',JSON.stringify(this.progress));}
+    catch(error){console.warn('[HEXBEAT] Path progress could not be saved:',error);}
+  }
+
+  isLevelCompleted(index,path=this.activePath){
+    const level=typeof index==='number'?path?.levels?.[index]:path?.levels?.find(item=>item.id===index);
+    return Boolean(level&&this.progress.completedLevels.includes(this.levelKey(level,path)));
+  }
+
+  isPathCompleted(pathOrId){
+    const path=typeof pathOrId==='string'?this.paths.find(item=>item.id===pathOrId):pathOrId;
+    return Boolean(path&&path.levels.length&&path.levels.every(level=>this.isLevelCompleted(level.id,path)));
+  }
+
+  isPathUnlocked(pathOrId){
+    const path=typeof pathOrId==='string'?this.paths.find(item=>item.id===pathOrId):pathOrId;
+    if(!path)return false;
+    const rule=path.unlock??{type:'always'};
+    if(rule.type==='always')return true;
+    if(rule.type==='complete-path')return this.isPathCompleted(rule.pathId);
+    return false;
+  }
+
+  isLevelUnlocked(index,path=this.activePath){
+    if(index===0)return true;
+    return index>0&&index<path.levels.length&&this.isLevelCompleted(index-1,path);
+  }
+
+  firstAvailableLevelIndex(path=this.activePath){
+    if(!path?.levels?.length)return 0;
+    for(let index=0;index<path.levels.length;index++){
+      if(this.isLevelUnlocked(index,path)&&!this.isLevelCompleted(index,path))return index;
+    }
+    return Math.max(0,path.levels.length-1);
+  }
+
+  unlockedLevelCount(path=this.activePath){
+    let count=0;
+    while(count<path.levels.length&&this.isLevelUnlocked(count,path))count++;
+    return count;
+  }
+
+  migrateLegacyScores(){
+    const joy=this.paths.find(path=>path.id==='path-of-joy');
+    if(!joy)return;
+    let changed=false;
+    joy.levels.forEach((level,index)=>{
+      const key=this.levelKey(level,joy),legacyKey=String(index);
+      if(!Object.prototype.hasOwnProperty.call(this.best,key)&&Number.isFinite(this.best[legacyKey])){
+        this.best[key]=this.best[legacyKey];changed=true;
+      }
+      if(!Object.prototype.hasOwnProperty.call(this.lastScores,key)&&Number.isFinite(this.lastScores[legacyKey])){
+        this.lastScores[key]=this.lastScores[legacyKey];changed=true;
+      }
+    });
+    if(changed){
+      localStorage.setItem('hxb',JSON.stringify(this.best));
+      localStorage.setItem('hxl',JSON.stringify(this.lastScores));
+    }
+  }
+
+  selectLevel(index){
+    if(index<0||index>=this.levels.length)return false;
+    if(!this.isLevelUnlocked(index)){
+      this.msg='COMPLETE THE PREVIOUS LEVEL TO UNLOCK THIS ONE';
+      this.audio.playSound('menuselect');
+      return false;
+    }
+    this.lv=index;
+    this.msg='';
+    this.audio.playSound('menuselect');
+    this.persistProgress();
+    if(this.state==='menu')this.preview();
+    return true;
+  }
+
+  selectPath(pathOrId){
+    const path=typeof pathOrId==='string'
+      ?this.paths.find(item=>item.id===pathOrId)
+      :this.paths[pathOrId];
+    if(!path)return false;
+    if(!this.isPathUnlocked(path)){
+      this.msg='PATH LOCKED — CLEAR PATH OF JOY FIRST';
+      this.audio.playSound('menuselect');
+      return false;
+    }
+    this.pathIndex=this.paths.indexOf(path);
+    this.lv=this.firstAvailableLevelIndex(path);
+    this.msg=path.levels.length?'':'PATH UNLOCKED — NEW LEVELS COMING SOON';
+    this.audio.playSound('menuselect');
+    this.persistProgress();
+    if(this.state==='menu'){
+      if(path.levels.length)this.preview();
+      else this.audio.stop();
+    }
+    return true;
+  }
+
+  navPath(direction){
+    if(this.state!=='menu')return;
+    const count=this.paths.length;
+    for(let step=1;step<=count;step++){
+      const index=(this.pathIndex+direction*step+count*2)%count;
+      if(this.isPathUnlocked(this.paths[index])){
+        this.selectPath(index);
+        return;
+      }
+    }
   }
 
   time() {
-    if (this.state === 'play') return this.audio.time(this.level);
+    if (this.state === 'play'&&this.level) return this.audio.time(this.level);
     if (this.live) return this.tF;
     return performance.now() / 1e3;
   }
 
   // Play the selected level as background music in the menu or after a win.
   async preview() {
-    const level = this.level;
+    const level = this.activePath?.levels?.[this.lv];
     const requestToken = ++this.tk;
+    if(!level){this.audio.stop();return;}
 
     try {
       await this.audio.load(level);
@@ -124,16 +266,34 @@ export class Game {
         void this.audio.preloadCues();
         this.preview();
       });
-    } else if (state === 'menu' || state === 'dead' || state === 'win') {
+    } else if (state === 'menu' || state === 'dead') {
       this.play();
+    } else if(state==='win'){
+      const next=this.lv+1;
+      if(next<this.levels.length&&this.isLevelUnlocked(next)){
+        this.selectLevel(next);
+        this.play();
+        return;
+      }
+      const newlyUnlocked=this.paths.find(path=>path.unlock?.type==='complete-path'&&
+        path.unlock.pathId===this.activePath.id&&
+        (!Number.isFinite(path.unlock.minimumRunSeconds)||
+          this.activePath.levels.every(level=>this.isLevelCompleted(level.id,this.activePath)) )&&
+        this.isPathUnlocked(path));
+      this.state='menu';
+      if(newlyUnlocked)this.selectPath(newlyUnlocked.id);
+      else this.preview();
     }
   }
 
   nav(direction) {
     if (this.state !== 'menu' && this.state !== 'gate') return;
-    this.lv = (this.lv + direction + LEVELS.length) % LEVELS.length;
+    if(!this.levels.length)return;
+    const unlocked=this.unlockedLevelCount();
+    const count=Math.max(1,unlocked);
+    this.lv=(this.lv+direction+count)%count;
     this.audio.playSound('menuselect');
-    if (this.state === 'menu') this.preview();
+    if(this.state==='menu')this.preview();
   }
 
   back() {
@@ -190,113 +350,136 @@ export class Game {
   }
 
   recordResult(time) {
-    const elapsed = Math.max(0, time - this.level.offset);
-    this.lastScores[this.lv] = elapsed;
-    localStorage.setItem('hxl', JSON.stringify(this.lastScores));
+    const level=this.level,key=this.recordKey(level);
+    const elapsed=Math.max(0,time-level.offset);
+    this.lastScores[key]=elapsed;
+    localStorage.setItem('hxl',JSON.stringify(this.lastScores));
 
-    const isNewBest = !(this.best[this.lv] >= elapsed);
-    if (isNewBest) {
-      this.best[this.lv] = elapsed;
-      localStorage.setItem('hxb', JSON.stringify(this.best));
-      this.audio.playMusicCue('wonderful');
+    const isNewBest=!(this.best[key]>=elapsed);
+    if(isNewBest){
+      this.best[key]=elapsed;
+      localStorage.setItem('hxb',JSON.stringify(this.best));
+      this.audio.playAnnouncement('wonderful');
     }
     return isNewBest;
   }
 
   checkMilestoneCues(time) {
-    const elapsed = Math.max(0, time - this.level.offset);
-    if (elapsed >= 30 && !this.runCallouts.has('awesome')) {
-      this.runCallouts.add('awesome');
-      this.audio.playMusicCue('awesome');
+    const level=this.level,key=this.recordKey(level);
+    const elapsed=Math.max(0,time-level.offset);
+    const announced=this.progress.announcements[key]??[];
+    let changed=false;
+    if(elapsed>=30&&!announced.includes('awesome')){
+      announced.push('awesome');
+      this.audio.playAnnouncement('awesome');
+      changed=true;
     }
-    if (elapsed >= 60 && !this.runCallouts.has('excellent')) {
-      this.runCallouts.add('excellent');
-      this.audio.playMusicCue('excellent');
+    if(elapsed>=60&&!announced.includes('excellent')){
+      announced.push('excellent');
+      this.audio.playAnnouncement('excellent');
+      changed=true;
+    }
+    if(changed){
+      this.progress.announcements[key]=announced;
+      this.persistProgress();
     }
   }
 
   complete(time) {
-    this.tF = time;
+    this.tF=time;
+    const level=this.level,key=this.recordKey(level);
+    if(!this.progress.completedLevels.includes(key)){
+      this.progress.completedLevels.push(key);
+      this.persistProgress();
+    }
     this.recordResult(time);
     this.audio.stopNoise();
     this.audio.stop();
-    this.fx = null;
-    this.uiOverlay = null;
-    this.state = 'win';
+    this.fx=null;
+    this.uiOverlay=null;
+    this.state='win';
   }
 
-  pointer(x, y) {
-    if (this.uiOverlay === 'settings') return;
-    if (this.uiOverlay === 'scores') { this.toggleHighScores(); return; }
-    const state = this.state;
-    if (state === 'gate') {
-      if (y > .89 && x > .32 && x < .68) { this.toggleSettings(); return; }
-      if (y < .075 && x < .4) { this.toggleHighScores(); return; }
-      if (y < .075 && x > .6) { this.quit(); return; }
-      if (y > .5 && y < .72 && x < .25) { this.nav(-1); return; }
-      if (y > .5 && y < .72 && x > .75) { this.nav(1); return; }
-      this.confirm(); return;
+  pointer(x,y) {
+    if(this.uiOverlay==='settings')return;
+    if(this.uiOverlay==='scores'){this.toggleHighScores();return;}
+    const state=this.state;
+    if(state==='gate'){
+      if(y>.89&&x>.32&&x<.68){this.toggleSettings();return;}
+      if(y<.075&&x<.4){this.toggleHighScores();return;}
+      if(y<.075&&x>.6){this.quit();return;}
+      if(y>.5&&y<.72&&x<.25){this.nav(-1);return;}
+      if(y>.5&&y<.72&&x>.75){this.nav(1);return;}
+      this.confirm();return;
     }
-    if (state === 'menu') {
-      if (y > .89 && x > .72) { this.toggleSettings(); return; }
-      if (y < .075 && x < .4) { this.toggleHighScores(); return; }
-      if (y < .075 && x > .6) { this.back(); return; }
-      if (y > .5 && y < .72 && x < .10) { this.nav(-1); return; }
-      if (y > .5 && y < .72 && x > .44 && x < .54) { this.nav(1); return; }
-      this.confirm(); return;
+    if(state==='menu'){
+      if(y>.89&&x>.72){this.toggleSettings();return;}
+      if(y<.075&&x<.4){this.toggleHighScores();return;}
+      if(y<.075&&x>.6){this.back();return;}
+      if(y>.12&&y<.23){
+        const count=this.paths.length,gap=.02,width=.42,start=(1-(width*count+gap*(count-1)))/2;
+        const index=Math.floor((x-start)/(width+gap));
+        const left=start+index*(width+gap);
+        if(index>=0&&index<count&&x>=left&&x<=left+width)this.selectPath(index);
+        return;
+      }
+      if(y>.29&&y<.53&&this.levels.length){
+        const count=this.levels.length,gap=.014,width=(.88-gap*(count-1))/count,start=(1-(width*count+gap*(count-1)))/2;
+        const index=Math.floor((x-start)/(width+gap));
+        const left=start+index*(width+gap);
+        if(index>=0&&index<count&&x>=left&&x<=left+width)this.selectLevel(index);
+        return;
+      }
+      if(y>.62&&y<.76&&this.levels.length){this.confirm();return;}
+      if(y>.77&&y<.88){this.nav(x<.5?-1:1);return;}
+      return;
     }
-    if (state === 'dead' || state === 'win') {
-      if (y < .075 && x < .4) this.toggleHighScores();
-      else if (y < .075 && x > .6) this.back();
+    if(state==='dead'||state==='win'){
+      if(y<.075&&x<.4)this.toggleHighScores();
+      else if(y<.075&&x>.6)this.back();
       else this.confirm();
     }
   }
 
   async play() {
-    if (this.state === 'load') return;
+    if(this.state==='load')return;
+    const level=this.activePath?.levels?.[this.lv];
+    if(!level){this.msg='THIS PATH HAS NO LEVELS YET';return;}
+    if(!this.isLevelUnlocked(this.lv)){this.msg='COMPLETE THE PREVIOUS LEVEL FIRST';return;}
 
-    const level = this.level;
+    const cacheKey=this.levelKey(level);
     this.tk++;
     this.audio.cancelSequences();
-    if (this.uiOverlay === 'settings') this.settingsPanel.close();
-    this.uiOverlay = null;
-    this.state = 'load';
-    this.msg = '';
+    if(this.uiOverlay==='settings')this.settingsPanel.close();
+    this.uiOverlay=null;
+    this.state='load';
+    this.msg='';
 
-    try {
+    try{
       await this.settingsReady;
       await PatternGenerator.loadCatalog();
-      const audioBuffer = await this.audio.load(level);
+      const audioBuffer=await this.audio.load(level);
 
-      // Cache the source chart, then create a fresh variation for each attempt.
-      // Beat timestamps remain synchronized with the audio.
-      if (!this.baseCharts[this.lv]) {
-        this.baseCharts[this.lv] = await this.getChart(level, audioBuffer);
+      if(!this.baseCharts[cacheKey]){
+        this.baseCharts[cacheKey]=await this.getChart(level,audioBuffer);
       }
 
-      const seed = (
-        level.seed ^
-        (Date.now() >>> 0) ^
-        (Math.random() * 0x100000000 >>> 0)
-      ) >>> 0;
+      const seed=(level.seed^(Date.now()>>>0)^(Math.random()*0x100000000>>>0))>>>0;
+      const run=this.baseCharts[cacheKey]
+        .randomized(level,seed)
+        .endless(level,seed,level.offset+VOID.start,level.offset+(level.goalSeconds??this.baseCharts[cacheKey].dur-level.offset));
 
-      // Replace the authored chart with generated patterns after VOID.start.
-      const run = this.baseCharts[this.lv]
-        .randomized(level, seed)
-        .endless(level, seed, level.offset + VOID.start);
-
-      this.charts[this.lv] = run;
-      this.noiseOn = false;
-      this.audio.loadNoise(); // Preload wn01.wav.
-      this.audio.play(level, false, run);
-      this.phi = 0;
-      this.fx = null;
-      this.runCallouts.clear();
-      this.state = 'play';
-      this.audio.playTogether([['sounds', 'start'], ['sounds', 'begin']]);
-    } catch (error) {
-      this.msg = error.message;
-      this.state = 'menu';
+      this.charts[cacheKey]=run;
+      this.noiseOn=false;
+      this.audio.loadNoise();
+      this.audio.play(level,false,run);
+      this.phi=0;
+      this.fx=null;
+      this.state='play';
+      this.audio.playTogether([['sounds','start'],['sounds','begin']]);
+    }catch(error){
+      this.msg=error.message;
+      this.state='menu';
     }
   }
 
@@ -307,21 +490,18 @@ export class Game {
     this.settingsPanel?.syncMusicVolume(volume);
   }
 
-  // Load a precomputed chart when available; otherwise analyze the audio.
-  async getChart(level, audioBuffer) {
-    // Blu/RGB JSON charts were generated with the old intensity gate and
-    // contain full silent bars. Re-analyze hard stages so the continuous
-    // hard-stage generator is used; retain the authored charts for other levels.
-    if (!level.hard) {
-      try {
-        const response = await fetch(`${SONG_DIR}${level.id}.json`);
-        if (response.ok) return Chart.fromJSON(await response.json(), level);
-      } catch (error) {
-        // Fall back to analyzing the audio if the chart cannot be loaded.
+  // Beat-sensitive paths are generated from the actual soundtrack. Authored
+  // JSON charts remain available as an explicit per-level option.
+  async getChart(level,audioBuffer) {
+    if(level.chartMode==='authored'){
+      try{
+        const response=await fetch(`${SONG_DIR}${level.id}.json`);
+        if(response.ok)return Chart.fromJSON(await response.json(),level);
+      }catch(error){
+        console.warn('[HEXBEAT] Authored chart unavailable; analyzing audio instead:',error);
       }
     }
-
-    await new Promise((resolve) => setTimeout(resolve, 60));
+    await new Promise(resolve=>setTimeout(resolve,40));
     return new BeatAnalyzer(level).analyze(audioBuffer);
   }
 
@@ -378,6 +558,13 @@ export class Game {
     const time = this.audio.time(level);
     this.checkMilestoneCues(time);
 
+    // Each authored Path stage has an exact survival target. Complete before
+    // asking the Endless Void generator for the next chunk at the same timestamp.
+    if(Number.isFinite(chart.stageEnd)&&time>=chart.stageEnd){
+      this.complete(time);
+      return;
+    }
+
     chart.ensure(time);
 
     if (!this.noiseOn && time >= chart.voidStart) {
@@ -426,7 +613,7 @@ export class Game {
 
     this.playerOmega=sideBlocked?0:angularVelocity;
 
-    if(time >= (chart.stageEnd ?? chart.dur) - 0.05){
+    if(Number.isFinite(chart.stageEnd)&&time>=chart.stageEnd){
       this.complete(time);
     }
   }
@@ -445,6 +632,7 @@ export class Game {
     const frameInterval = 1000 / frameCap;
     if (now - this.lastDraw >= frameInterval - 0.25) {
       this.view.draw(this);
+      if(this.settingsPanel?.isOpen)this.settingsPanel.updateTheme();
       this.lastDraw = now;
     }
     requestAnimationFrame((nextFrameTime) => this.loop(nextFrameTime));

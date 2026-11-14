@@ -188,9 +188,16 @@ The general Settings source is `js/SubData/Settings/`:
 - `settings.schema.json` describes the JSON format.
 - `js/SettingsPanel.js` loads those assets and connects the controls to the game. It is intentionally the controller, not the location where settings are defined or styled.
 
-The Mod Menu is now a section inside Settings (shortcut `M` or `S`); there is no separate slide-down Mod Menu. Framerate is a render-rate cap, while V-Sync is shown as browser-managed because a web page cannot reliably toggle hardware V-Sync. Sound Volume remains disabled/WIP because the new OGG cues currently share the main volume control; independent adjustment is still planned.
+The Mod Menu is now a section inside Settings (shortcut `M` or `S`); there is no separate slide-down Mod Menu. Framerate is a render-rate cap, while V-Sync is shown as browser-managed because a web page cannot reliably toggle hardware V-Sync. Sound Volume remains disabled/WIP because the new OGG cues currently share the main volume control; independent adjustment is still planned. The voice announcements are mixed with the optional `SongData/Sounds/rankup.ogg` layer, whose gain is deliberately lower than the voice.
 
-`js/config.js` remains the source for existing level/game constants and is not part of the editable pattern or Settings data model.
+`js/config.js` now contains only mechanical/rendering constants and shared audio paths. Paths and their individual levels are data-driven in `js/SubData/Paths/`:
+
+- `catalog.json` selects the default route and maps each route to its JSON file.
+- `path-of-joy.json` currently contains the four 60-second stages. Their palettes, chart mode, wall thickness, pattern cadence and weights are configured per level.
+- `path-of-pain.json` is pre-created and unlocks after every Path of Joy level is cleared; add its levels to its `levels` array when ready.
+- `js/Paths.js` validates the documents, builds palette functions, and exposes the registry. `js/Game.js` owns saved unlock/completion progress separately from personal-best records.
+
+For the format and the steps to add another level, see `js/SubData/Paths/README.md`. The first two Path of Joy levels now use per-level wall thickness values, and all four use beat-sensitive generation by default.
 
 ## 9. Reference
 

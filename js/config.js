@@ -4,7 +4,7 @@ export const SONG_DIR='MusicData/';
 export const MUSIC_CUE_DIR='SongData/Music/';
 export const SOUND_CUE_DIR='SongData/Sounds/';
 export const MUSIC_CUES=['awesome','excellent','wonderful'];
-export const SOUND_CUES=['start','die','begin','gameover','menuchoose','menuselect'];
+export const SOUND_CUES=['start','die','begin','gameover','menuchoose','menuselect','rankup'];
 
 // Endless "void" phase.
 export const VOID={
@@ -57,49 +57,3 @@ export const VIS={
   beatZoom:1                // the old fixed per-beat zoom (1 = unchanged, 0 = off). Lower it if both together feel like too much
 };
 
-const hsl=(h,s,l)=>`hsl(${h},${s}%,${l}%)`;
-
-export const LEVELS=[
-  {
-    id:105,name:'VERDE · GIALLO · ROSSO',offset:0,speed:1,seed:105,
-    rotSpeed:1,rotAmp:.1,rotBeats:16,
-    randomSectionBeats:6,randomLaneShiftChance:.05,randomDropChance:.025,randomAddChance:.08,
-    extra:['dwhirl','spin4','t321','rain','rain'],
-    pal(tt){
-      let p=(tt/30)%2;
-      p=p>1?2-p:p;
-      const h=Math.round(120*(1-p));
-      return{b1:hsl(h,62,64),b2:hsl(h,62,57),w:hsl(h,70,22),p:hsl(h,40,96)};
-    }
-  },
-  {
-    id:100,name:'CREMISI · NERO',offset:39,speed:1.1,hard:true,seed:100,inv:true,
-    rotSpeed:1.2,rotAmp:.2,rotBeats:16,
-    randomSectionBeats:6,randomLaneShiftChance:.08,randomDropChance:.04,randomAddChance:.08,
-    pal(tt,inv){
-      return inv
-        ?{b1:'#0b0308',b2:'#170610',w:'#7d0e24',p:'#f4bcc4'}
-        :{b1:'#6f0c1f',b2:'#5b0819',w:'#07020a',p:'#f4bcc4'};
-    }
-  },
-  {
-    id:110,name:'BLU',offset:0,speed:1.3,seed:110,hard:true,diff:.25,ramp:45,
-    rotSpeed:1.5,rotAmp:0,rotBeats:14,
-    randomSectionBeats:10,randomLaneShiftChance:.46,randomDropChance:0,randomAddChance:.07,
-    intensityThreshold:.090,
-    extra:['dwhirl','stair1','stair2','spin4','t321','rain','whirl'],
-    pal(){return{b1:hsl(215,70,64),b2:hsl(215,70,57),w:hsl(222,85,16),p:hsl(210,60,97)}}
-  },
-  {
-    id:115,name:'RGB',offset:0,speed:1.4,seed:115,hard:true,diff:.35,ramp:45,inv:true,
-    rotSpeed:2,rotAmp:0,rotBeats:12,trip:true,
-    randomSectionBeats:4,randomLaneShiftChance:.22,randomDropChance:0,randomAddChance:.05,
-    intensityThreshold:.090,
-    extra:['dwhirl','stair1','stair2','spin3','spin4','t321','rain','doubleC','zig','pairs'],
-    patternWeights:{ladder:1.35,burst:1.3,whirl:1.25,dwhirl:1.2,stair2:1.2,spin3:1.2,t321:1.15},
-    pal(tt){
-      const s=Math.min(tt,120),h=(10*tt+25*s*s/120+50*(tt-s))%360;
-      return{b1:hsl(h,62,64),b2:hsl((h+30)%360,62,57),w:hsl(h,70,22),p:hsl(h,40,96)};
-    }
-  }
-];

@@ -48,6 +48,8 @@ export class Input {
       }
 
       if (game.state === 'menu') {
+        if(code==='PageUp'){event.preventDefault();game.navPath(-1);return;}
+        if(code==='PageDown'){event.preventDefault();game.navPath(1);return;}
         if (code === 'ArrowLeft' || code === 'KeyA') { game.nav(-1); return; }
         if (code === 'ArrowRight' || code === 'KeyD') { game.nav(1); return; }
         if (code === 'Space' || code === 'Enter') {

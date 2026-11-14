@@ -294,9 +294,17 @@ export class SettingsPanel{
   updateTheme(){
     const level=this.game.level;
     if(!level?.pal||!this.root)return;
-    const palette=level.pal(this.game.time(),Boolean(level.inv&&this.game.view?.invert));
+    const chart=this.game.chart;
+    const time=Math.max(0,this.game.time()-level.offset);
+    const beatDuration=chart?.beatDur||.5;
+    const beatOrigin=chart?.tg0||0;
+    const inversion=Boolean(level.inv&&Math.floor((this.game.time()-beatOrigin)/(16*beatDuration))%2);
+    const palette=this.game.view?.p||level.pal(time,inversion);
     this.root.style.setProperty('--hb-accent',palette.b1);
     this.root.style.setProperty('--hb-accent-strong',palette.b2);
+    this.root.style.setProperty('--hb-wall',palette.w);
+    this.root.style.setProperty('--hb-panel-top',`color-mix(in srgb,${palette.b1} 22%,#0b172a)`);
+    this.root.style.setProperty('--hb-panel-bottom',`color-mix(in srgb,${palette.b2} 12%,#050b15)`);
   }
 
   async open(){

@@ -1,0 +1,17 @@
+{
+  "$schema": "./path.schema.json",
+  "schemaVersion": 1,
+  "id": "path-of-pain",
+  "title": "PATH OF PAIN",
+  "description": "A harder route that opens after every Path of Joy stage has been cleared for 60 seconds",
+  "unlock": {
+    "type": "complete-path",
+    "pathId": "path-of-joy",
+    "minimumRunSeconds": 60
+  },
+  "completion": {
+    "mode": "survive",
+    "seconds": 60
+  },
+  "levels": []
+}

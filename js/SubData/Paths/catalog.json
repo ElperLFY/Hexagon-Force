@@ -1,0 +1,15 @@
+{
+  "$schema": "./catalog.schema.json",
+  "schemaVersion": 1,
+  "defaultPath": "path-of-joy",
+  "paths": [
+    {
+      "id": "path-of-joy",
+      "file": "path-of-joy.json"
+    },
+    {
+      "id": "path-of-pain",
+      "file": "path-of-pain.json"
+    }
+  ]
+}

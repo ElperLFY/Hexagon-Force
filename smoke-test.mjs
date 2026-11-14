@@ -1,6 +1,24 @@
 import fs from 'node:fs';
-import {LEVELS,SIDE,TAU,TH,PART_DEPTH_SCALE,VOID,RP,PL,MUSIC_CUE_DIR,SOUND_CUE_DIR,MUSIC_CUES,SOUND_CUES} from './js/config.js';
+import {SIDE,TAU,TH,PART_DEPTH_SCALE,VOID,RP,PL,MUSIC_CUE_DIR,SOUND_CUE_DIR,MUSIC_CUES,SOUND_CUES} from './js/config.js';
 import {Chart,PatternGenerator} from './js/PatternGenerator.js';
+import {buildPathRegistry} from './js/Paths.js';
+
+const pathCatalog=JSON.parse(fs.readFileSync('./js/SubData/Paths/catalog.json','utf8'));
+const pathCatalogSchema=JSON.parse(fs.readFileSync('./js/SubData/Paths/catalog.schema.json','utf8'));
+if(!pathCatalog.$schema||!pathCatalogSchema.properties?.$schema)throw new Error('Paths catalog and schema must declare compatible $schema metadata');
+const pathDocuments=Object.fromEntries(pathCatalog.paths.map(entry=>[
+  entry.file,JSON.parse(fs.readFileSync('./js/SubData/Paths/'+entry.file,'utf8'))
+]));
+const pathRegistry=buildPathRegistry(pathCatalog,pathDocuments);
+const PATHS=pathRegistry.paths;
+const LEVELS=PATHS.flatMap(path=>path.levels);
+const joyPath=PATHS.find(path=>path.id==='path-of-joy');
+const painPath=PATHS.find(path=>path.id==='path-of-pain');
+if(!joyPath||joyPath.levels.length!==4)throw new Error('Path of Joy must contain the four initial levels');
+if(!painPath||painPath.levels.length!==0)throw new Error('Path of Pain should be prepared but empty until new levels are authored');
+if(joyPath.levels.some(level=>level.goalSeconds!==60))throw new Error('Every initial Path of Joy level must have a 60-second completion target');
+if(joyPath.levels[0].wallThickness!==.075||joyPath.levels[1].wallThickness!==.08)throw new Error('The first two Path of Joy levels need their tuned wall thickness');
+if(painPath.unlock?.type!=='complete-path'||painPath.unlock.pathId!=='path-of-joy'||painPath.unlock.minimumRunSeconds!==60)throw new Error('Path of Pain must unlock after every Path of Joy level is cleared for 60 seconds');
 
 await PatternGenerator.loadCatalog();
 
@@ -59,18 +77,39 @@ if(gameSource.includes("from './ModMenu.js'")||gameSource.includes('this.modMenu
 
 // Optional OGG assets and their semantic triggers are defined in SongData.
 if(MUSIC_CUE_DIR!=='SongData/Music/'||SOUND_CUE_DIR!=='SongData/Sounds/')throw new Error('Audio cue directories changed unexpectedly');
-if(MUSIC_CUES.join(',')!=='awesome,excellent,wonderful')throw new Error('Music cue manifest must contain the three level/best announcements');
-if(SOUND_CUES.join(',')!=='start,die,begin,gameover,menuchoose,menuselect')throw new Error('Sound cue manifest must contain the six UI/gameplay effects');
-for(const path of ['./SongData/README.md','./SongData/Music/README.md','./SongData/Sounds/README.md']){
+if(MUSIC_CUES.join(',')!=='awesome,excellent,wonderful')throw new Error('Music cue manifest must contain the three voice announcements');
+if(SOUND_CUES.join(',')!=='start,die,begin,gameover,menuchoose,menuselect,rankup')throw new Error('Sound cue manifest must include the rankup backing effect');
+for(const path of ['./SongData/README.md','./SongData/Music/README.md','./SongData/Sounds/README.md','./js/SubData/Paths/README.md']){
   if(!fs.existsSync(path))throw new Error(`Missing audio asset instructions: ${path}`);
 }
-for(const method of ['preloadCues()','playMusicCue(name)','playSound(name)','playTogether(entries)','playSequence(entries)','cancelSequences()']){
+if(!fs.existsSync('./SongData/Sounds/rankup.ogg'))throw new Error('SongData/Sounds/rankup.ogg must be present for the synchronized callout bed');
+for(const method of ['preloadCues()','playMusicCue(name)','playSound(name)','playTogether(entries)','playAnnouncement(name)','flushAnnouncements()','playSequence(entries)','cancelSequences()']){
   if(!audioManagerSource.includes(method))throw new Error(`AudioManager is missing ${method}`);
 }
-for(const cue of ['awesome','excellent','wonderful','start','die','begin','gameover','menuchoose','menuselect']){
+for(const cue of ['awesome','excellent','wonderful','rankup','start','die','begin','gameover','menuchoose','menuselect']){
   if(!audioManagerSource.includes(`'${cue}'`)&&!gameSource.includes(`'${cue}'`))throw new Error(`Audio cue ${cue} is not wired into the game`);
 }
-if(!gameSource.includes('elapsed >= 30')||!gameSource.includes('elapsed >= 60')||!gameSource.includes("playMusicCue('wonderful')"))throw new Error('30s, 60s and new-best announcements are not wired correctly');
+if(!gameSource.includes('elapsed>=30')||!gameSource.includes('elapsed>=60')||!gameSource.includes("playAnnouncement('wonderful')"))throw new Error('30s, 60s and new-best announcements are not wired correctly');
+if(!gameSource.includes('progress.announcements')||!gameSource.includes("announced.includes('awesome')"))throw new Error('30s/60s announcements must persist as once-per-level callouts');
+if(!audioManagerSource.includes("loadCue('sounds', 'rankup')")||!audioManagerSource.includes('backingGain.gain.value = .22')||!audioManagerSource.includes('backingSource.start(startAt)')||!audioManagerSource.includes('voiceSource.start(startAt)'))throw new Error('Sounds/rankup.ogg must be quieter than the voice and synchronized to the same start time');
+if(!gameSource.includes('constructor(canvas,pathRegistry)')||!gameSource.includes('completedLevels')||!gameSource.includes('isLevelUnlocked'))throw new Error('Game progression must be driven by Paths and saved completion state');
+if(!gameSource.includes('this.progress.completedLevels.push(key)'))throw new Error('Clearing a stage must persist its completion flag');
+if(!gameSource.includes("level.chartMode==='authored'"))throw new Error('Path level charts should be beat-sensitive unless explicitly marked authored');
+const rendererSource=fs.readFileSync('./js/Renderer.js','utf8');
+if(!rendererSource.includes('drawPlayer(phi,this.p.w,turn)'))throw new Error('Player pointer colour must match the wall colour');
+if(!rendererSource.includes('w.th??L.wallThickness??TH'))throw new Error('Renderer must use each Path level wall thickness');
+if(!settingsController.includes('--hb-panel-top')||!settingsController.includes('--hb-panel-bottom')||!settingsStyles.includes('var(--hb-panel-top)'))throw new Error('Settings gradient must follow the current level palette');
+const pathSource=fs.readFileSync('./js/Paths.js','utf8');
+if(!pathSource.includes('loadPathRegistry()')||!pathSource.includes('buildPathRegistry'))throw new Error('Path JSON must be loaded through the dedicated Paths module');
+const patternSource=fs.readFileSync('./js/PatternGenerator.js','utf8');
+if(!patternSource.includes('const syncopation=')||!patternSource.includes('const density=')||!patternSource.includes('recentPatterns'))throw new Error('Pattern choice must use beat accents and recent-pattern variety');
+const beatAnalyzerSource=fs.readFileSync('./js/BeatAnalyzer.js','utf8');
+if(!beatAnalyzerSource.includes('subarray(startSample,endSample)')||!beatAnalyzerSource.includes('startSeconds+tempo.phase/fps'))throw new Error('Beat analysis must stay inside the played audio segment and retain its absolute offset');
+const uiSource=fs.readFileSync('./js/UIRenderer.js','utf8');
+if(!uiSource.includes('SELECT YOUR PATH')||!uiSource.includes('LOCKED')||!uiSource.includes('NEW LEVELS COMING SOON'))throw new Error('Path selector must show locked stages and the empty Path of Pain state');
+if(!inputSource.includes("code==='PageUp'")||!inputSource.includes("code==='PageDown'"))throw new Error('Page Up / Page Down must navigate Paths');
+const configSource=fs.readFileSync('./js/config.js','utf8');
+if(configSource.includes('export const LEVELS'))throw new Error('Individual level data must live outside config.js');
 if(!gameSource.includes("playSequence([['sounds', 'die'], ['sounds', 'gameover']])"))throw new Error('Death and Game Over voice must play sequentially');
 if(!gameSource.includes("playTogether([['sounds', 'start'], ['sounds', 'begin']])"))throw new Error('Start and Begin must be scheduled together when a run starts');
 if(!gameSource.includes("playSound('menuchoose')")||!gameSource.includes("playSound('menuselect')"))throw new Error('Menu confirmation and navigation sounds are not wired');
@@ -78,6 +117,11 @@ if(!inputSource.includes("code === 'KeyQ'")||!inputSource.includes("event.code =
 if(settingsSchema.groups.find(group=>group.id==='audio').settings.find(setting=>setting.id==='soundVolume').description.includes('not implemented'))throw new Error('Sound Volume help text still claims that effects are not implemented');
 
 
+
+// Chart retains each stage's data-driven base thickness.
+const joyOneChart=new Chart([],0.5,0,120,60,1,joyPath.levels[0].wallThickness);
+const joyTwoChart=new Chart([],0.5,0,120,60,1,joyPath.levels[1].wallThickness);
+if(joyOneChart.wallThickness!==.075||joyTwoChart.wallThickness!==.08)throw new Error('Path wall thickness must survive chart construction');
 const mask=gaps=>[0,1,2,3,4,5].map(sector=>!gaps.includes(sector));
 for(const id of [100,105,110,115]){
   const json=JSON.parse(fs.readFileSync(`./MusicData/${id}.json`,'utf8'));

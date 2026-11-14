@@ -1,6 +1,13 @@
 import fs from 'node:fs';
-import {LEVELS,SIDE,TAU,TH,PART_DEPTH_SCALE,RP,PL} from './js/config.js';
+import {SIDE,TAU,TH,PART_DEPTH_SCALE,RP,PL} from './js/config.js';
 import {Chart,PatternGenerator} from './js/PatternGenerator.js';
+import {buildPathRegistry} from './js/Paths.js';
+
+const pathCatalog=JSON.parse(fs.readFileSync('./js/SubData/Paths/catalog.json','utf8'));
+const pathDocuments=Object.fromEntries(pathCatalog.paths.map(entry=>[
+  entry.file,JSON.parse(fs.readFileSync('./js/SubData/Paths/'+entry.file,'utf8'))
+]));
+const LEVELS=buildPathRegistry(pathCatalog,pathDocuments).paths.flatMap(path=>path.levels);
 
 await PatternGenerator.loadCatalog();
 
@@ -26,7 +33,7 @@ function simulate(name,direction,level,bd,bpm,repeat=3){
     :PatternGenerator.PAT[name](0,direction,rng);
   if(!events.length)throw new Error(`Pattern factory ${name} returned no events`);
   const rows=[];
-  let endBeat=0,maxDepth=TH;
+  let endBeat=0,maxDepth=L.wallThickness??TH;
   const motifId=`${name}-atomic`;
   for(const [beat,gaps,span=0,routeSpan=null] of events){
     const row={
@@ -34,15 +41,15 @@ function simulate(name,direction,level,bd,bpm,repeat=3){
       g:[...new Set(gaps.map(x=>norm(x,6)))],
       motifId,motifName:name,motifStart:0
     };
-    const effectiveSpan=span>0?span*(routeSpan===0?1:PART_DEPTH_SCALE):TH/(speed*bd);
-    if(span>0)row.th=Math.max(TH,speed*bd*effectiveSpan);
+    const effectiveSpan=span>0?span*(routeSpan===0?1:PART_DEPTH_SCALE):(L.wallThickness??TH)/(speed*bd);
+    if(span>0)row.th=Math.max(L.wallThickness??TH,speed*bd*effectiveSpan);
     if(Number.isFinite(routeSpan)&&routeSpan>=0)row.routeDepth=speed*bd*routeSpan;
     maxDepth=Math.max(maxDepth,row.th??TH);
     rows.push(row);
     endBeat=Math.max(endBeat,beat+effectiveSpan);
   }
   rows.sort((a,b)=>a.t-b.t);
-  const chart=new Chart(rows,bd,0,bpm,30,speed)
+  const chart=new Chart(rows,bd,0,bpm,30,speed,L.wallThickness??TH)
     .randomized({...L,randomSectionBeats:4},0x1ADDE+name.length+direction+level.id);
   const endTime=endBeat*bd+maxDepth/speed+.15;
   let reachable=new Uint8Array(ANGLE_BINS).fill(1);
@@ -121,8 +128,8 @@ for(const level of LEVELS){
       previous=chunkRows[chunkRows.length-1];
       from=generator.voidNext;
     }
-    const maxDepth=Math.max(TH,...rows.map(row=>row.th??TH));
-    const chart=new Chart(rows,bd,0,bpm,90,speed);
+    const maxDepth=Math.max(level.wallThickness??TH,...rows.map(row=>row.th??level.wallThickness??TH));
+    const chart=new Chart(rows,bd,0,bpm,90,speed,level.wallThickness??TH);
     const duration=(rows.at(-1).t-rows[0].t)+maxDepth/speed+.2;
     let reachable=new Uint8Array(ANGLE_BINS).fill(1);
     for(let t=rows[0].t-.5+DT;t<=rows[0].t+duration;t+=DT){

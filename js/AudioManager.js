@@ -23,6 +23,8 @@ export class AudioManager {
     this.cueLoads = new Map();
     this.cueWarnings = new Set();
     this.sequenceToken = 0;
+    this.announcementQueue = [];
+    this.announcementPlaying = false;
   }
 
   unlock() {
@@ -175,6 +177,57 @@ export class AudioManager {
 
   playMusicCue(name) {
     this.playCue('music', name);
+  }
+
+  // The rankup flourish and the spoken callout start on the same audio clock.
+  // Their gains are independent so the voice remains clearly intelligible.
+  playAnnouncement(name) {
+    if (!['awesome','excellent','wonderful'].includes(name)) return;
+    this.announcementQueue.push(name);
+    void this.flushAnnouncements();
+  }
+
+  async flushAnnouncements() {
+    if (this.announcementPlaying || !this.announcementQueue.length) return;
+    this.announcementPlaying = true;
+    const name = this.announcementQueue.shift();
+    try {
+      const [voice, backing] = await Promise.all([
+        this.loadCue('music', name),
+        this.loadCue('sounds', 'rankup')
+      ]);
+      if (!voice || !this.ctx || !this.effects) {
+        this.announcementPlaying = false;
+        void this.flushAnnouncements();
+        return;
+      }
+
+      const startAt = this.ctx.currentTime + .025;
+      if (backing) {
+        const backingSource = this.ctx.createBufferSource();
+        const backingGain = this.ctx.createGain();
+        backingSource.buffer = backing;
+        backingGain.gain.value = .22;
+        backingSource.connect(backingGain).connect(this.effects);
+        backingSource.start(startAt);
+        backingSource.stop(startAt + voice.duration);
+      }
+
+      const voiceSource = this.ctx.createBufferSource();
+      const voiceGain = this.ctx.createGain();
+      voiceSource.buffer = voice;
+      voiceGain.gain.value = 1;
+      voiceSource.connect(voiceGain).connect(this.effects);
+      voiceSource.onended = () => {
+        this.announcementPlaying = false;
+        void this.flushAnnouncements();
+      };
+      voiceSource.start(startAt);
+    } catch (error) {
+      console.warn('[HEXBEAT] Announcement failed:', error);
+      this.announcementPlaying = false;
+      void this.flushAnnouncements();
+    }
   }
 
   playSound(name) {
