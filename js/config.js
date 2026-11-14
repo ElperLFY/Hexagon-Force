@@ -72,7 +72,7 @@ export const LEVELS=[
     }
   },
   {
-    id:100,name:'CREMISI · NERO',offset:39,speed:1.1,seed:100,inv:true,
+    id:100,name:'CREMISI · NERO',offset:39,speed:1.1,hard:true,seed:100,inv:true,
     rotSpeed:1.2,rotAmp:.2,rotBeats:16,
     randomSectionBeats:6,randomLaneShiftChance:.08,randomDropChance:.04,randomAddChance:.08,
     pal(tt,inv){
@@ -90,9 +90,9 @@ export const LEVELS=[
     pal(){return{b1:hsl(215,70,64),b2:hsl(215,70,57),w:hsl(222,85,16),p:hsl(210,60,97)}}
   },
   {
-    id:115,name:'RGB',offset:0,speed:1.4,seed:115,hard:true,diff:.35,ramp:45,
+    id:115,name:'RGB',offset:0,speed:1.4,seed:115,hard:true,diff:.35,ramp:45,inv:true,
     rotSpeed:2,rotAmp:0,rotBeats:12,trip:true,
-    randomSectionBeats:4,randomLaneShiftChance:.22,randomDropChance:.14,randomAddChance:.05,inv:true,
+    randomSectionBeats:4,randomLaneShiftChance:.22,randomDropChance:.14,randomAddChance:.05,
     intensityThreshold:.090,
     extra:['dwhirl','stair1','stair2','spin3','spin4','t321','rain','doubleC','zig','pairs'],
     patternWeights:{ladder:1.35,burst:1.3,whirl:1.25,dwhirl:1.2,stair2:1.2,spin3:1.2,t321:1.15},
