@@ -212,7 +212,7 @@ export class Renderer{
     const L=g.level,t=g.time(),ch=g.chart,{W,H,U}=this;
     const fx=g.fx,c=this.c;
     c.globalCompositeOperation='source-over';
-    this.mapMul=g.mods?g.mods.mapSpeed:1;
+    this.mapMul=g.modsLocked?1:(g.mods?g.mods.mapSpeed:1);
     this.hubLvl=g.vis?g.vis.get(VIS.hub.band):0;
     this.camLvl=g.vis?g.vis.get(VIS.cam.band):0;
     if(fx){
@@ -239,7 +239,7 @@ export class Renderer{
     if(g.uiOverlay==='scores'){this.ui.leaderboard(g,p);return;}
     if(s==='gate'){this.ui.title(g,p);return;}
     if(s==='menu'){this.ui.selection(g,p);return;}
-    if(s==='win'||s==='dead'){this.ui.results(g,p,s==='win');return;}
+    if(s==='win'||s==='dead'){this.ui.results(g,p,s==='win'||g.isLevelCompleted(g.lv,g.activePath));return;}
     if(s==='load'){this.ui.loading(g,p);return;}
     if(g.live){
       this.text((t-L.offset).toFixed(2)+'s',W-U*.12,U*.12,U*.07,p.p,'right');

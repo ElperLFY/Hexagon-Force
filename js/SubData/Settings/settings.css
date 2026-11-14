@@ -50,6 +50,7 @@ body.settings-open { touch-action:auto; }
 .hb-setting__toggle input:focus-visible + .hb-setting__toggle-track { outline:2px solid var(--hb-accent); outline-offset:3px; }
 .hb-setting__status { display:inline-flex; align-items:center; border:1px solid var(--hb-line-strong); padding:9px 11px; color:var(--hb-accent-strong); background:color-mix(in srgb,var(--hb-accent-strong) 6%,transparent); font-size:9px; letter-spacing:.1em; }
 .hb-setting__status--wip { color:#ffcc79; border-color:rgba(255,204,121,.4); background:rgba(255,204,121,.06); }
+.hb-setting__status--locked { color:var(--hb-muted); border-color:var(--hb-line); background:transparent; }
 .hb-setting.is-disabled { opacity:.45; }
 .hb-setting.is-disabled input,.hb-setting.is-disabled select { cursor:not-allowed; }
 .hb-settings__footer { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:15px clamp(22px,4vw,44px); border-top:1px solid var(--hb-line); background:rgba(0,0,0,.28); }

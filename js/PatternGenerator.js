@@ -289,16 +289,16 @@ export class Chart{
 
   // Endless "void" phase. From `start` (snapped to the next beat, so the flip lands on the music)
   // the authored rows are dropped and replaced by generated ones, produced lazily by ensure().
-  endless(L,seed,start,stageEnd=this.dur){
+  endless(L,seed,start){
     const bd=this.beatDur;
-    this.stageEnd=Math.min(this.dur,Number.isFinite(stageEnd)?stageEnd:this.dur);
+    this.stageEnd=null; // Stage completion is a milestone; Endless remains active until death
     this.voidStart=this.tg0+Math.ceil((start-this.tg0)/bd-1e-6)*bd;
     this.rows=this.rows.filter(r=>r.t<this.voidStart);
     this.voidSide=mul(seed>>>0)()<.5?-1:1; // which side of the screen the darkness comes from
     this.gen=new PatternGenerator({...L,seed});
     this.voidNext=this.voidStart;
     this.voidPrev=this.rows[this.rows.length-1]||null;
-    this.dur=Infinity; // never "completed"
+    this.dur=Infinity; // Endless has no terminal duration
     return this;
   }
 

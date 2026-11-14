@@ -8,8 +8,8 @@ import { VolumeControl } from './VolumeControl.js';
 import { SettingsPanel } from './SettingsPanel.js';
 import { Visualizer } from './Visualizer.js';
 
-// State flow: gate -> menu -> load -> play -> dead/win.
-// The selected level's music continues in the background between runs.
+// State flow: gate -> menu -> load -> play -> dead.
+// A stage clears at its goal time, but gameplay and Endless continue until death.
 export class Game {
   constructor(canvas,pathRegistry) {
     this.state = 'gate';
