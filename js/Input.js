@@ -55,6 +55,12 @@ export class Input {
         if (code === 'ArrowRight' || code === 'KeyD') this.R = 1;
         return;
       }
+            }
+      if (game.state === 'play') {
+        if (code === 'KeyQ' || code === 'KeyA') this.L = 1;
+        if (code === 'KeyE' || code === 'KeyD') this.R = 1;
+        return;
+      }
       if ((game.state === 'dead' || game.state === 'win') &&
           (code === 'Space' || code === 'Enter')) {
         event.preventDefault(); game.confirm();
