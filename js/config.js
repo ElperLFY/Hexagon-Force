@@ -1,13 +1,10 @@
-// Costanti di gioco, livelli e palette. I parametri di rotazione sono separati
-// dalla velocita' dei muri: ogni livello puo' avere un ritmo visivo distinto.
 export const TAU=Math.PI*2,SIDE=TAU/6,K=1.1547,RP=.27,HUB=.18,TH=.09,PW=.035,PART_DEPTH_SCALE=.9;
 export const PL={tip:RP+.045,back:RP-.03,half:.035};
 export const SONG_DIR='MusicData/';
 
-// Endless "void" phase. At START seconds into a run the authored chart is replaced by generated rows
-// (forever), the whole screen inverts and a black gradient slowly creeps in from one side.
+// Endless "void" phase.
 export const VOID={
-  start:10,          // seconds into the run --10s for testing
+  start:60,          // seconds into the run --10s best for testing (personally)
   flip:.9,           // seconds for the inversion to sweep out from the centre
   fade:2,            // pause after the flip before the darkness starts to grow
   ramp:150,          // seconds for the darkness to reach full strength
@@ -84,15 +81,15 @@ export const LEVELS=[
   {
     id:110,name:'BLU',offset:0,speed:1.3,seed:110,hard:true,diff:.25,ramp:45,
     rotSpeed:1.5,rotAmp:0,rotBeats:14,
-    randomSectionBeats:10,randomLaneShiftChance:.16,randomDropChance:.10,randomAddChance:.07,
+    randomSectionBeats:10,randomLaneShiftChance:.46,randomDropChance:0,randomAddChance:.07,
     intensityThreshold:.090,
-    extra:['dwhirl','stair1','stair2','spin4','t321','rain',],
+    extra:['dwhirl','stair1','stair2','spin4','t321','rain','whirl'],
     pal(){return{b1:hsl(215,70,64),b2:hsl(215,70,57),w:hsl(222,85,16),p:hsl(210,60,97)}}
   },
   {
     id:115,name:'RGB',offset:0,speed:1.4,seed:115,hard:true,diff:.35,ramp:45,inv:true,
     rotSpeed:2,rotAmp:0,rotBeats:12,trip:true,
-    randomSectionBeats:4,randomLaneShiftChance:.22,randomDropChance:.14,randomAddChance:.05,
+    randomSectionBeats:4,randomLaneShiftChance:.22,randomDropChance:0,randomAddChance:.05,
     intensityThreshold:.090,
     extra:['dwhirl','stair1','stair2','spin3','spin4','t321','rain','doubleC','zig','pairs'],
     patternWeights:{ladder:1.35,burst:1.3,whirl:1.25,dwhirl:1.2,stair2:1.2,spin3:1.2,t321:1.15},
