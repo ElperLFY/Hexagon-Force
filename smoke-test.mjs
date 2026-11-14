@@ -111,7 +111,7 @@ if(!inputSource.includes("code==='PageUp'")||!inputSource.includes("code==='Page
 const configSource=fs.readFileSync('./js/config.js','utf8');
 if(configSource.includes('export const LEVELS'))throw new Error('Individual level data must live outside config.js');
 if(!gameSource.includes("playSequence([['sounds', 'die'], ['sounds', 'gameover']])"))throw new Error('Death and Game Over voice must play sequentially');
-if(!gameSource.includes("playTogether([['sounds', 'start'], ['sounds', 'begin']])"))throw new Error('Start and Begin must be scheduled together when a run starts');
+if(!gameSource.includes("playTogether([['sounds','start'],['sounds','begin']])"))throw new Error('Start and Begin must be scheduled together when a run starts');
 if(!gameSource.includes("playSound('menuchoose')")||!gameSource.includes("playSound('menuselect')"))throw new Error('Menu confirmation and navigation sounds are not wired');
 if(!inputSource.includes("code === 'KeyQ'")||!inputSource.includes("event.code === 'KeyE'"))throw new Error('Gameplay keyboard aliases must be released correctly');
 if(settingsSchema.groups.find(group=>group.id==='audio').settings.find(setting=>setting.id==='soundVolume').description.includes('not implemented'))throw new Error('Sound Volume help text still claims that effects are not implemented');
