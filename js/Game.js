@@ -58,7 +58,12 @@ export class Game {
   get activePath(){return this.paths[this.pathIndex]??this.paths[0];}
 
   get level() {
+    // Keep a valid palette for menu rendering when an unlocked Path has no authored levels yet.
     return this.activePath?.levels?.[this.lv]??this.paths.find(path=>path.levels.length)?.levels[0]??null;
+  }
+
+  get modsLocked(){
+    return this.activePath?.id==='path-of-pain';
   }
 
   get levels() { return this.activePath?.levels??[]; }
@@ -97,15 +102,18 @@ export class Game {
     catch(error){console.warn('[HEXBEAT] Path progress could not be saved:',error);}
   }
 
-  isLevelCompleted(index,path=this.activePath){
-    // Callers may pass either a zero-based UI index or the numeric level ID from JSON.
-    const level=path?.levels?.[index]??path?.levels?.find(item=>item.id===index);
+  hasCompletedLevel(level,path=this.activePath){
     return Boolean(level&&this.progress.completedLevels.includes(this.levelKey(level,path)));
+  }
+
+  isLevelCompleted(index,path=this.activePath){
+    const level=path?.levels?.[index];
+    return this.hasCompletedLevel(level,path);
   }
 
   isPathCompleted(pathOrId){
     const path=typeof pathOrId==='string'?this.paths.find(item=>item.id===pathOrId):pathOrId;
-    return Boolean(path&&path.levels.length&&path.levels.every(level=>this.isLevelCompleted(level.id,path)));
+    return Boolean(path&&path.levels.length&&path.levels.every(level=>this.hasCompletedLevel(level,path)));
   }
 
   isPathUnlocked(pathOrId){
@@ -119,7 +127,7 @@ export class Game {
 
   isLevelUnlocked(index,path=this.activePath){
     if(index===0)return true;
-    return index>0&&index<path.levels.length&&this.isLevelCompleted(index-1,path);
+    return index>0&&index<path.levels.length&&this.hasCompletedLevel(path.levels[index-1],path);
   }
 
   firstAvailableLevelIndex(path=this.activePath){
@@ -155,18 +163,25 @@ export class Game {
     }
   }
 
-  selectLevel(index){
+  selectLevel(index,allowLocked=false){
     if(index<0||index>=this.levels.length)return false;
-    if(!this.isLevelUnlocked(index)){
-      this.msg='COMPLETE THE PREVIOUS LEVEL TO UNLOCK THIS ONE';
+    const unlocked=this.isLevelUnlocked(index);
+    if(!unlocked&&!allowLocked){
+      this.msg='LOCKED';
       this.audio.playSound('menuselect');
       return false;
     }
     this.lv=index;
-    this.msg='';
+    this.msg=unlocked?'':'LOCKED';
     this.audio.playSound('menuselect');
     this.persistProgress();
-    if(this.state==='menu')this.preview();
+    if(this.state==='menu'){
+      if(unlocked)this.preview();
+      else{
+        this.tk++;
+        this.audio.stop();
+      }
+    }
     return true;
   }
 
@@ -183,9 +198,11 @@ export class Game {
     this.tk++; // invalidate any preview that may still be loading for the previous Path
     this.pathIndex=this.paths.indexOf(path);
     this.lv=this.firstAvailableLevelIndex(path);
-    this.msg=path.levels.length?'':'PATH UNLOCKED — NEW LEVELS COMING SOON';
+    this.msg=path.levels.length?'':'NEW LEVELS COMING SOON';
     this.audio.playSound('menuselect');
     this.persistProgress();
+    this.settingsPanel?.applyModifiers();
+    this.settingsPanel?.syncRows();
     if(this.state==='menu'){
       if(path.levels.length)this.preview();
       else this.audio.stop();
@@ -251,51 +268,73 @@ export class Game {
   }
 
   setMod(key, value) {
-    if (!(key in this.mods) || !Number.isFinite(value)) return;
-
-    this.mods[key] = Math.min(2.5, Math.max(0.5, value));
-    localStorage.setItem('hxm', JSON.stringify(this.mods));
+    if(this.modsLocked||!(key in this.mods)||!Number.isFinite(value))return;
+    this.mods[key]=Math.min(2.5,Math.max(.5,value));
+    localStorage.setItem('hxm',JSON.stringify(this.mods));
   }
 
   // --- User actions ---
   confirm() {
-    const state = this.state;
+    const state=this.state;
     this.audio.playSound('menuchoose');
 
-    if (state === 'gate') {
-      this.state = 'menu';
-      this.audio.unlock().then(() => {
+    if(state==='gate'){
+      this.state='menu';
+      this.audio.unlock().then(()=>{
         void this.audio.preloadCues();
         this.preview();
       });
-    } else if (state === 'menu' || state === 'dead') {
+      return;
+    }
+    if(state==='menu'){
       this.play();
-    } else if(state==='win'){
+      return;
+    }
+    if(state==='dead'){
+      if(!this.hasCompletedLevel(this.level)){
+        this.play();
+        return;
+      }
       const next=this.lv+1;
-      if(next<this.levels.length&&this.isLevelUnlocked(next)){
+      if(next<this.levels.length){
         this.selectLevel(next);
         this.play();
         return;
       }
-      const newlyUnlocked=this.paths.find(path=>path.unlock?.type==='complete-path'&&
+      const nextPath=this.paths.find(path=>
+        path.unlock?.type==='complete-path'&&
         path.unlock.pathId===this.activePath.id&&
-        (!Number.isFinite(path.unlock.minimumRunSeconds)||
-          this.activePath.levels.every(level=>this.isLevelCompleted(level.id,this.activePath)) )&&
-        this.isPathUnlocked(path));
+        this.isPathUnlocked(path)
+      );
       this.state='menu';
-      if(newlyUnlocked)this.selectPath(newlyUnlocked.id);
+      if(nextPath)this.selectPath(nextPath.id);
       else this.preview();
     }
   }
 
   nav(direction) {
-    if (this.state !== 'menu' && this.state !== 'gate') return;
-    if(!this.levels.length)return;
-    const unlocked=this.unlockedLevelCount();
-    const count=Math.max(1,unlocked);
-    this.lv=(this.lv+direction+count)%count;
-    this.audio.playSound('menuselect');
-    if(this.state==='menu')this.preview();
+    if(this.state!=='menu'&&this.state!=='gate')return;
+    if(!this.levels.length){
+      this.msg='NEW LEVELS COMING SOON';
+      return;
+    }
+
+    const next=this.lv+Math.sign(direction);
+    if(next>=0&&next<this.levels.length){
+      this.selectLevel(next,true);
+      return;
+    }
+    if(direction>0&&next>=this.levels.length&&this.activePath.id==='path-of-joy'){
+      const pain=this.paths.find(path=>path.id==='path-of-pain');
+      if(pain&&this.isPathUnlocked(pain)){
+        this.selectPath(pain.id);
+      }else{
+        this.msg="PATH OF PAIN ISN'T UNLOCKED YET";
+        this.audio.playSound('menuselect');
+      }
+      return;
+    }
+    this.msg=direction>0?'NO MORE LEVELS IN THIS PATH':'';
   }
 
   back() {
@@ -387,19 +426,15 @@ export class Game {
     }
   }
 
-  complete(time) {
-    this.tF=time;
-    const level=this.level,key=this.recordKey(level);
+  completeStage(time){
+    const level=this.activePath?.levels?.[this.lv];
+    if(!level||Math.max(0,time-level.offset)<(level.goalSeconds??60))return false;
+    const key=this.recordKey(level);
     if(!this.progress.completedLevels.includes(key)){
       this.progress.completedLevels.push(key);
       this.persistProgress();
     }
-    this.recordResult(time);
-    this.audio.stopNoise();
-    this.audio.stop();
-    this.fx=null;
-    this.uiOverlay=null;
-    this.state='win';
+    return true;
   }
 
   pointer(x,y) {
@@ -418,23 +453,10 @@ export class Game {
       if(y>.89&&x>.72){this.toggleSettings();return;}
       if(y<.075&&x<.4){this.toggleHighScores();return;}
       if(y<.075&&x>.6){this.back();return;}
-      if(y>.12&&y<.23){
-        const count=this.paths.length,gap=.02,width=.42,start=(1-(width*count+gap*(count-1)))/2;
-        const index=Math.floor((x-start)/(width+gap));
-        const left=start+index*(width+gap);
-        if(index>=0&&index<count&&x>=left&&x<=left+width)this.selectPath(index);
-        return;
-      }
-      if(y>.29&&y<.53&&this.levels.length){
-        const count=this.levels.length,gap=.014,width=(.88-gap*(count-1))/count,start=(1-(width*count+gap*(count-1)))/2;
-        const index=Math.floor((x-start)/(width+gap));
-        const left=start+index*(width+gap);
-        if(index>=0&&index<count&&x>=left&&x<=left+width)this.selectLevel(index);
-        return;
-      }
-      if(y>.62&&y<.76&&this.levels.length){this.confirm();return;}
-      if(y>.77&&y<.88){this.nav(x<.5?-1:1);return;}
-      return;
+      if(y>.5&&y<.72&&x<.10){this.nav(-1);return;}
+      if(y>.5&&y<.72&&x>.44&&x<.54){this.nav(1);return;}
+      if(y>.5&&y<.72){this.confirm();return;}
+      this.confirm();return;
     }
     if(state==='dead'||state==='win'){
       if(y<.075&&x<.4)this.toggleHighScores();
@@ -447,7 +469,7 @@ export class Game {
     if(this.state==='load')return;
     const level=this.activePath?.levels?.[this.lv];
     if(!level){this.msg='THIS PATH HAS NO LEVELS YET';return;}
-    if(!this.isLevelUnlocked(this.lv)){this.msg='COMPLETE THE PREVIOUS LEVEL FIRST';return;}
+    if(!this.isLevelUnlocked(this.lv)){this.msg='LOCKED';return;}
 
     const cacheKey=this.levelKey(level);
     this.tk++;
@@ -468,7 +490,7 @@ export class Game {
       this.baseCharts[cacheKey]=baseChart;
       const run=baseChart
         .randomized(level,seed)
-        .endless(level,seed,level.offset+VOID.start,level.offset+(level.goalSeconds??this.baseCharts[cacheKey].dur-level.offset));
+        .endless(level,seed,level.offset+VOID.start);
 
       this.charts[cacheKey]=run;
       this.noiseOn=false;
@@ -552,19 +574,16 @@ export class Game {
   }
 
   update(deltaTime) {
-    if (this.state !== 'play') return;
+    if(this.state!=='play')return;
 
-    const level = this.level;
-    const chart = this.chart;
-    const time = this.audio.time(level);
+    const level=this.level;
+    const chart=this.chart;
+    const time=this.audio.time(level);
     this.checkMilestoneCues(time);
 
-    // Each authored Path stage has an exact survival target. Complete before
-    // asking the Endless Void generator for the next chunk at the same timestamp.
-    if(Number.isFinite(chart.stageEnd)&&time>=chart.stageEnd){
-      this.complete(time);
-      return;
-    }
+    // The level is cleared at its goal time, but gameplay and Endless Void continue.
+    // The result screen reports "STAGE COMPLETED" only after the player eventually dies.
+    if(Math.max(0,time-level.offset)>=(level.goalSeconds??60))this.completeStage(time);
 
     chart.ensure(time);
 
@@ -576,21 +595,23 @@ export class Game {
     // The arrow tip is lethal. If either flank/base touches a wall first,
     // clamp angular movement at the last free position. Input is deliberately
     // left untouched: the held direction resumes as soon as the wall passes.
-    const currentCollision=chart.collision(time,this.phi,this.mods.mapSpeed);
+    const mapSpeed=this.modsLocked?1:this.mods.mapSpeed;
+    const playerSpeed=this.modsLocked?1:this.mods.playerSpeed;
+    const currentCollision=chart.collision(time,this.phi,mapSpeed);
     if(currentCollision?.type==='tip'){
       this.die(time);
       return;
     }
 
     const direction=this.input.R-this.input.L;
-    const angularVelocity=direction*(level.turnRate??8.5)*this.mods.playerSpeed;
+    const angularVelocity=direction*(level.turnRate??8.5)*playerSpeed;
     const angularDelta=angularVelocity*deltaTime;
     const substeps=Math.max(1,Math.ceil(Math.abs(angularDelta)/.012));
     let sideBlocked=false;
 
     for(let step=1;step<=substeps;step++){
       const candidate=this.phi+angularDelta/substeps;
-      const collision=chart.collision(time,candidate,this.mods.mapSpeed);
+      const collision=chart.collision(time,candidate,mapSpeed);
       if(collision?.type==='tip'){
         // If the flank was already touching this exact wall at the start of the
         // frame, pushing farther into it is a blocked turn. A different wall
@@ -614,9 +635,6 @@ export class Game {
 
     this.playerOmega=sideBlocked?0:angularVelocity;
 
-    if(Number.isFinite(chart.stageEnd)&&time>=chart.stageEnd){
-      this.complete(time);
-    }
   }
 
   loop(now) {
