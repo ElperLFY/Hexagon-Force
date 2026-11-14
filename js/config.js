@@ -7,7 +7,7 @@ export const SONG_DIR='MusicData/';
 // Endless "void" phase. At START seconds into a run the authored chart is replaced by generated rows
 // (forever), the whole screen inverts and a black gradient slowly creeps in from one side.
 export const VOID={
-  start:60,          // seconds into the run
+  start:10,          // seconds into the run --10s for testing
   flip:.9,           // seconds for the inversion to sweep out from the centre
   fade:2,            // pause after the flip before the darkness starts to grow
   ramp:150,          // seconds for the darkness to reach full strength
@@ -32,7 +32,7 @@ export const VIS={
     high:[2000,9000]
   },
   mix:{bass:.6,mid:.3,high:.1}, // weights of the 'all' band
-  punch:.85,                // 0 = follows the sustained loudness, 1 = only the hits (kicks) above the recent average
+  punch:.60,                // 0 = follows the sustained loudness, 1 = only the hits (kicks) above the recent average
   baseline:.5,              // seconds of "recent average" that hits are measured against (punch > 0)
   agc:6,                    // seconds the loudness reference takes to relax: quiet parts still pulse, 0 = off
   minPeak:.1,               // loudness reference never drops below this (stops silence from being amplified)
@@ -46,7 +46,7 @@ export const VIS={
     band:'bass',            // 'bass' | 'mid' | 'high' | 'all'
     rest:.88,               // hub size when the music is quiet (1 = the original size)
     amount:.26,             // extra size at a full-strength hit. Keep rest+amount <= ~1.15 or it touches the arrow
-    flash:.3,               // 0..1 how much the hub fill lights up with the wall colour on a hit
+    flash:.2,               // 0..1 how much the hub fill lights up with the wall colour on a hit
     line:.3                 // how much the hub outline gets thicker on a hit
   },
   cam:{
@@ -62,7 +62,7 @@ export const LEVELS=[
   {
     id:105,name:'VERDE · GIALLO · ROSSO',offset:0,speed:1,seed:105,
     rotSpeed:1,rotAmp:.1,rotBeats:16,
-    randomSectionBeats:16,randomLaneShiftChance:.05,randomDropChance:.025,randomAddChance:.08,
+    randomSectionBeats:6,randomLaneShiftChance:.05,randomDropChance:.025,randomAddChance:.08,
     extra:['dwhirl','spin4','t321','rain','rain'],
     pal(tt){
       let p=(tt/30)%2;
@@ -74,7 +74,7 @@ export const LEVELS=[
   {
     id:100,name:'CREMISI · NERO',offset:39,speed:1.1,seed:100,inv:true,
     rotSpeed:1.2,rotAmp:.2,rotBeats:16,
-    randomSectionBeats:12,randomLaneShiftChance:.08,randomDropChance:.04,randomAddChance:.08,
+    randomSectionBeats:6,randomLaneShiftChance:.08,randomDropChance:.04,randomAddChance:.08,
     pal(tt,inv){
       return inv
         ?{b1:'#0b0308',b2:'#170610',w:'#7d0e24',p:'#f4bcc4'}
@@ -85,7 +85,7 @@ export const LEVELS=[
     id:110,name:'BLU',offset:0,speed:1.3,seed:110,hard:true,diff:.25,ramp:45,
     rotSpeed:1.5,rotAmp:0,rotBeats:14,
     randomSectionBeats:10,randomLaneShiftChance:.16,randomDropChance:.10,randomAddChance:.07,
-    intensityThreshold:.065,
+    intensityThreshold:.090,
     extra:['dwhirl','stair1','stair2','spin4','t321','rain',],
     pal(){return{b1:hsl(215,70,64),b2:hsl(215,70,57),w:hsl(222,85,16),p:hsl(210,60,97)}}
   },
@@ -93,7 +93,7 @@ export const LEVELS=[
     id:115,name:'RGB',offset:0,speed:1.4,seed:115,hard:true,diff:.35,ramp:45,
     rotSpeed:2,rotAmp:0,rotBeats:12,trip:true,
     randomSectionBeats:4,randomLaneShiftChance:.22,randomDropChance:.14,randomAddChance:.05,
-    intensityThreshold:.055,
+    intensityThreshold:.090,
     extra:['dwhirl','stair1','stair2','spin3','spin4','t321','rain','doubleC','zig','pairs'],
     patternWeights:{ladder:1.35,burst:1.3,whirl:1.25,dwhirl:1.2,stair2:1.2,spin3:1.2,t321:1.15},
     pal(tt){
