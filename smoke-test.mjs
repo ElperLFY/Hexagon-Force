@@ -94,6 +94,8 @@ if(!gameSource.includes('progress.announcements')||!gameSource.includes("announc
 if(!audioManagerSource.includes("loadCue('sounds', 'rankup')")||!audioManagerSource.includes('backingGain.gain.value = .22')||!audioManagerSource.includes('backingSource.start(startAt)')||!audioManagerSource.includes('voiceSource.start(startAt)'))throw new Error('Sounds/rankup.ogg must be quieter than the voice and synchronized to the same start time');
 if(!gameSource.includes('constructor(canvas,pathRegistry)')||!gameSource.includes('completedLevels')||!gameSource.includes('isLevelUnlocked'))throw new Error('Game progression must be driven by Paths and saved completion state');
 if(!gameSource.includes('this.progress.completedLevels.push(key)'))throw new Error('Clearing a stage must persist its completion flag');
+if(!gameSource.includes('path?.levels?.find(item=>item.id===index)'))throw new Error('Level completion checks must accept JSON level IDs as well as UI indices');
+if(!gameSource.includes('this.isPathCompleted(rule.pathId)'))throw new Error('Path unlock must depend on all stages in the prerequisite route being completed');
 if(!gameSource.includes("level.chartMode==='authored'"))throw new Error('Path level charts should be beat-sensitive unless explicitly marked authored');
 const rendererSource=fs.readFileSync('./js/Renderer.js','utf8');
 if(!rendererSource.includes('drawPlayer(phi,this.p.w,turn)'))throw new Error('Player pointer colour must match the wall colour');

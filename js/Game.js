@@ -98,7 +98,8 @@ export class Game {
   }
 
   isLevelCompleted(index,path=this.activePath){
-    const level=typeof index==='number'?path?.levels?.[index]:path?.levels?.find(item=>item.id===index);
+    // Callers may pass either a zero-based UI index or the numeric level ID from JSON.
+    const level=path?.levels?.[index]??path?.levels?.find(item=>item.id===index);
     return Boolean(level&&this.progress.completedLevels.includes(this.levelKey(level,path)));
   }
 
@@ -179,6 +180,7 @@ export class Game {
       this.audio.playSound('menuselect');
       return false;
     }
+    this.tk++; // invalidate any preview that may still be loading for the previous Path
     this.pathIndex=this.paths.indexOf(path);
     this.lv=this.firstAvailableLevelIndex(path);
     this.msg=path.levels.length?'':'PATH UNLOCKED — NEW LEVELS COMING SOON';
