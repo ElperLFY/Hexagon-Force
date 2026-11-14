@@ -139,6 +139,8 @@ if(titleInput.includes('game.nav('))throw new Error('A/D and arrows must select 
 if(!gameSource.includes("PATH OF PAIN ISN'T UNLOCKED YET"))throw new Error('Scrolling beyond Path of Joy must show the Path of Pain unlock message');
 if(!gameSource.includes('(this.pathIndex+step+this.paths.length)%this.paths.length'))throw new Error('Level navigation must cycle between Paths in both directions after the adjacent Path is unlocked');
 if(!gameSource.includes('selectPath(nextPath.id,destination)'))throw new Error('Crossing a Path boundary must enter the first/last level according to navigation direction');
+const navSource=gameSource.slice(gameSource.indexOf('  nav(direction)'),gameSource.indexOf('  back()'));
+if(!navSource.includes('if(this.levels.length){')||!navSource.includes("this.selectPath(nextPath.id);"))throw new Error('An unlocked empty Path must remain traversable so the player can cycle back to Path of Joy');
 const configSource=fs.readFileSync('./js/config.js','utf8');
 if(configSource.includes('export const LEVELS'))throw new Error('Individual level data must live outside config.js');
 if(!gameSource.includes("playSequence([['sounds', 'die'], ['sounds', 'gameover']])"))throw new Error('Death and Game Over voice must play sequentially');

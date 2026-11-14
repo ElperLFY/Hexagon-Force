@@ -317,19 +317,16 @@ export class Game {
     if(this.state!=='menu')return;
     const step=Math.sign(direction);
     if(!step)return;
-    if(!this.levels.length){
-      this.msg='NEW LEVELS COMING SOON';
-      return;
+    if(this.levels.length){
+      const nextLevel=this.lv+step;
+      if(nextLevel>=0&&nextLevel<this.levels.length){
+        this.selectLevel(nextLevel,true);
+        return;
+      }
     }
 
-    const nextLevel=this.lv+step;
-    if(nextLevel>=0&&nextLevel<this.levels.length){
-      this.selectLevel(nextLevel,true);
-      return;
-    }
-
-    // Treat every Path as part of one circular route. Path of Pain is simply
-    // unavailable until Path of Joy has been fully cleared.
+    // Treat every Path as part of one circular route. An unlocked Path with
+    // no authored levels is still traversable, so it can never become a dead end.
     const nextPathIndex=(this.pathIndex+step+this.paths.length)%this.paths.length;
     const nextPath=this.paths[nextPathIndex];
     if(!nextPath||!this.isPathUnlocked(nextPath)){
@@ -340,8 +337,8 @@ export class Game {
       return;
     }
     if(!nextPath.levels.length){
+      this.selectPath(nextPath.id);
       this.msg='NEW LEVELS COMING SOON';
-      this.audio.playSound('menuselect');
       return;
     }
 
