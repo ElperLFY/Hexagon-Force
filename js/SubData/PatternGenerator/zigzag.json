@@ -1,0 +1,73 @@
+{
+  "$schema": "./pattern.schema.json",
+  "id": "zigzag",
+  "name": "Zigzag",
+  "category": "alternating-single",
+  "description": "Eight single-opening Parts alternate direction on every change.",
+  "tags": [
+    "single-opening",
+    "alternating",
+    "rhythmic"
+  ],
+  "weight": 1.6,
+  "voidWeight": 1.5,
+  "directionMode": "fixed",
+  "parts": [
+    {
+      "beat": 0,
+      "openOffsets": [
+        0
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 1.25,
+      "openOffsets": [
+        1
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 2.5,
+      "openOffsets": [
+        0
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 3.75,
+      "openOffsets": [
+        1
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 5,
+      "openOffsets": [
+        0
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 6.25,
+      "openOffsets": [
+        1
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 7.5,
+      "openOffsets": [
+        0
+      ],
+      "wallSpanBeats": 0.42
+    },
+    {
+      "beat": 8.75,
+      "openOffsets": [
+        1
+      ],
+      "wallSpanBeats": 0.42
+    }
+  ]
+}
