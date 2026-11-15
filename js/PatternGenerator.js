@@ -1,4 +1,4 @@
-import {TAU,SIDE,K,TH,PART_DEPTH_SCALE,RP,HUB,PL,VOID,GENERATOR_TURN_RATE} from './config.js';
+import {TAU,SECTOR_COUNT,SIDE,K,TH,PART_DEPTH_SCALE,RP,HUB,PL,VOID,GENERATOR_TURN_RATE} from './config.js';
 
 // Deterministic PRNG: the same level seed produces the same chart.
 const mul=a=>()=>{
@@ -9,12 +9,12 @@ const mul=a=>()=>{
   return ((t^t>>>14)>>>0)/4294967296;
 };
 const cd=(a,b)=>{
-  const m=((a-b)%6+6)%6;
-  return Math.min(m,6-m);
+  const m=((a-b)%SECTOR_COUNT+SECTOR_COUNT)%SECTOR_COUNT;
+  return Math.min(m,SECTOR_COUNT-m);
 };
-const norm=s=>((s%6)+6)%6;
+const norm=s=>((s%SECTOR_COUNT)+SECTOR_COUNT)%SECTOR_COUNT;
 const sd=a=>Math.floor((((a%TAU)+TAU)%TAU)/SIDE);
-const wmask=g=>[0,1,2,3,4,5].map(s=>!g.includes(s));
+const wmask=g=>Array.from({length:SECTOR_COUNT},(_,s)=>!g.includes(s));
 const unique=a=>[...new Set(a.map(norm))];
 const P=(a,m)=>[m*K*Math.cos(a),m*K*Math.sin(a)];
 
@@ -73,7 +73,7 @@ function repairRows(rows,L,seed=null){
   const playerSpeed=Math.max(.01,Number(L.clearancePlayerSpeed??1)||1);
   const turnRate=(L.turnRate??GENERATOR_TURN_RATE)*playerSpeed;
   const stepTime=SIDE/turnRate;
-  const reaction=L.reactionMargin??PatternGenerator.catalog?.generation?.reactionMarginSeconds??.04;
+  const reaction=L.reactionMargin??PatternGenerator.catalog.generation.reactionMarginSeconds;
   const speed=(L.speed||1)*mapSpeed;
   const baseThickness=L.wallThickness??TH;
 
@@ -97,7 +97,7 @@ function repairRows(rows,L,seed=null){
         // The motif has rotational symmetry in Z6. Find one global rotation
         // that makes the current lane an opening in its first Part.
         let shift=0,best=Infinity;
-        for(let candidate=0;candidate<6;candidate++){
+        for(let candidate=0;candidate<SECTOR_COUNT;candidate++){
           const distance=Math.min(...first.g.map(g=>cd(from,norm(g+candidate))));
           if(distance<best){best=distance;shift=candidate;}
           if(distance===0)break;
@@ -117,7 +117,7 @@ function repairRows(rows,L,seed=null){
           const dt=row.t-previous.t;
           const previousDepth=previous.routeDepth??previous.th??baseThickness;
           const available=Math.max(0,dt-previousDepth/speed-reaction);
-          const maxSteps=Math.min(3,Math.max(0,Math.floor(available/stepTime)));
+          const maxSteps=Math.min(Math.floor(SECTOR_COUNT/2),Math.max(0,Math.floor(available/stepTime)));
           const from=previous.route!=null&&previous.g.includes(previous.route)
             ?previous.route:previous.g[0];
           let bestDistance=9,to=from;
@@ -146,7 +146,7 @@ function repairRows(rows,L,seed=null){
       const dt=first.t-previous.t;
       const previousDepth=previous.routeDepth??previous.th??baseThickness;
       const available=Math.max(0,dt-previousDepth/speed-reaction);
-      const maxSteps=Math.min(3,Math.max(0,Math.floor(available/stepTime)));
+      const maxSteps=Math.min(Math.floor(SECTOR_COUNT/2),Math.max(0,Math.floor(available/stepTime)));
       const from=previous.route!=null&&previous.g.includes(previous.route)
         ?previous.route:previous.g[0];
       let bestDistance=9,to=from;
@@ -156,7 +156,7 @@ function repairRows(rows,L,seed=null){
       }
       if(bestDistance>maxSteps){
         const clockwise=norm(to-from);
-        const direction=clockwise<=3?1:-1;
+        const direction=clockwise<=Math.floor(SECTOR_COUNT/2)?1:-1;
         const bridge=norm(from+direction*Math.min(bestDistance,maxSteps));
         first.g=unique([...first.g,bridge]);
         first.route=bridge;
@@ -212,7 +212,7 @@ export class Chart{
       const clippedInner=Math.max(inner,HUB);
       if(outer<=clippedInner)continue;
 
-      for(let sector=0;sector<6;sector++){
+      for(let sector=0;sector<SECTOR_COUNT;sector++){
         if(!row.w[sector])continue;
         const a=sector*SIDE,b=a+SIDE;
         const wall=[P(a,clippedInner),P(b,clippedInner),P(b,outer),P(a,outer)];
@@ -254,14 +254,14 @@ export class Chart{
         // random-section boundary mirror/rotate its later rows independently.
         transform=motifTransforms.get(source.motifId);
         if(!transform){
-          transform={offset:r()*6|0,mirror:r()<.5};
+          transform={offset:r()*SECTOR_COUNT|0,mirror:r()<.5};
           motifTransforms.set(source.motifId,transform);
         }
       }else{
         const nextSection=Math.floor(beat/sectionBeats);
         if(nextSection!==section){
           section=nextSection;
-          offset=r()*6|0;
+          offset=r()*SECTOR_COUNT|0;
           mirror=r()<.5;
         }
         transform={offset,mirror};
@@ -404,7 +404,7 @@ export class PatternGenerator{
       }));
       const definitions=Object.fromEntries(entries);
       const compiled={};
-      const normSector=value=>((value%6)+6)%6;
+      const normSector=value=>((value%SECTOR_COUNT)+SECTOR_COUNT)%SECTOR_COUNT;
       const randomInt=(random,min,max)=>min+Math.floor(random()*(max-min+1));
 
       const compile=id=>{
@@ -491,6 +491,41 @@ export class PatternGenerator{
     this.lastDirectionalDirection=null;
   }
 
+  patternReachable(name,beatDuration){
+    const events=PatternGenerator.PAT[name]?.(0,1,()=>.5)??[];
+    if(events.length<2)return events.length>0;
+    const L=this.L,generation=PatternGenerator.catalog.generation;
+    const levelSpeed=Math.max(.01,Number(L.speed)||1);
+    const mapSpeed=Math.max(.01,Number(L.clearanceMapSpeed??1)||1);
+    const playerSpeed=Math.max(.01,Number(L.clearancePlayerSpeed??1)||1);
+    const turnRate=(L.turnRate??GENERATOR_TURN_RATE)*playerSpeed;
+    const stepTime=SIDE/turnRate;
+    const reaction=Math.max(0,Number(L.reactionMargin??generation.reactionMarginSeconds));
+    const baseThickness=L.wallThickness??TH;
+    let previous=null;
+
+    for(const [beat,gaps,spanBeats=0,routeSpanBeats=null] of events){
+      const openings=unique(gaps);
+      const physicalSpan=spanBeats>0
+        ?Math.max(baseThickness,levelSpeed*beatDuration*spanBeats*(routeSpanBeats===0?1:PART_DEPTH_SCALE))
+        :baseThickness;
+      const routeDepth=routeSpanBeats!=null
+        ?levelSpeed*beatDuration*routeSpanBeats
+        :physicalSpan;
+      if(previous){
+        const elapsed=(beat-previous.beat)*beatDuration;
+        const available=Math.max(0,elapsed-previous.routeDepth/(levelSpeed*mapSpeed)-reaction);
+        const maxSteps=Math.min(Math.floor(SECTOR_COUNT/2),Math.floor(available/stepTime));
+        const distance=Math.min(...previous.openings.flatMap(from=>
+          openings.map(to=>cd(from,to))
+        ));
+        if(distance>maxSteps)return false;
+      }
+      previous={beat,openings,routeDepth};
+    }
+    return true;
+  }
+
   patternTags(name){
     return PatternGenerator.definitions?.[name]?.tags??[];
   }
@@ -561,11 +596,14 @@ export class PatternGenerator{
     return [...new Set(names)].filter(name=>typeof PatternGenerator.PAT[name]==='function');
   }
 
-  chooseWeighted(names,r,weightKey='weight',feel=null){
+  chooseWeighted(names,r,weightKey='weight',feel=null,beatDuration=this.L.beatDuration??.5){
     const selection=PatternGenerator.catalog?.selection??{};
     const levelWeights=this.L.patternWeights||{};
     const definitions=PatternGenerator.definitions??{};
-    let candidates=this.transitionCandidates(names);
+    let candidates=this.transitionCandidates(names).filter(name=>this.patternReachable(name,beatDuration));
+    if(!candidates.length){
+      throw new Error('No pattern in the active pool is reachable at this level speed and rhythm');
+    }
     const historyLength=Math.max(0,Math.floor(Number(selection.recentPatternHistory??0)));
     if(historyLength>0){
       const recent=this.recentPatterns.slice(-historyLength);
@@ -609,12 +647,12 @@ export class PatternGenerator{
     return chosen;
   }
 
-  choose(names,r,feel=null){
-    return this.chooseWeighted(names,r,'weight',feel);
+  choose(names,r,feel=null,beatDuration){
+    return this.chooseWeighted(names,r,'weight',feel,beatDuration);
   }
 
-  chooseVoid(r){
-    return this.chooseWeighted(this.voidPool(),r,'voidWeight');
+  chooseVoid(r,beatDuration){
+    return this.chooseWeighted(this.voidPool(),r,'voidWeight',null,beatDuration);
   }
 
   generate(S,bd,tg0,dur){
@@ -660,9 +698,9 @@ export class PatternGenerator{
       const swingShift=syncopation>.57||(peakIndex%2===1&&peak>.48)?0.5:0;
       const patternBeat=b0+swingShift;
       const tb=tg0+patternBeat*bd;
-      const g=r()*6|0;
+      const g=r()*SECTOR_COUNT|0;
       const names=this.pool(x);
-      const name=this.choose(names,r,feel);
+      const name=this.choose(names,r,feel,bd);
       const d=this.directionFor(name,r);
       const pat=PatternGenerator.PAT[name](g,d,r);
       const motifId=`${name}@${tb.toFixed(6)}`;
@@ -730,9 +768,9 @@ export class PatternGenerator{
     const stop=from+bars*4*bd;
     let tb=from,guard=0;
     while(tb<stop&&guard++<PatternGenerator.catalog.generation.maxVoidMotifsPerChunk){
-      const name=this.chooseVoid(r);
+      const name=this.chooseVoid(r,bd);
       const d=this.directionFor(name,r);
-      let g=r()*6|0;
+      let g=r()*SECTOR_COUNT|0;
 
       // Orient the next motif so its first Part retains at least one opening
       // from the previous motif's final Part. This avoids an abrupt lane jump
@@ -740,7 +778,7 @@ export class PatternGenerator{
       if(this.lastVoidOpenings?.length){
         const preferred=this.lastVoidOpenings[0];
         let best=-1,candidates=[];
-        for(let candidate=0;candidate<6;candidate++){
+        for(let candidate=0;candidate<SECTOR_COUNT;candidate++){
           const first=PatternGenerator.PAT[name](candidate,d,()=>.5)[0]?.[1]??[];
           const normalized=first.map(norm);
           // Prefer the first opening carried forward from the previous Part.
