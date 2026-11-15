@@ -111,6 +111,9 @@
                 },
                 "description": {
                   "type": "string"
+                },
+                "warning": {
+                  "type": "string"
                 }
               }
             }
