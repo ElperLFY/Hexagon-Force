@@ -484,7 +484,19 @@ export class PatternGenerator{
     catch(error){this.loading=null;throw error;}
   }
 
-  constructor(L){this.L=L;this.rng=mul(L.seed);this.lastVoidPattern=null;this.lastVoidMulti=false;this.lastVoidOpenings=null;this.postVoidLadderRemaining=0;this.postVoidBatRemaining=0;this.recentPatterns=[];}
+  constructor(L){
+    this.L=L;
+    this.rng=mul(L.seed);
+    this.lastVoidPattern=null;
+    this.lastVoidOpenings=null;
+    this.postVoidLadderRemaining=0;
+    this.postVoidBatRemaining=0;
+    this.recentPatterns=[];
+    // A single-opening (C-shaped) motif is followed by two non-C motifs
+    // whenever the active difficulty pool offers alternatives.
+    this.singleOpeningCooldown=0;
+    this.voidSingleOpeningCooldown=0;
+  }
 
   pool(x){
     const L=this.L,catalog=PatternGenerator.catalog;
@@ -501,17 +513,36 @@ export class PatternGenerator{
     return [...new Set(names)].filter(name=>typeof PatternGenerator.PAT[name]==='function');
   }
 
+  isSingleOpening(name){
+    const definition=PatternGenerator.definitions?.[name];
+    return Boolean(definition?.tags?.includes('single-opening')||definition?.category==='single-opening');
+  }
+
   choose(names,r,feel=null){
     const levelWeights=this.L.patternWeights||{};
     const definitions=PatternGenerator.definitions??{};
     const recent=this.recentPatterns.slice(-2);
     const fresh=names.filter(name=>!recent.includes(name));
-    const candidates=fresh.length?fresh:names;
+    let candidates=fresh.length?fresh:names;
+
+    // Avoid a run of C-shaped motifs. Prefer an unused non-single-opening
+    // pattern during the two-motif cooldown; only fall back when the pool has
+    // no alternative at this difficulty.
+    if(this.singleOpeningCooldown>0){
+      const freshAlternatives=candidates.filter(name=>!this.isSingleOpening(name));
+      const anyAlternatives=names.filter(name=>!this.isSingleOpening(name));
+      if(freshAlternatives.length)candidates=freshAlternatives;
+      else if(anyAlternatives.length)candidates=anyAlternatives;
+    }
+
     const multiLane=['solo2','solo3','alt3','bat','dwhirl','ladder','rain','doubleC','pairs'];
     const rhythmic=['whirl','dwhirl','spin2','spin3','spin4','multiC','t321','zig'];
     const dense=['ladder','burst','rain','stair1','stair2','wall'];
     const weight=name=>{
       let value=Math.max(.1,Number(levelWeights[name]??definitions[name]?.weight??1));
+      // The JSON tags define the movement family. Favor multi-opening and
+      // mixed silhouettes even when a level-specific weight favors a C motif.
+      value*=this.isSingleOpening(name)?.55:1.15;
       if(feel){
         if(feel.syncopation>.28&&rhythmic.includes(name))value*=1.45;
         if(feel.density>.52&&multiLane.includes(name))value*=1.25;
@@ -524,6 +555,8 @@ export class PatternGenerator{
     const total=candidates.reduce((sum,name)=>sum+weight(name),0);
     let value=r()*total,chosen=candidates[candidates.length-1];
     for(const name of candidates){value-=weight(name);if(value<=0){chosen=name;break;}}
+    if(this.isSingleOpening(chosen))this.singleOpeningCooldown=2;
+    else this.singleOpeningCooldown=Math.max(0,this.singleOpeningCooldown-1);
     this.recentPatterns.push(chosen);
     if(this.recentPatterns.length>4)this.recentPatterns.shift();
     return chosen;
@@ -644,14 +677,13 @@ export class PatternGenerator{
     return repairRows(rows,this.L,seed);
   }
 
-  // Void deliberately uses a dedicated pattern pool in every stage. A multi-lane
-  // Part is guaranteed at least every other motif, preventing endless single-C runs.
+  // Void uses a dedicated pattern pool, with the same C-pattern cooldown as
+  // the soundtrack-synchronised section so the endless phase stays varied.
   voidPool(){
     return [...(PatternGenerator.catalog?.voidPool??[])];
   }
 
   chooseVoid(r){
-    const multi=PatternGenerator.catalog?.voidMultiLanePatterns??[];
     let names=this.voidPool();
     const enteringPostLadder=this.lastVoidPattern==='ladder'||this.lastVoidPattern==='zig';
     const inPostLadder=enteringPostLadder||this.postVoidLadderRemaining>0;
@@ -663,24 +695,31 @@ export class PatternGenerator{
       names=names.filter(name=>ladderExitPreset.includes(name));
     }else if(inPostBat){
       names=names.filter(name=>PatternGenerator.POST_BAT.includes(name));
-    }else if(this.lastVoidMulti===false){
-      names=names.filter(name=>multi.includes(name));
-    }else if(this.lastVoidMulti===true){
-      names=names.filter(name=>!multi.includes(name));
     }
     if(names.length>1&&this.lastVoidPattern)names=names.filter(name=>name!==this.lastVoidPattern);
     if(!names.length)names=this.voidPool();
 
+    // Keep the endless phase varied as well: one single-opening motif can be
+    // followed by up to two multi-opening/mixed motifs when alternatives exist.
+    if(this.voidSingleOpeningCooldown>0){
+      const alternatives=names.filter(name=>!this.isSingleOpening(name));
+      if(alternatives.length)names=alternatives;
+    }
+
     const definitions=PatternGenerator.definitions??{};
-    const weight=name=>Number(definitions[name]?.voidWeight??1);
+    const weight=name=>{
+      const base=Math.max(.1,Number(definitions[name]?.voidWeight??1));
+      return base*(this.isSingleOpening(name)?.55:1.15);
+    };
     const total=names.reduce((sum,name)=>sum+weight(name),0);
     let value=r()*total,chosen=names[names.length-1];
     for(const name of names){
       value-=weight(name);
       if(value<=0){chosen=name;break;}
     }
+    if(this.isSingleOpening(chosen))this.voidSingleOpeningCooldown=2;
+    else this.voidSingleOpeningCooldown=Math.max(0,this.voidSingleOpeningCooldown-1);
     this.lastVoidPattern=chosen;
-    this.lastVoidMulti=multi.includes(chosen);
     if(chosen==='ladder'||chosen==='zig'){
       this.postVoidLadderRemaining=4;
     }else if(enteringPostLadder){
