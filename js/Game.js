@@ -110,7 +110,8 @@ export class Game {
 
   isPathCompleted(pathOrId){
     const path=typeof pathOrId==='string'?this.paths.find(item=>item.id===pathOrId):pathOrId;
-    return Boolean(path&&path.levels.length&&path.levels.every(level=>this.hasCompletedLevel(level,path)));
+    const requiredLevels=path?.levels?.filter(level=>!level.optional)??[];
+    return Boolean(path&&requiredLevels.length&&requiredLevels.every(level=>this.hasCompletedLevel(level,path)));
   }
 
   isPathUnlocked(pathOrId){
@@ -123,6 +124,9 @@ export class Game {
   }
 
   isLevelUnlocked(index,path=this.activePath){
+    const level=path?.levels?.[index];
+    if(!level)return false;
+    if(level.unlock?.type==='always')return true;
     if(index===0)return true;
     return index>0&&index<path.levels.length&&this.hasCompletedLevel(path.levels[index-1],path);
   }
@@ -136,9 +140,9 @@ export class Game {
   }
 
   unlockedLevelCount(path=this.activePath){
-    let count=0;
-    while(count<path.levels.length&&this.isLevelUnlocked(count,path))count++;
-    return count;
+    return (path?.levels??[]).reduce(
+      (count,_level,index)=>count+Number(this.isLevelUnlocked(index,path)),0
+    );
   }
 
   migrateLegacyScores(){
@@ -231,6 +235,7 @@ export class Game {
     const level = this.activePath?.levels?.[this.lv];
     const requestToken = ++this.tk;
     if(!level){this.audio.stop();return;}
+    if(level.music===false){this.audio.stop();return;}
 
     try {
       await this.audio.load(level);
@@ -411,6 +416,7 @@ export class Game {
 
   recordResult(time) {
     const level=this.level,key=this.recordKey(level);
+    if(level?.optional)return false;
     const elapsed=Math.max(0,time-level.offset);
     this.lastScores[key]=elapsed;
     localStorage.setItem('hxl',JSON.stringify(this.lastScores));
@@ -425,7 +431,9 @@ export class Game {
   }
 
   checkMilestoneCues(time) {
-    const level=this.level,key=this.recordKey(level);
+    const level=this.level;
+    if(level?.patternSequenceTest)return;
+    const key=this.recordKey(level);
     const elapsed=Math.max(0,time-level.offset);
     const announced=this.progress.announcements[key]??[];
     let changed=false;
@@ -447,7 +455,7 @@ export class Game {
 
   completeStage(time){
     const level=this.activePath?.levels?.[this.lv];
-    if(!level||Math.max(0,time-level.offset)<(level.goalSeconds??60))return false;
+    if(!level||level.optional||Math.max(0,time-level.offset)<(level.goalSeconds??60))return false;
     if(this.runUsesMultipliers)return false;
     const key=this.recordKey(level);
     if(!this.progress.completedLevels.includes(key)){
@@ -504,26 +512,38 @@ export class Game {
       this.runUsesMultipliers =
         Math.abs((this.mods.mapSpeed??1)-1)>1e-6 ||
         Math.abs((this.mods.playerSpeed??1)-1)>1e-6;
+      await this.audio.unlock();
       await PatternGenerator.loadCatalog();
-      const audioBuffer=await this.audio.load(level);
 
       const seed=(level.seed^(Date.now()>>>0)^(Math.random()*0x100000000>>>0))>>>0;
-      // Reuse the decoded soundtrack, but build a fresh beat-sensitive motif sequence per attempt.
       const generationLevel={
         ...level,
         clearanceMapSpeed:this.mods.mapSpeed,
         clearancePlayerSpeed:this.mods.playerSpeed
       };
-      const baseChart=await this.getChart(generationLevel,audioBuffer,seed);
-      this.baseCharts[cacheKey]=baseChart;
-      const run=baseChart
-        .randomized(generationLevel,seed)
-        .endless(generationLevel,seed,level.offset+VOID.start);
+      let run;
 
-      this.charts[cacheKey]=run;
-      this.noiseOn=false;
-      this.audio.loadNoise();
-      this.audio.play(level,false,run);
+      if(level.patternSequenceTest){
+        run=new PatternGenerator({...generationLevel,seed}).generateCatalogSequence();
+        this.baseCharts[cacheKey]=run;
+        this.charts[cacheKey]=run;
+        await this.audio.loadNoise();
+        this.audio.play(level,false,run);
+        this.audio.startNoise();
+        this.noiseOn=true;
+      }else{
+        const audioBuffer=await this.audio.load(level);
+        const baseChart=await this.getChart(generationLevel,audioBuffer,seed);
+        this.baseCharts[cacheKey]=baseChart;
+        run=baseChart
+          .randomized(generationLevel,seed)
+          .endless(generationLevel,seed,level.offset+VOID.start);
+
+        this.charts[cacheKey]=run;
+        await this.audio.loadNoise();
+        this.audio.play(level,false,run);
+        this.noiseOn=false;
+      }
       this.phi=0;
       this.fx=null;
       this.state='play';
