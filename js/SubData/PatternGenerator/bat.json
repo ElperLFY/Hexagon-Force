@@ -6,7 +6,7 @@
   "tags": [
     "multi-opening",
     "paired-lanes",
-    "unidirectional"
+    "alternating"
   ],
   "weight": 1,
   "voidWeight": 1.4,
