@@ -596,7 +596,7 @@ export class PatternGenerator{
     return [...new Set(names)].filter(name=>typeof PatternGenerator.PAT[name]==='function');
   }
 
-  chooseWeighted(names,r,weightKey='weight',feel=null,beatDuration=this.L.beatDuration??.5){
+  chooseWeighted(names,r,weightKey,feel,beatDuration){
     const selection=PatternGenerator.catalog?.selection??{};
     const levelWeights=this.L.patternWeights||{};
     const definitions=PatternGenerator.definitions??{};
@@ -754,10 +754,6 @@ export class PatternGenerator{
   // Void shares the catalog-driven family and transition policies with normal generation.
   voidPool(){
     return [...(PatternGenerator.catalog?.voidPool??[])];
-  }
-
-  chooseVoid(r){
-    return this.chooseWeighted(this.voidPool(),r,'voidWeight');
   }
 
   // Continuous Void stream. Chunks begin at the exact time returned by the previous
