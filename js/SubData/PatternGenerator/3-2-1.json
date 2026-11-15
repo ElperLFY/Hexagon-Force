@@ -5,7 +5,8 @@
   "description": "M-shaped route: move three, then two, then one sector.",
   "tags": [
     "single-opening",
-    "M-shape"
+    "M-shape",
+    "unidirectional"
   ],
   "weight": 1,
   "voidWeight": 1,
