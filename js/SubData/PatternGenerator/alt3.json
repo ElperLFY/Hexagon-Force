@@ -5,7 +5,8 @@
   "description": "Four Parts alternating between the two complementary three-opening masks.",
   "tags": [
     "multi-opening",
-    "wide-opening"
+    "wide-opening",
+    "alternating"
   ],
   "weight": 1,
   "voidWeight": 1,
