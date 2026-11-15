@@ -5,10 +5,12 @@
   "description": "Five consecutive single-opening Parts, moving one sector every 1.25 beats.",
   "tags": [
     "single-opening",
-    "spiral"
+    "spiral",
+    "c-shaped",
+    "unidirectional"
   ],
-  "weight": 1,
-  "voidWeight": 0.9,
+  "weight": 0.72,
+  "voidWeight": 0.58,
   "directionMode": "relative",
   "parts": [
     {
