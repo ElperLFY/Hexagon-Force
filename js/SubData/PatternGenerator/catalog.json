@@ -26,7 +26,8 @@
     "spin2",
     "spin3",
     "spin4",
-    "doubleC"
+    "doubleC",
+    "zigzag"
   ],
   "poolBands": [
     {
@@ -49,7 +50,8 @@
         "solo2",
         "solo3",
         "alt3",
-        "tripleC"
+        "tripleC",
+        "stair2"
       ]
     },
     {
@@ -63,7 +65,9 @@
         "spin2",
         "doubleC",
         "solo3",
-        "alt3"
+        "alt3",
+        "stair2",
+        "zigzag"
       ]
     },
     {
@@ -83,7 +87,9 @@
         "solo3",
         "alt3",
         "dwhirl",
-        "stair1"
+        "stair1",
+        "stair2",
+        "zigzag"
       ]
     }
   ],
@@ -134,7 +140,8 @@
     "spin4",
     "t321",
     "rain",
-    "doubleC"
+    "doubleC",
+    "zigzag"
   ],
   "transitions": {
     "afterLadder": {
@@ -147,6 +154,10 @@
       "finalAllowed": [
         "solo3",
         "alt3"
+      ],
+      "triggerPatterns": [
+        "ladder",
+        "zig"
       ]
     },
     "afterBat": {
@@ -154,6 +165,10 @@
       "allowed": [
         "solo3",
         "alt3"
+      ],
+      "triggerPatterns": [
+        "bat",
+        "pairs"
       ]
     }
   },
@@ -181,6 +196,36 @@
     "spin2": "spin2.json",
     "spin3": "spin3.json",
     "spin4": "spin4.json",
-    "doubleC": "double-c.json"
+    "doubleC": "double-c.json",
+    "zigzag": "zigzag.json"
+  },
+  "selection": {
+    "recentPatternHistory": 2,
+    "historyLimit": 4,
+    "minimumWeight": 0.1,
+    "tagCooldowns": {
+      "c-shaped": 2,
+      "unidirectional": 1
+    },
+    "tagWeights": {
+      "c-shaped": 0.35,
+      "unidirectional": 0.72,
+      "alternating": 1.75,
+      "multi-opening": 1.12
+    },
+    "directionAlternation": {
+      "tag": "unidirectional"
+    }
+  },
+  "generation": {
+    "reactionMarginSeconds": 0.04,
+    "defaultVoidGapBeats": 0.32,
+    "minimumPatternGapBeats": 0.1,
+    "defaultPatternGapBeats": 0.62,
+    "normalQuietThreshold": 0.1,
+    "hardQuietThreshold": 0.065,
+    "beatsPerBar": 4,
+    "nonContinuousGapBeats": 0.5,
+    "maxVoidMotifsPerChunk": 512
   }
 }
