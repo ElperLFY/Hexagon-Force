@@ -655,6 +655,106 @@ export class PatternGenerator{
     return this.chooseWeighted(this.voidPool(),r,'voidWeight',null,beatDuration);
   }
 
+  // Deterministic test chart: include every registered catalog pattern once,
+  // in catalog order, without audio analysis or weighted random selection.
+  generateCatalogSequence(){
+    const L=this.L,catalog=PatternGenerator.catalog;
+    const names=catalog.patterns;
+    const generation=catalog.generation;
+    if(!names.length)throw new Error('The pattern catalog is empty');
+
+    const step=Math.max(0.01,Number(L.patternTestBeatStep));
+    const maximum=Math.max(Number(L.patternTestMaxBeatDuration),Number(L.patternTestBeatDuration));
+    let beatDuration=Math.max(0.1,Number(L.patternTestBeatDuration));
+    let unreachable=[];
+
+    while(beatDuration<=maximum+1e-9){
+      unreachable=names.filter(name=>!this.patternReachable(name,beatDuration));
+      if(!unreachable.length)break;
+      beatDuration=+(beatDuration+step).toFixed(4);
+    }
+    if(unreachable.length){
+      throw new Error(
+        'Pattern Test cannot safely schedule: '+unreachable.join(', ')+
+        '. Reduce Mods or increase the test beat-duration limit.'
+      );
+    }
+
+    const rows=[];
+    const speed=Math.max(0.01,Number(L.speed)||1);
+    const baseThickness=L.wallThickness??TH;
+    const partSpan=(spanBeats,routeSpanBeats=null)=>spanBeats>0
+      ?spanBeats*(routeSpanBeats===0?1:PART_DEPTH_SCALE)
+      :baseThickness/(speed*beatDuration);
+    const rowDepth=(spanBeats,routeSpanBeats=null)=>{
+      const span=partSpan(spanBeats,routeSpanBeats);
+      return spanBeats>0?Math.max(baseThickness,speed*beatDuration*span):baseThickness;
+    };
+    const radialSpanBeats=(spanBeats,routeSpanBeats=null)=>
+      rowDepth(spanBeats,routeSpanBeats)/(speed*beatDuration);
+    const playerSpeed=Math.max(0.01,Number(L.clearancePlayerSpeed??1)||1);
+    const turnRate=(L.turnRate??GENERATOR_TURN_RATE)*playerSpeed;
+    const worstTurnBeats=(SIDE*Math.floor(SECTOR_COUNT/2)/turnRate)/beatDuration;
+    const configuredGap=Number(L.patternTestGapBeats??generation.defaultPatternGapBeats);
+    const minimumGap=Number(generation.minimumPatternGapBeats);
+    let beatCursor=0;
+
+    names.forEach((name,index)=>{
+      const direction=this.directionFor(name,this.rng);
+      const startSector=index%SECTOR_COUNT;
+      const events=PatternGenerator.PAT[name](startSector,direction,this.rng);
+      if(!events?.length)throw new Error('Pattern factory returned no Parts: '+name);
+
+      const motifId='test-'+String(index+1).padStart(2,'0')+'-'+name;
+      const motifDuration=Math.max(...events.map(([beat,,spanBeats=0,routeSpanBeats=null])=>
+        beat+radialSpanBeats(spanBeats,routeSpanBeats)
+      ));
+      let lastDepth=baseThickness;
+
+      for(const [beat,gaps,spanBeats=0,routeSpanBeats=null] of events){
+        const depth=rowDepth(spanBeats,routeSpanBeats);
+        const row={
+          t:L.offset+((beatCursor+beat)*beatDuration),
+          g:unique(gaps),
+          motifId,
+          motifName:name,
+          motifStart:L.offset+beatCursor*beatDuration,
+          motifEnd:L.offset+(beatCursor+motifDuration)*beatDuration
+        };
+        if(spanBeats>0)row.th=depth;
+        if(Number.isFinite(routeSpanBeats)&&routeSpanBeats>=0){
+          row.routeDepth=speed*beatDuration*routeSpanBeats;
+        }
+        rows.push(row);
+        lastDepth=depth;
+      }
+
+      const safeGap=Math.max(
+        minimumGap,
+        configuredGap,
+        this.clearanceGapBeats(lastDepth,beatDuration)+worstTurnBeats
+      );
+      beatCursor+=motifDuration+safeGap;
+    });
+
+    const repaired=this.repair(rows.sort((a,b)=>a.t-b.t));
+    const unreachableRows=repaired.filter(row=>row.routeReachable===false);
+    if(unreachableRows.length){
+      const motifs=[...new Set(unreachableRows.map(row=>row.motifName))];
+      throw new Error('Pattern Test route audit failed for: '+motifs.join(', '));
+    }
+
+    const last=repaired[repaired.length-1];
+    const duration=last
+      ?last.t+((last.th??baseThickness)/(speed*Math.max(0.01,Number(L.clearanceMapSpeed??1)||1)))+
+        generation.reactionMarginSeconds
+      :L.offset;
+    const chart=new Chart(repaired,beatDuration,L.offset,60/beatDuration,duration,L.speed,L.wallThickness??TH);
+    chart.sequencePatternNames=[...names];
+    chart.sequenceBeatDuration=beatDuration;
+    return chart;
+  }
+
   generate(S,bd,tg0,dur){
     const L=this.L,r=this.rng,rows=[],t0=L.offset;
     if(!(bd>0)||!(dur>0))return rows;
