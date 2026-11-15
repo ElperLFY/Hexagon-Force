@@ -535,14 +535,14 @@ export class PatternGenerator{
       else if(anyAlternatives.length)candidates=anyAlternatives;
     }
 
-    const multiLane=['solo2','solo3','alt3','bat','dwhirl','ladder','rain','doubleC','pairs'];
+    const multiLane=['solo2','solo3','alt3','bat','dwhirl','ladder','stair1','rain','doubleC','pairs'];
     const rhythmic=['whirl','dwhirl','spin2','spin3','spin4','multiC','t321','zig'];
     const dense=['ladder','burst','rain','stair1','stair2','wall'];
     const weight=name=>{
       let value=Math.max(.1,Number(levelWeights[name]??definitions[name]?.weight??1));
       // The JSON tags define the movement family. Favor multi-opening and
       // mixed silhouettes even when a level-specific weight favors a C motif.
-      value*=this.isSingleOpening(name)?.55:1.15;
+      value*=this.isSingleOpening(name) ? 0.55 : 1.15;
       if(feel){
         if(feel.syncopation>.28&&rhythmic.includes(name))value*=1.45;
         if(feel.density>.52&&multiLane.includes(name))value*=1.25;
@@ -709,7 +709,7 @@ export class PatternGenerator{
     const definitions=PatternGenerator.definitions??{};
     const weight=name=>{
       const base=Math.max(.1,Number(definitions[name]?.voidWeight??1));
-      return base*(this.isSingleOpening(name)?.55:1.15);
+      return base*(this.isSingleOpening(name) ? 0.55 : 1.15);
     };
     const total=names.reduce((sum,name)=>sum+weight(name),0);
     let value=r()*total,chosen=names[names.length-1];
