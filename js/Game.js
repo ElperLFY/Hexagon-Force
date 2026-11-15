@@ -1,4 +1,4 @@
-import { SONG_DIR, VOID } from './config.js';
+import { SONG_DIR, VOID, DEFAULT_TURN_RATE } from './config.js';
 import { Chart, PatternGenerator } from './PatternGenerator.js';
 import { BeatAnalyzer } from './BeatAnalyzer.js';
 import { AudioManager } from './AudioManager.js';
@@ -509,11 +509,12 @@ export class Game {
 
       const seed=(level.seed^(Date.now()>>>0)^(Math.random()*0x100000000>>>0))>>>0;
       // Reuse the decoded soundtrack, but build a fresh beat-sensitive motif sequence per attempt.
-      const baseChart=await this.getChart(level,audioBuffer,seed);
+      const generationLevel={...level,clearanceMapSpeed:this.mods.mapSpeed};
+      const baseChart=await this.getChart(generationLevel,audioBuffer,seed);
       this.baseCharts[cacheKey]=baseChart;
       const run=baseChart
-        .randomized(level,seed)
-        .endless(level,seed,level.offset+VOID.start);
+        .randomized(generationLevel,seed)
+        .endless(generationLevel,seed,level.offset+VOID.start);
 
       this.charts[cacheKey]=run;
       this.noiseOn=false;
@@ -627,7 +628,7 @@ export class Game {
     }
 
     const direction=this.input.R-this.input.L;
-    const angularVelocity=direction*(level.turnRate??8.5)*playerSpeed;
+    const angularVelocity=direction*(level.turnRate??DEFAULT_TURN_RATE)*playerSpeed;
     const angularDelta=angularVelocity*deltaTime;
     const substeps=Math.max(1,Math.ceil(Math.abs(angularDelta)/.012));
     let sideBlocked=false;
