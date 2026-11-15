@@ -5,7 +5,8 @@
   "description": "Four one-opening Parts stepping one sector at a time.",
   "tags": [
     "single-opening",
-    "stair"
+    "stair",
+    "alternating"
   ],
   "weight": 1,
   "voidWeight": 0.9,
