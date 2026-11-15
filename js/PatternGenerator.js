@@ -1,4 +1,4 @@
-import {TAU,SIDE,K,TH,PART_DEPTH_SCALE,RP,HUB,PL,VOID,DEFAULT_TURN_RATE} from './config.js';
+import {TAU,SIDE,K,TH,PART_DEPTH_SCALE,RP,HUB,PL,VOID,GENERATOR_TURN_RATE} from './config.js';
 
 // Deterministic PRNG: the same level seed produces the same chart.
 const mul=a=>()=>{
@@ -71,7 +71,7 @@ function repairRows(rows,L,seed=null){
   let previous=seed;
   const mapSpeed=Math.max(.01,Number(L.clearanceMapSpeed??1)||1);
   const playerSpeed=Math.max(.01,Number(L.clearancePlayerSpeed??1)||1);
-  const turnRate=(L.turnRate??DEFAULT_TURN_RATE)*playerSpeed;
+  const turnRate=(L.turnRate??GENERATOR_TURN_RATE)*playerSpeed;
   const stepTime=SIDE/turnRate;
   const reaction=L.reactionMargin??PatternGenerator.catalog?.generation?.reactionMarginSeconds??.04;
   const speed=(L.speed||1)*mapSpeed;
@@ -526,11 +526,12 @@ export class PatternGenerator{
     const tag=policy?.tag;
     let direction=r()<.5?-1:1;
     const tagged=Boolean(tag&&this.patternTags(name).includes(tag));
-    if(tagged&&this.lastDirectionalTag===tag&&direction===this.lastDirectionalDirection){
+    if(!tagged)return direction;
+    if(this.lastDirectionalTag===tag&&direction===this.lastDirectionalDirection){
       direction=-direction;
     }
-    this.lastDirectionalTag=tagged?tag:null;
-    this.lastDirectionalDirection=tagged?direction:null;
+    this.lastDirectionalTag=tag;
+    this.lastDirectionalDirection=direction;
     return direction;
   }
 
