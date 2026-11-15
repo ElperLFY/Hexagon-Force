@@ -1,4 +1,4 @@
-import {TAU,SIDE,K,RP,HUB,TH,PL,VOID,VIS} from './config.js';
+import {TAU,SIDE,K,RP,HUB,TH,PL,VOID,VIS,DEFAULT_TURN_RATE} from './config.js';
 import {UIRenderer} from './UIRenderer.js';
 
 const lerp=(a,b,k)=>a+(b-a)*k;
@@ -221,7 +221,7 @@ export class Renderer{
       c.save();c.translate((Math.random()-.5)*U*.06*k,(Math.random()-.5)*U*.06*k);
     }
 
-    const maxOmega=(L.turnRate??10)*(g.mods?.playerSpeed??1)*(g.voidActive?1.08:1);
+    const maxOmega=(L.turnRate??DEFAULT_TURN_RATE)*(g.mods?.playerSpeed??1)*(g.voidActive?1.08:1);
     const turn=Number.isFinite(g.playerOmega)
       ?clamp(g.playerOmega/Math.max(.001,maxOmega),-1,1)
       :(g.input?(g.input.R-g.input.L):0);
