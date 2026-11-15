@@ -5,10 +5,11 @@
   "description": "Six Parts following the cumulative RRLLL sector offsets.",
   "tags": [
     "single-opening",
-    "stair"
+    "stair",
+    "alternating"
   ],
-  "weight": 1,
-  "voidWeight": 1.1,
+  "weight": 1.45,
+  "voidWeight": 1.35,
   "directionMode": "relative",
   "parts": [
     {
