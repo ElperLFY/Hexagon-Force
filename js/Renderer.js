@@ -213,7 +213,8 @@ export class Renderer{
     const L=g.level,t=g.time(),ch=g.chart,{W,H,U}=this;
     const fx=g.fx,c=this.c;
     c.globalCompositeOperation='source-over';
-    this.mapMul=g.mods?g.mods.mapSpeed:1;
+    const activeMods=g.live?(g.runModifiers??g.mods):g.mods;
+    this.mapMul=activeMods?activeMods.mapSpeed:1;
     this.hubLvl=g.vis?g.vis.get(VIS.hub.band):0;
     this.camLvl=g.vis?g.vis.get(VIS.cam.band):0;
     if(fx){
@@ -221,7 +222,7 @@ export class Renderer{
       c.save();c.translate((Math.random()-.5)*U*.06*k,(Math.random()-.5)*U*.06*k);
     }
 
-    const maxOmega=(L.turnRate??DEFAULT_TURN_RATE)*(g.mods?.playerSpeed??1);
+    const maxOmega=(L.turnRate??DEFAULT_TURN_RATE)*(activeMods?.playerSpeed??1);
     const turn=Number.isFinite(g.playerOmega)
       ?clamp(g.playerOmega/Math.max(.001,maxOmega),-1,1)
       :(g.input?(g.input.R-g.input.L):0);
