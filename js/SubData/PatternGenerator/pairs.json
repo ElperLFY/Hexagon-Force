@@ -6,7 +6,8 @@
   "aliasOf": "bat",
   "tags": [
     "multi-opening",
-    "alias"
+    "alias",
+    "unidirectional"
   ],
   "weight": 1,
   "voidWeight": 1,
