@@ -85,8 +85,6 @@ export class UIRenderer{
 
   title(g,p){
     const c=this.c,W=this.W,H=this.H,U=this.U,now=performance.now()/1000;
-    const path=g.activePath;
-    const L=path?.levels?.[g.lv]??null;
 
     this.header(p,'TAB — HIGH SCORES','ESC — QUIT');
     this.ring(W*.5,H*.43,U*.76,now*.22,p.b1,Math.max(2,U*.012));
@@ -100,21 +98,12 @@ export class UIRenderer{
 
     this.text('HEXBEAT',W*.5,H*.235,U*.31,p.p);
     this.text('RHYTHM SURVIVAL',W*.5,H*.315,U*.052,p.w);
-    this.text('PATH · '+(path?.title??'UNKNOWN'),W*.5,H*.455,U*.040,p.w);
-    this.text(
-      L?'LEVEL '+String(g.lv+1).padStart(2,'0')+'   /   '+L.name:'NEW LEVELS COMING SOON',
-      W*.5,H*.515,U*.047,p.p
-    );
 
     const bw=Math.min(W*.34,U*1.55),bh=H*.085,bx=(W-bw)/2,by=H*.765;
     this.panel(bx,by,bw,bh,p.b1,'rgba(0,0,0,.76)',bh*.22);
-    this.text(L?'START GAME':'BROWSE PATH',W*.5,by+bh*.5,U*.075,p.p);
+    this.text('CONTINUE',W*.5,by+bh*.5,U*.075,p.p);
 
-    // The target branch's gate hit zones sit at the outer screen edges.
-    this.chevron(W*.065,H*.515,U*.095,-1,p.p);
-    this.chevron(W*.935,H*.515,U*.095,1,p.p);
-    this.text('PRESS SPACE TO START',W*.5,H*.885,U*.047,p.w);
-    this.text('← / →  CHANGE LEVEL / PATH',W*.5,H*.925,U*.031,p.w);
+    this.text('PRESS SPACE TO CONTINUE',W*.5,H*.885,U*.047,p.w);
     this.text('SETTINGS  ·  M / S',W*.5,H*.965,U*.027,p.w);
     if(g.msg)this.text(g.msg,W*.5,H*.985,U*.022,p.w);
   }
