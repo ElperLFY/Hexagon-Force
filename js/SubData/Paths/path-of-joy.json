@@ -240,7 +240,8 @@
         "p": "#e9fbff"
       },
       "patternTestMapSpeed": 1,
-      "patternTestPlayerSpeed": 1
+      "patternTestPlayerSpeed": 1,
+      "description": "Optional test run: every registered pattern once, in catalog order. No soundtrack; wn01h noise starts immediately."
     }
   ]
 }
