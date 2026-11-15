@@ -6,7 +6,8 @@
   "tags": [
     "multi-opening",
     "single-opening",
-    "cap"
+    "cap",
+    "alternating"
   ],
   "weight": 1,
   "voidWeight": 1.25,
