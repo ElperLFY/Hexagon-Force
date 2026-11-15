@@ -5,7 +5,8 @@
   "description": "A continuous one-lane spiral with 1.25 beats between one-sector changes.",
   "tags": [
     "single-opening",
-    "spiral"
+    "spiral",
+    "unidirectional"
   ],
   "weight": 1.25,
   "voidWeight": 1,
