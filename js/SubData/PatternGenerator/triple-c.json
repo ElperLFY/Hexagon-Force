@@ -6,8 +6,7 @@
   "tags": [
     "single-opening",
     "three-sector-turn",
-    "c-shaped",
-    "unidirectional"
+    "c-shaped"
   ],
   "weight": 0.65,
   "voidWeight": 0.42,
