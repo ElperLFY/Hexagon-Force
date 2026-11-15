@@ -69,10 +69,12 @@ function playerPolygon(phi){
 // Restore at least one reachable opening after a randomized phrase change.
 function repairRows(rows,L,seed=null){
   let previous=seed;
-  const turnRate=L.turnRate??DEFAULT_TURN_RATE;
+  const mapSpeed=Math.max(.01,Number(L.clearanceMapSpeed??1)||1);
+  const playerSpeed=Math.max(.01,Number(L.clearancePlayerSpeed??1)||1);
+  const turnRate=(L.turnRate??DEFAULT_TURN_RATE)*playerSpeed;
   const stepTime=SIDE/turnRate;
   const reaction=L.reactionMargin??PatternGenerator.catalog?.generation?.reactionMarginSeconds??.04;
-  const speed=L.speed||1;
+  const speed=(L.speed||1)*mapSpeed;
   const baseThickness=L.wallThickness??TH;
 
   // Process complete motifs as atomic phrases. If a phrase needs a different
@@ -622,9 +624,6 @@ export class PatternGenerator{
       ?generation.hardQuietThreshold??.065
       :generation.normalQuietThreshold??.1);
     let beatCursor=Math.max(0,Math.ceil((t0+2-tg0)/(4*bd)-1e-6)*4);
-    let previousPattern=null;
-    let postLadderRemaining=0;
-    let postBatRemaining=0;
     for(;;){
       const b0=beatCursor;
       if(tg0+b0*bd+4*bd>dur-1.5)break;
