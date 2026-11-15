@@ -67,7 +67,15 @@ export class AudioManager {
     this.stopNoise();
     this.stop();
     const c = this.ctx;
+    if(L.music===false){
+      // Music-free test levels still use the AudioContext clock for gameplay.
+      this.src=null;
+      this.gain=null;
+      this.startAt=c.currentTime+.2;
+      return;
+    }
     const buffer = this.buf[L.id];
+    if(!buffer)throw new Error('No decoded soundtrack is available for level '+L.id);
     const source = c.createBufferSource();
     const gain = c.createGain();
 
