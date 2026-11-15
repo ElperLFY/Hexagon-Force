@@ -6,7 +6,7 @@
   "tags": [
     "single-opening",
     "stair",
-    "alternating"
+    "unidirectional"
   ],
   "weight": 1,
   "voidWeight": 0.9,
