@@ -6,7 +6,8 @@
   "aliasOf": "ladder",
   "tags": [
     "compound",
-    "alias"
+    "alias",
+    "alternating"
   ],
   "weight": 1,
   "voidWeight": 1,
