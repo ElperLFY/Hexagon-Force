@@ -141,6 +141,8 @@ if(!titleRendererSource.includes('this.scene(L,t,ch,g.live,g.phi,fx,turn)'))thro
 if(!titleGameSource.includes("this.state!=='menu'&&this.state!=='gate'"))throw new Error('Title screen must accept level-navigation input');
 if(titleGameSource.includes('titlePreviewStarted'))throw new Error('Title background must not use a separate generated-gameplay clock');
 if(!titleInputSource.includes("code==='ArrowLeft'||code==='KeyA'")||!titleInputSource.includes("code==='ArrowRight'||code==='KeyD'"))throw new Error('A/D and arrows must switch the title background level');
+const gateInput=titleInputSource.slice(titleInputSource.indexOf("if (game.state === 'gate')"),titleInputSource.indexOf("if (game.state === 'menu')"));
+if(!gateInput.includes('game.confirm();')||gateInput.includes('activeElement?.blur'))throw new Error('Space must start from the original key event without dropping its audio activation');
 const confirmStart=titleGameSource.slice(titleGameSource.indexOf('  confirm()'),titleGameSource.indexOf('  nav(direction)'));
 if(!confirmStart.includes('void this.play();')||confirmStart.indexOf('void this.play();')<confirmStart.indexOf('Promise.resolve(this.audio.unlock())'))throw new Error('Space must start the selected stage immediately, without waiting for AudioContext.resume()');
 const startCalls=[];
@@ -151,6 +153,8 @@ Game.prototype.confirm.call({
   play(){startCalls.push('play');}
 });
 if(startCalls.length!==1)throw new Error('Title Space action must invoke gameplay even while the audio-resume promise is pending');
+const liveState=Object.getOwnPropertyDescriptor(Game.prototype,'live')?.get;
+if(!liveState||liveState.call({state:'gate'})!==false||liveState.call({state:'play'})!==true)throw new Error('The title screen must render the stage background with gameplay walls and player disabled');
 if(!uiSource.includes('  mirroredPanel(x,y,w,h,'))throw new Error('UIRenderer must implement mirroredPanel before Title or HUD rendering');
 const mirroredCommands=[];
 const fakeCanvas={

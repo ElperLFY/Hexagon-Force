@@ -41,7 +41,6 @@ export class Input {
         if(code==='ArrowRight'||code==='KeyD'){game.nav(1);return;}
         if (code === 'Space' || code === 'Enter') {
           event.preventDefault();
-          document.activeElement?.blur?.();
           game.confirm();
         }
         return;
