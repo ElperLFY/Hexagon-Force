@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import {SIDE,TAU,TH,PART_DEPTH_SCALE,VOID,RP,PL,MUSIC_CUE_DIR,SOUND_CUE_DIR,MUSIC_CUES,SOUND_CUES} from './js/config.js';
 import {Chart,PatternGenerator} from './js/PatternGenerator.js';
 import {buildPathRegistry} from './js/Paths.js';
+import {UIRenderer} from './js/UIRenderer.js';
 
 const pathCatalog=JSON.parse(fs.readFileSync('./js/SubData/Paths/catalog.json','utf8'));
 const pathCatalogSchema=JSON.parse(fs.readFileSync('./js/SubData/Paths/catalog.schema.json','utf8'));
@@ -123,6 +124,15 @@ if(endlessSmoke.dur!==Infinity||endlessSmoke.stageEnd!==null||!endlessSmoke.rows
 const beatAnalyzerSource=fs.readFileSync('./js/BeatAnalyzer.js','utf8');
 if(!beatAnalyzerSource.includes('subarray(startSample,endSample)')||!beatAnalyzerSource.includes('startSeconds+tempo.phase/fps'))throw new Error('Beat analysis must stay inside the played audio segment and retain its absolute offset');
 const uiSource=fs.readFileSync('./js/UIRenderer.js','utf8');
+if(!/\\bmirroredPanel\\s*\\(/.test(uiSource))throw new Error('UIRenderer must implement mirroredPanel before Title or HUD rendering');
+const mirroredCommands=[];
+const fakeCanvas={
+  beginPath(){},moveTo(x,y){mirroredCommands.push([x,y]);},lineTo(x,y){mirroredCommands.push([x,y]);},
+  closePath(){},fill(){},stroke(){}
+};
+const uiProbe=new UIRenderer({c:fakeCanvas,W:1000,H:600,U:400,text(){}});
+uiProbe.mirroredPanel(600,0,400,40,'#fff','#000',8);
+if(mirroredCommands.length!==5||mirroredCommands[0][0]!==992||mirroredCommands[1][0]!==608||mirroredCommands[2][0]!==600||mirroredCommands[4][0]!==1000)throw new Error('Mirrored HUD panel geometry does not reflect the left panel');
 const titleScreen=uiSource.slice(uiSource.indexOf('  title(g,p){'),uiSource.indexOf('  selection(g,p){'));
 const stageScreen=uiSource.slice(uiSource.indexOf('  selection(g,p){'),uiSource.indexOf('  results(g,p,complete){'));
 const resultsScreen=uiSource.slice(uiSource.indexOf('  results(g,p,complete){'),uiSource.indexOf('  leaderboard(g,p){'));

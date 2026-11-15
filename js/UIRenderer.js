@@ -16,6 +16,16 @@ export class UIRenderer{
   panel(x,y,w,h,color,fill='rgba(0,0,0,.78)',cut=18){
     this.polygon([[x+cut,y],[x+w-cut,y],[x+w,y+h],[x+cut*.65,y+h],[x,y]],fill,color,Math.max(2,this.U*.006));
   }
+  mirroredPanel(x,y,w,h,color,fill='rgba(0,0,0,.78)',cut=18){
+    // Exact horizontal mirror of panel(), keeping both top HUD plaques symmetrical.
+    this.polygon([
+      [x+w-cut,y],
+      [x+cut,y],
+      [x,y+h],
+      [x+w-cut*.65,y+h],
+      [x+w,y]
+    ],fill,color,Math.max(2,this.U*.006));
+  }
   ring(x,y,r,angle,color,width){
     const c=this.c;c.save();c.translate(x,y);c.rotate(angle);c.beginPath();
     for(let i=0;i<6;i++){const a=-Math.PI/2+i*Math.PI/3,px=Math.cos(a)*r,py=Math.sin(a)*r;i?c.lineTo(px,py):c.moveTo(px,py);}
