@@ -33,6 +33,7 @@ export class Game {
     this.uiOverlay = null;
     this.noiseOn = false;
     this.mods = this.loadMods();
+    this.runUsesMultipliers = false;
 
     this.audio = new AudioManager();
     this.view = new Renderer(canvas);
@@ -60,10 +61,6 @@ export class Game {
   get level() {
     // Keep a valid palette for menu rendering when an unlocked Path has no authored levels yet.
     return this.activePath?.levels?.[this.lv]??this.paths.find(path=>path.levels.length)?.levels[0]??null;
-  }
-
-  get modsLocked(){
-    return this.activePath?.id==='path-of-pain';
   }
 
   get levels() { return this.activePath?.levels??[]; }
@@ -269,7 +266,7 @@ export class Game {
   }
 
   setMod(key, value) {
-    if(this.modsLocked||!(key in this.mods)||!Number.isFinite(value))return;
+    if(!(key in this.mods)||!Number.isFinite(value))return;
     this.mods[key]=Math.min(2.5,Math.max(.5,value));
     localStorage.setItem('hxm',JSON.stringify(this.mods));
   }
@@ -451,6 +448,7 @@ export class Game {
   completeStage(time){
     const level=this.activePath?.levels?.[this.lv];
     if(!level||Math.max(0,time-level.offset)<(level.goalSeconds??60))return false;
+    if(this.runUsesMultipliers)return false;
     const key=this.recordKey(level);
     if(!this.progress.completedLevels.includes(key)){
       this.progress.completedLevels.push(key);
@@ -503,6 +501,9 @@ export class Game {
 
     try{
       await this.settingsReady;
+      this.runUsesMultipliers =
+        Math.abs((this.mods.mapSpeed??1)-1)>1e-6 ||
+        Math.abs((this.mods.playerSpeed??1)-1)>1e-6;
       await PatternGenerator.loadCatalog();
       const audioBuffer=await this.audio.load(level);
 
@@ -617,8 +618,8 @@ export class Game {
     // The arrow tip is lethal. If either flank/base touches a wall first,
     // clamp angular movement at the last free position. Input is deliberately
     // left untouched: the held direction resumes as soon as the wall passes.
-    const mapSpeed=this.modsLocked?1:this.mods.mapSpeed;
-    const playerSpeed=this.modsLocked?1:this.mods.playerSpeed;
+    const mapSpeed=this.mods.mapSpeed;
+    const playerSpeed=this.mods.playerSpeed;
     const currentCollision=chart.collision(time,this.phi,mapSpeed);
     if(currentCollision?.type==='tip'){
       this.die(time);
