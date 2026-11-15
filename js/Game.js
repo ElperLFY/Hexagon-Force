@@ -20,7 +20,6 @@ export class Game {
     const defaultIndex=this.paths.findIndex(path=>path.id===pathRegistry.defaultPathId);
     this.pathIndex=savedPathIndex>=0?savedPathIndex:Math.max(0,defaultIndex);
     this.lv=this.firstAvailableLevelIndex();
-    this.titlePreviewStarted=performance.now();
     this.phi = 0;
     this.tF = 0;
     this.msg = '';
@@ -176,7 +175,6 @@ export class Game {
     this.msg=unlocked?'':'LOCKED';
     this.audio.playSound('menuselect');
     this.persistProgress();
-    if(this.state==='gate')this.titlePreviewStarted=performance.now();
     if(this.state==='menu'){
       if(unlocked)this.preview();
       else{
@@ -201,7 +199,6 @@ export class Game {
     this.pathIndex=this.paths.indexOf(path);
     this.lv=Number.isInteger(startIndex)&&startIndex>=0&&startIndex<path.levels.length
       ?startIndex:this.firstAvailableLevelIndex(path);
-    this.titlePreviewStarted=performance.now();
     this.msg=path.levels.length?'':'NEW LEVELS COMING SOON';
     this.audio.playSound('menuselect');
     this.persistProgress();
@@ -229,9 +226,6 @@ export class Game {
   time() {
     if(this.state==='play'&&this.level)return this.audio.time(this.level);
     if(this.live)return this.tF;
-    if(this.state==='gate'&&this.level){
-      return this.level.offset+(performance.now()-this.titlePreviewStarted)/1000;
-    }
     return performance.now()/1e3;
   }
 
@@ -286,12 +280,17 @@ export class Game {
     this.audio.playSound('menuchoose');
 
     if(state==='gate'){
-      // The title screen is also the background level selector: Space starts
-      // the currently previewed stage directly, without a redundant menu stop.
-      this.audio.unlock().then(()=>{
-        void this.audio.preloadCues();
-        this.play();
-      });
+      // Begin loading gameplay immediately from the trusted key gesture.
+      // AudioContext.resume() is allowed to settle independently; it must never
+      // gate the transition into the selected level.
+      try{
+        Promise.resolve(this.audio.unlock())
+          .then(()=>this.audio.preloadCues())
+          .catch(error=>console.warn('[HEXBEAT] Audio unlock/cues unavailable:',error));
+      }catch(error){
+        console.warn('[HEXBEAT] Audio context could not be resumed:',error);
+      }
+      void this.play();
       return;
     }
     if(state==='menu'){

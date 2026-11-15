@@ -3,6 +3,7 @@ import {SIDE,TAU,TH,PART_DEPTH_SCALE,VOID,RP,PL,MUSIC_CUE_DIR,SOUND_CUE_DIR,MUSI
 import {Chart,PatternGenerator} from './js/PatternGenerator.js';
 import {buildPathRegistry} from './js/Paths.js';
 import {UIRenderer} from './js/UIRenderer.js';
+import {Game} from './js/Game.js';
 
 const pathCatalog=JSON.parse(fs.readFileSync('./js/SubData/Paths/catalog.json','utf8'));
 const pathCatalogSchema=JSON.parse(fs.readFileSync('./js/SubData/Paths/catalog.schema.json','utf8'));
@@ -116,11 +117,9 @@ if(!settingsController.includes('hb-setting__status--locked')||!settingsStyles.i
 const pathSource=fs.readFileSync('./js/Paths.js','utf8');
 if(!pathSource.includes('loadPathRegistry()')||!pathSource.includes('buildPathRegistry'))throw new Error('Path JSON must be loaded through the dedicated Paths module');
 const rendererSourceText=fs.readFileSync('./js/Renderer.js','utf8');
-const previewMethod=rendererSourceText.slice(rendererSourceText.indexOf('  titlePreviewChart(L,t){'),rendererSourceText.indexOf('  text(s,x,y,size,col'));
-if(!previewMethod.includes('const rows=[]')||!previewMethod.includes('w:mask')||!previewMethod.includes('rot(time,level)'))throw new Error('Title background preview must include moving, level-specific arena walls');
-const previewEval=Function('L','t','TAU','TH',previewMethod.slice(previewMethod.indexOf('{')+1,previewMethod.lastIndexOf('}')));
-const preview=previewEval(joyPath.levels[0],joyPath.levels[0].offset,Math.PI*2,.09);
-if(!preview.rows.length||preview.rows.some(row=>row.w.length!==6||!row.g.includes(0))||!Number.isFinite(preview.rot(1,joyPath.levels[0])))throw new Error('Title preview geometry must have a safe pointer opening and a valid animated rotation');
+const titleDraw=rendererSourceText.slice(rendererSourceText.indexOf('  draw(g){'),rendererSourceText.indexOf('\n}\n'));
+if(titleDraw.includes('titlePreviewChart')||titleDraw.includes('titlePreview'))throw new Error('Title must not generate fake gameplay walls');
+if(!titleDraw.includes('this.scene(L,t,ch,g.live,g.phi,fx,turn)'))throw new Error('Title must use the same rotating background as stage select, with walls disabled');
 const patternSource=fs.readFileSync('./js/PatternGenerator.js','utf8');
 if(!patternSource.includes('const syncopation=')||!patternSource.includes('const density=')||!patternSource.includes('recentPatterns'))throw new Error('Pattern choice must use beat accents and recent-pattern variety');
 if(!patternSource.includes('this.stageEnd=null')||!patternSource.includes('this.dur=Infinity'))throw new Error('Chart.endless must not have a finite stage-ending time');
@@ -134,15 +133,24 @@ const titleRendererSource=fs.readFileSync('./js/Renderer.js','utf8');
 const titleGameSource=fs.readFileSync('./js/Game.js','utf8');
 const titleInputSource=fs.readFileSync('./js/Input.js','utf8');
 const titleMenuSource=uiSource.slice(uiSource.indexOf('  title(g,p){'),uiSource.indexOf('  selection(g,p){'));
-if(!titleMenuSource.includes("this.text('HEXBEAT'")||!titleMenuSource.includes('PRESS SPACE TO START'))throw new Error('Title menu must use the HEXBEAT identity and a clear Space-to-start prompt');
-if(!titleMenuSource.includes('TAB — HIGH SCORES')||!titleMenuSource.includes('ESC — QUIT'))throw new Error('Title menu must expose the Tab and Escape actions in its HUD');
-if(titleMenuSource.includes('SUPER')||titleMenuSource.includes('START GAME')||titleMenuSource.includes('PRESS SPACE TO SELECT')||titleMenuSource.includes("fillRect(0,0,W,H)"))throw new Error('Title menu must not be a static copy or poster');
-if(!titleRendererSource.includes('titlePreviewChart(L,t)')||!titleRendererSource.includes('g.live||titlePreview'))throw new Error('Title background must render the selected level as a live preview scene');
-if(!titleRendererSource.includes('this.titlePreviewChart(L,t)'))throw new Error('Title preview chart must be selected from the active level');
+if(!titleMenuSource.includes("this.text('HEXBEAT'")||!titleMenuSource.includes('PRESS SPACE TO START'))throw new Error('Title menu must show HEXBEAT and the Space-to-start action');
+if(!titleMenuSource.includes('TAB — HIGH SCORES')||!titleMenuSource.includes('ESC — QUIT'))throw new Error('Title menu must expose Tab and Escape in the HUD');
+if(titleMenuSource.includes('SUPER')||titleMenuSource.includes('START GAME')||titleMenuSource.includes('RHYTHM  /  ROTATION')||titleMenuSource.includes('this.ring('))throw new Error('Title menu must not contain copied branding or unrequested decorations');
+if(titleRendererSource.includes('titlePreviewChart')||titleRendererSource.includes('titlePreview'))throw new Error('Title screen must not generate preview gameplay or fake walls');
+if(!titleRendererSource.includes('this.scene(L,t,ch,g.live,g.phi,fx,turn)'))throw new Error('Title must reuse the stage-select arena renderer with gameplay walls disabled');
 if(!titleGameSource.includes("this.state!=='menu'&&this.state!=='gate'"))throw new Error('Title screen must accept level-navigation input');
-if(!titleGameSource.includes("if(this.state==='gate'&&this.level)"))throw new Error('Title stage clock must restart when the selected level changes');
+if(titleGameSource.includes('titlePreviewStarted'))throw new Error('Title background must not use a separate generated-gameplay clock');
 if(!titleInputSource.includes("code==='ArrowLeft'||code==='KeyA'")||!titleInputSource.includes("code==='ArrowRight'||code==='KeyD'"))throw new Error('A/D and arrows must switch the title background level');
-if(!titleGameSource.includes('this.play();\n      });'))throw new Error('Space on the title screen must start the selected stage directly');
+const confirmStart=titleGameSource.slice(titleGameSource.indexOf('  confirm()'),titleGameSource.indexOf('  nav(direction)'));
+if(!confirmStart.includes('void this.play();')||confirmStart.indexOf('void this.play();')<confirmStart.indexOf('Promise.resolve(this.audio.unlock())'))throw new Error('Space must start the selected stage immediately, without waiting for AudioContext.resume()');
+const startCalls=[];
+const neverResolves=new Promise(()=>{});
+Game.prototype.confirm.call({
+  state:'gate',
+  audio:{playSound(){},unlock(){return neverResolves;},preloadCues(){return Promise.resolve();}},
+  play(){startCalls.push('play');}
+});
+if(startCalls.length!==1)throw new Error('Title Space action must invoke gameplay even while the audio-resume promise is pending');
 if(!uiSource.includes('  mirroredPanel(x,y,w,h,'))throw new Error('UIRenderer must implement mirroredPanel before Title or HUD rendering');
 const mirroredCommands=[];
 const fakeCanvas={

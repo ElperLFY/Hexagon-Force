@@ -48,38 +48,13 @@ export class UIRenderer{
     this.text(right,W-inset,h*.49,size,p.p,'right');
   }
   title(g,p){
-    const c=this.c,W=this.W,H=this.H,U=this.U,L=g.level;
-    const now=g.time(),elapsed=Math.max(0,now-(L?.offset??0));
-    const pulse=.5+.5*Math.sin(now*2.15+(L?.id??0)*.017);
-    const rotation=(L?.rotSpeed??.35)*elapsed*.09;
-
-    // The Renderer has already drawn the selected level's live arena, moving
-    // preview walls and pointer. These orbit rails add depth without hiding it.
-    c.save();
-    c.globalAlpha=.16;
-    this.ring(W*.5,H*.52,U*1.32,rotation,p.b1,Math.max(2,U*.006));
-    c.globalAlpha=.10;
-    this.ring(W*.5,H*.52,U*1.08,-rotation*1.45,p.w,Math.max(1,U*.004));
-    c.restore();
-
+    const W=this.W,H=this.H,U=this.U;
+    // Keep the title quiet and let the selected stage's rotating arena provide
+    // the motion and colour. No preview walls, rings, cards or extra taglines.
     this.header(p,'TAB — HIGH SCORES','ESC — QUIT');
-
-    // Original HEXBEAT identity: restrained typography over the moving stage,
-    // rather than a static poster or a replica of another game's title screen.
-    this.text('HEXBEAT',W*.5,H*.285,U*(.235+.006*pulse),p.p);
-    this.text('RHYTHM  /  ROTATION  /  SURVIVAL',W*.5,H*.365,U*.032,p.w);
-
-    const hintY=H*.775;
-    this.text('A / D   ·   LEFT / RIGHT  —  SHIFT THE STAGE',
-      W*.5,hintY,U*.025,p.w);
-    const startSize=U*(.055+.003*pulse);
-    this.panel(W*.285,H*.825,W*.43,H*.082,p.b1,'rgba(0,0,0,.58)',H*.025);
-    this.text('PRESS SPACE TO START',W*.5,H*.866,startSize,p.p);
-
-    if(!g.activePath?.levels?.length){
-      this.text('NEW LEVELS COMING SOON',W*.5,H*.94,U*.027,p.w);
-    }
-    if(g.msg)this.text(g.msg,W*.5,H*.975,U*.022,p.w);
+    this.text('HEXBEAT',W*.5,H*.38,U*.22,p.p);
+    this.text('PRESS SPACE TO START',W*.5,H*.84,U*.052,p.p);
+    if(g.msg)this.text(g.msg,W*.5,H*.95,U*.024,p.w);
   }
   selection(g,p){
     const W=this.W,H=this.H,U=this.U,now=performance.now()/1000;
