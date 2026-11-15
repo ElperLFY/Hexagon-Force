@@ -36,9 +36,10 @@
       "settings": [
         {
           "id": "modMenuEnabled",
-          "label": "Enable or Disable the Mods",
+          "label": "Mods",
           "type": "toggle",
-          "default": true
+          "default": true,
+          "warning": "Level Runs making use of Multipliers will be invalidated."
         },
         {
           "id": "mapSpeed",
