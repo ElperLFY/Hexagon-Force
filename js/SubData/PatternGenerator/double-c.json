@@ -5,7 +5,8 @@
   "description": "Four Parts with two adjacent openings, advancing one sector per beat.",
   "tags": [
     "multi-opening",
-    "adjacent-openings"
+    "adjacent-openings",
+    "unidirectional"
   ],
   "weight": 1,
   "voidWeight": 1.1,
