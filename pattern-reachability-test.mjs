@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import {SIDE,TAU,TH,PART_DEPTH_SCALE,RP,PL,GENERATOR_TURN_RATE} from './js/config.js';
+import {SIDE,TAU,TH,PART_DEPTH_SCALE,RP,PL,SECTOR_COUNT,GENERATOR_TURN_RATE} from './js/config.js';
 import {Chart,PatternGenerator} from './js/PatternGenerator.js';
 import {buildPathRegistry} from './js/Paths.js';
 
@@ -38,7 +38,7 @@ function simulate(name,direction,level,bd,bpm,repeat=3){
   for(const [beat,gaps,span=0,routeSpan=null] of events){
     const row={
       t:beat*bd,
-      g:[...new Set(gaps.map(x=>norm(x,6)))],
+      g:[...new Set(gaps.map(x=>norm(x,SECTOR_COUNT)))],
       motifId,motifName:name,motifStart:0
     };
     const effectiveSpan=span>0?span*(routeSpan===0?1:PART_DEPTH_SCALE):(L.wallThickness??TH)/(speed*bd);
