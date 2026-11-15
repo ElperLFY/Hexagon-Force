@@ -29,3 +29,14 @@ Use `pattern.schema.json` for editor autocomplete and validation of individual p
 Tags describe behavior rather than relying on names. For example, `c-shaped` identifies the repeated C construction, `unidirectional` identifies a motif whose relative movement follows one direction, and `alternating` identifies patterns that reverse their route. A pattern can carry multiple tags.
 
 The six-sector chart stores openings, not a mandatory route direction. Opposite sectors are three steps apart in either direction (`+3 ≡ -3` modulo six), so a Triple-C Part alone cannot force the player to use Q rather than E. The generator can vary subsequent motifs and offer alternating-route patterns, but enforcing a unique route through an opposite-side transition would require explicit route metadata and corresponding collision geometry.
+
+
+## Route difficulty and safety
+
+- `c-shaped` marks the repeated C motif family; `long-unidirectional` marks patterns whose authored route can demand five or more consecutive presses in one direction. These are separate from the broader `single-opening` geometry tag.
+- The catalog cooldowns and tag weights suppress repeated C and long-unidirectional motifs. Alternating patterns are weighted more strongly, and `directionAlternation` alternates the direction of successive tagged motifs even when another family appears between them.
+- Level 4 uses lower weights for Whirlpool, Spin 3/4 and 3-2-1, while favoring Stair 2 and Zigzag.
+- Before selection, the generator checks every candidate's consecutive Part openings against the conservative turn-rate estimate, beat duration, wall thickness, Map Speed, Player Speed and reaction margin. A motif that cannot be traversed at that timing is excluded.
+- The start of the next motif is delayed until the previous motif's last wall has cleared the Pointer's radial hitbox plus the configured reaction margin. The same clearance is applied in Endless Void.
+- `routeReachable` remains diagnostic metadata; the pre-selection feasibility check prevents a known-infeasible pattern from being chosen. The time-expanded test also checks overlapping collision geometry for generated sequences and chained Void chunks.
+
