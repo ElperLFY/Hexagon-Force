@@ -5,10 +5,12 @@
   "description": "Three C-shaped Parts. The three-sector transition is spaced 2.5 beats apart.",
   "tags": [
     "single-opening",
-    "three-sector-turn"
+    "three-sector-turn",
+    "c-shaped",
+    "unidirectional"
   ],
-  "weight": 1,
-  "voidWeight": 0.65,
+  "weight": 0.65,
+  "voidWeight": 0.42,
   "directionMode": "relative",
   "parts": [
     {
