@@ -280,17 +280,23 @@ export class Game {
     this.audio.playSound('menuchoose');
 
     if(state==='gate'){
-      // Begin loading gameplay immediately from the trusted key gesture.
-      // AudioContext.resume() is allowed to settle independently; it must never
-      // gate the transition into the selected level.
+      // The title screen is a separate first interaction: Space enters stage
+      // select. Starting a stage requires a second confirmation from the menu.
+      this.state='menu';
+      this.msg=this.levels.length?'':'NEW LEVELS COMING SOON';
+
+      // Unlock audio from the trusted key gesture, then start the selected
+      // stage preview without starting a gameplay run.
       try{
         Promise.resolve(this.audio.unlock())
           .then(()=>this.audio.preloadCues())
+          .then(()=>{
+            if(this.state==='menu'&&this.levels.length)this.preview();
+          })
           .catch(error=>console.warn('[HEXBEAT] Audio unlock/cues unavailable:',error));
       }catch(error){
         console.warn('[HEXBEAT] Audio context could not be resumed:',error);
       }
-      void this.play();
       return;
     }
     if(state==='menu'){
@@ -320,7 +326,8 @@ export class Game {
   }
 
   nav(direction) {
-    if(this.state!=='menu'&&this.state!=='gate')return;
+    // Level and Path navigation is available only after entering stage select.
+    if(this.state!=='menu')return;
     const step=Math.sign(direction);
     if(!step)return;
     if(this.levels.length){
@@ -461,8 +468,7 @@ export class Game {
       if(y<.075&&x<.4){this.toggleHighScores();return;}
       if(y<.075&&x>.6){this.quit();return;}
       if(y>.78&&y<.94&&x>.27&&x<.73){this.confirm();return;}
-      if(x<.12){this.nav(-1);return;}
-      if(x>.88){this.nav(1);return;}
+      // The title screen has no level-navigation hit targets.
       return;
     }
     if(state==='menu'){
