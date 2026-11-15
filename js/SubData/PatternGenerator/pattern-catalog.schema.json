@@ -11,7 +11,9 @@
     "poolBands",
     "hardAdditions",
     "voidPool",
-    "transitions"
+    "transitions",
+    "selection",
+    "generation"
   ],
   "properties": {
     "$schema": {
@@ -96,7 +98,8 @@
           "required": [
             "motifCount",
             "allowed",
-            "finalAllowed"
+            "finalAllowed",
+            "triggerPatterns"
           ],
           "properties": {
             "motifCount": {
@@ -114,6 +117,14 @@
               "items": {
                 "type": "string"
               }
+            },
+            "triggerPatterns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "uniqueItems": true
             }
           }
         },
@@ -121,7 +132,8 @@
           "type": "object",
           "required": [
             "motifCount",
-            "allowed"
+            "allowed",
+            "triggerPatterns"
           ],
           "properties": {
             "motifCount": {
@@ -133,8 +145,154 @@
               "items": {
                 "type": "string"
               }
+            },
+            "triggerPatterns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "uniqueItems": true
             }
           }
+        }
+      }
+    },
+    "selection": {
+      "type": "object",
+      "required": [
+        "recentPatternHistory",
+        "historyLimit",
+        "minimumWeight",
+        "tagCooldowns",
+        "tagWeights",
+        "directionAlternation"
+      ],
+      "properties": {
+        "recentPatternHistory": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "historyLimit": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimumWeight": {
+          "type": "number",
+          "minimum": 0
+        },
+        "tagCooldowns": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "tagWeights": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "directionAlternation": {
+          "type": "object",
+          "required": [
+            "tag"
+          ],
+          "properties": {
+            "tag": {
+              "type": "string"
+            }
+          }
+        },
+        "feelModifiers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "tag",
+              "signal",
+              "comparison",
+              "threshold",
+              "multiplier"
+            ],
+            "properties": {
+              "tag": {
+                "type": "string"
+              },
+              "signal": {
+                "type": "string"
+              },
+              "comparison": {
+                "enum": [
+                  "above",
+                  "below"
+                ]
+              },
+              "threshold": {
+                "type": "number"
+              },
+              "multiplier": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "generation": {
+      "type": "object",
+      "required": [
+        "reactionMarginSeconds",
+        "defaultVoidGapBeats",
+        "minimumPatternGapBeats",
+        "defaultPatternGapBeats",
+        "normalQuietThreshold",
+        "hardQuietThreshold",
+        "beatsPerBar",
+        "nonContinuousGapBeats",
+        "maxVoidMotifsPerChunk"
+      ],
+      "properties": {
+        "reactionMarginSeconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "defaultVoidGapBeats": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minimumPatternGapBeats": {
+          "type": "number",
+          "minimum": 0
+        },
+        "defaultPatternGapBeats": {
+          "type": "number",
+          "minimum": 0
+        },
+        "normalQuietThreshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "hardQuietThreshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "beatsPerBar": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "nonContinuousGapBeats": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maxVoidMotifsPerChunk": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     }
