@@ -7,7 +7,8 @@
   "repeatCount": 2,
   "tags": [
     "single-opening",
-    "spin"
+    "spin",
+    "unidirectional"
   ],
   "weight": 1,
   "voidWeight": 0.85,
