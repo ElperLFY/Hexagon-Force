@@ -6,7 +6,8 @@
   "tags": [
     "compound",
     "multi-opening",
-    "long-rails"
+    "long-rails",
+    "alternating"
   ],
   "weight": 1.25,
   "voidWeight": 1.3,
