@@ -8,9 +8,10 @@
   "tags": [
     "single-opening",
     "spin",
-    "unidirectional"
+    "unidirectional",
+    "long-unidirectional"
   ],
-  "weight": 1,
-  "voidWeight": 0.85,
+  "weight": 0.8,
+  "voidWeight": 0.6,
   "$schema": "./pattern.schema.json"
 }
