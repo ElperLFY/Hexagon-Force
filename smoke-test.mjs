@@ -124,7 +124,7 @@ if(endlessSmoke.dur!==Infinity||endlessSmoke.stageEnd!==null||!endlessSmoke.rows
 const beatAnalyzerSource=fs.readFileSync('./js/BeatAnalyzer.js','utf8');
 if(!beatAnalyzerSource.includes('subarray(startSample,endSample)')||!beatAnalyzerSource.includes('startSeconds+tempo.phase/fps'))throw new Error('Beat analysis must stay inside the played audio segment and retain its absolute offset');
 const uiSource=fs.readFileSync('./js/UIRenderer.js','utf8');
-if(!/\\bmirroredPanel\\s*\\(/.test(uiSource))throw new Error('UIRenderer must implement mirroredPanel before Title or HUD rendering');
+if(!uiSource.includes('  mirroredPanel(x,y,w,h,'))throw new Error('UIRenderer must implement mirroredPanel before Title or HUD rendering');
 const mirroredCommands=[];
 const fakeCanvas={
   beginPath(){},moveTo(x,y){mirroredCommands.push([x,y]);},lineTo(x,y){mirroredCommands.push([x,y]);},
