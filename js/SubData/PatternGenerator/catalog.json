@@ -205,13 +205,15 @@
     "minimumWeight": 0.1,
     "tagCooldowns": {
       "c-shaped": 2,
-      "unidirectional": 1
+      "unidirectional": 2,
+      "long-unidirectional": 2
     },
     "tagWeights": {
-      "c-shaped": 0.35,
-      "unidirectional": 0.72,
-      "alternating": 1.75,
-      "multi-opening": 1.12
+      "c-shaped": 0.3,
+      "unidirectional": 0.5,
+      "alternating": 2.2,
+      "multi-opening": 1.12,
+      "long-unidirectional": 0.25
     },
     "directionAlternation": {
       "tag": "unidirectional"
