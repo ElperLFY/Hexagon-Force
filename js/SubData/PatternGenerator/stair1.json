@@ -5,7 +5,8 @@
   "description": "Five Parts with two opposite openings, both advancing one sector per beat.",
   "tags": [
     "multi-opening",
-    "stair"
+    "stair",
+    "unidirectional"
   ],
   "weight": 1,
   "voidWeight": 1.45,
