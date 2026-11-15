@@ -538,7 +538,7 @@ export class PatternGenerator{
     const L=this.L,generation=PatternGenerator.catalog?.generation??{};
     const levelSpeed=Math.max(.01,Number(L.speed)||1);
     const mapSpeed=Math.max(.01,Number(L.clearanceMapSpeed??1)||1);
-    const reaction=Math.max(0,Number(L.reactionMargin??generation.reactionMarginSeconds??.04));
+    const reaction=Math.max(0,Number(L.reactionMargin??generation.reactionMarginSeconds));
     const nominalDepthBeats=rowDepth/(levelSpeed*beatDuration);
     const actualDepthBeats=rowDepth/(levelSpeed*mapSpeed*beatDuration);
     const pointerDepthBeats=(PL.tip-PL.back)/(levelSpeed*mapSpeed*beatDuration);
@@ -595,14 +595,14 @@ export class PatternGenerator{
         const matches=rule.comparison==='below'?signal<threshold:signal>threshold;
         if(matches)value*=Number(rule.multiplier)||1;
       }
-      return Math.max(Number(selection.minimumWeight??.1),Number.isFinite(value)?value:1);
+      return Math.max(Number(selection.minimumWeight),Number.isFinite(value)?value:1);
     };
 
     const total=candidates.reduce((sum,name)=>sum+weight(name),0);
     let value=r()*total,chosen=candidates[candidates.length-1];
     for(const name of candidates){value-=weight(name);if(value<=0){chosen=name;break;}}
     this.recentPatterns.push(chosen);
-    const historyLimit=Math.max(1,Math.floor(Number(selection.historyLimit??4)));
+    const historyLimit=Math.max(1,Math.floor(Number(selection.historyLimit)));
     while(this.recentPatterns.length>historyLimit)this.recentPatterns.shift();
     this.recordTransition(chosen);
     return chosen;
@@ -621,8 +621,8 @@ export class PatternGenerator{
     if(!(bd>0)||!(dur>0))return rows;
     const generation=PatternGenerator.catalog?.generation??{};
     const quiet=L.intensityThreshold??(L.hard
-      ?generation.hardQuietThreshold??.065
-      :generation.normalQuietThreshold??.1);
+      ?generation.hardQuietThreshold
+      :generation.normalQuietThreshold);
     let beatCursor=Math.max(0,Math.ceil((t0+2-tg0)/(4*bd)-1e-6)*4);
     for(;;){
       const b0=beatCursor;
@@ -694,14 +694,14 @@ export class PatternGenerator{
         rows.push(row);
         requiredGapBeats=Math.max(requiredGapBeats,this.clearanceGapBeats(depth,bd));
       }
-      const minimumGap=Number(generation.minimumPatternGapBeats??.1);
-      const configuredGap=Number(L.patternGapBeats??generation.defaultPatternGapBeats??.62);
+      const minimumGap=Number(generation.minimumPatternGapBeats);
+      const configuredGap=Number(L.patternGapBeats??generation.defaultPatternGapBeats);
       const safeGap=Math.max(minimumGap,configuredGap,requiredGapBeats);
       if(L.hard||L.continuousPatterns){
         beatCursor=patternBeat+Math.max(minimumGap,motifDuration+safeGap);
       }else{
-        const beatsPerBar=Number(generation.beatsPerBar??4);
-        const coarseGap=Math.max(safeGap,Number(generation.nonContinuousGapBeats??.5));
+        const beatsPerBar=Number(generation.beatsPerBar);
+        const coarseGap=Math.max(safeGap,Number(generation.nonContinuousGapBeats));
         beatCursor=patternBeat+Math.max(beatsPerBar,Math.ceil((motifDuration+coarseGap)/beatsPerBar)*beatsPerBar);
       }
     }
@@ -728,7 +728,7 @@ export class PatternGenerator{
     if(!(bd>0)||!(bars>0)){this.voidNext=from;return rows;}
     const stop=from+bars*4*bd;
     let tb=from,guard=0;
-    while(tb<stop&&guard++<(PatternGenerator.catalog?.generation?.maxVoidMotifsPerChunk??512)){
+    while(tb<stop&&guard++<PatternGenerator.catalog.generation.maxVoidMotifsPerChunk){
       const name=this.chooseVoid(r);
       const d=this.directionFor(name,r);
       let g=r()*6|0;
@@ -786,8 +786,8 @@ export class PatternGenerator{
       }
       this.lastVoidOpenings=unique(pat[pat.length-1]?.[1]??[]);
       const generation=PatternGenerator.catalog?.generation??{};
-      const configuredGap=Number(L.voidGapBeats??generation.defaultVoidGapBeats??.32);
-      const minimumGap=Number(generation.minimumPatternGapBeats??.1);
+      const configuredGap=Number(L.voidGapBeats??generation.defaultVoidGapBeats);
+      const minimumGap=Number(generation.minimumPatternGapBeats);
       tb+=(motifDuration+Math.max(configuredGap,minimumGap,requiredGapBeats))*bd;
     }
     this.voidNext=tb;
