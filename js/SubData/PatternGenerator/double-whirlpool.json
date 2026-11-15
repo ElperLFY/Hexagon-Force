@@ -5,7 +5,8 @@
   "description": "Two opposite spiral lanes, advancing together every 1.25 beats.",
   "tags": [
     "multi-opening",
-    "spiral"
+    "spiral",
+    "unidirectional"
   ],
   "weight": 1,
   "voidWeight": 1.9,
