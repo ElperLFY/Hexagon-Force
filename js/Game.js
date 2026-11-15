@@ -33,6 +33,7 @@ export class Game {
     this.uiOverlay = null;
     this.noiseOn = false;
     this.mods = this.loadMods();
+    this.runModifiers = this.mods;
     this.runUsesMultipliers = false;
 
     this.audio = new AudioManager();
@@ -509,17 +510,23 @@ export class Game {
 
     try{
       await this.settingsReady;
+      this.runModifiers=level.patternSequenceTest
+        ?{
+          mapSpeed:level.patternTestMapSpeed??1,
+          playerSpeed:level.patternTestPlayerSpeed??1
+        }
+        :{...this.mods};
       this.runUsesMultipliers =
-        Math.abs((this.mods.mapSpeed??1)-1)>1e-6 ||
-        Math.abs((this.mods.playerSpeed??1)-1)>1e-6;
+        Math.abs((this.runModifiers.mapSpeed??1)-1)>1e-6 ||
+        Math.abs((this.runModifiers.playerSpeed??1)-1)>1e-6;
       await this.audio.unlock();
       await PatternGenerator.loadCatalog();
 
       const seed=(level.seed^(Date.now()>>>0)^(Math.random()*0x100000000>>>0))>>>0;
       const generationLevel={
         ...level,
-        clearanceMapSpeed:this.mods.mapSpeed,
-        clearancePlayerSpeed:this.mods.playerSpeed
+        clearanceMapSpeed:this.runModifiers.mapSpeed,
+        clearancePlayerSpeed:this.runModifiers.playerSpeed
       };
       let run;
 
@@ -643,8 +650,8 @@ export class Game {
     // The arrow tip is lethal. If either flank/base touches a wall first,
     // clamp angular movement at the last free position. Input is deliberately
     // left untouched: the held direction resumes as soon as the wall passes.
-    const mapSpeed=this.mods.mapSpeed;
-    const playerSpeed=this.mods.playerSpeed;
+    const mapSpeed=this.runModifiers?.mapSpeed??this.mods.mapSpeed;
+    const playerSpeed=this.runModifiers?.playerSpeed??this.mods.playerSpeed;
     const currentCollision=chart.collision(time,this.phi,mapSpeed);
     if(currentCollision?.type==='tip'){
       this.die(time);
