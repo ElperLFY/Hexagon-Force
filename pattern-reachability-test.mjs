@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import {SIDE,TAU,TH,PART_DEPTH_SCALE,RP,PL,DEFAULT_TURN_RATE} from './js/config.js';
+import {SIDE,TAU,TH,PART_DEPTH_SCALE,RP,PL,GENERATOR_TURN_RATE} from './js/config.js';
 import {Chart,PatternGenerator} from './js/PatternGenerator.js';
 import {buildPathRegistry} from './js/Paths.js';
 
@@ -22,7 +22,7 @@ function simulate(name,direction,level,bd,bpm,repeat=3){
   const L={
     ...level,
     speed:level.speed??1,
-    turnRate:level.turnRate??DEFAULT_TURN_RATE,
+    turnRate:level.turnRate??GENERATOR_TURN_RATE,
     reactionMargin:level.reactionMargin??.04
   };
   const speed=L.speed;
@@ -117,7 +117,7 @@ for(const level of LEVELS){
   const speed=level.speed??1;
   const testLevel={
     ...level,
-    turnRate:level.turnRate??DEFAULT_TURN_RATE,
+    turnRate:level.turnRate??GENERATOR_TURN_RATE,
     reactionMargin:level.reactionMargin??PatternGenerator.catalog.generation.reactionMarginSeconds,
     clearanceMapSpeed:1,
     clearancePlayerSpeed:1
@@ -177,7 +177,7 @@ function simulateGeneratedSequence(rows,level,bd,bpm,label){
   const speed=level.speed??1;
   const maxDepth=Math.max(level.wallThickness??TH,...rows.map(row=>row.th??level.wallThickness??TH));
   const chart=new Chart(rows,bd,0,bpm,30,speed,level.wallThickness??TH);
-  const stepBins=Math.max(1,Math.floor(((level.turnRate??DEFAULT_TURN_RATE)*DT)/(TAU/ANGLE_BINS)));
+  const stepBins=Math.max(1,Math.floor(((level.turnRate??GENERATOR_TURN_RATE)*DT)/(TAU/ANGLE_BINS)));
   const endTime=rows.at(-1).t+(maxDepth+PL.tip-PL.back)/speed+.2;
   let reachable=new Uint8Array(ANGLE_BINS).fill(1);
   for(let t=rows[0].t-.5+DT;t<=endTime+1e-9;t+=DT){
@@ -229,7 +229,7 @@ for(const level of LEVELS){
       ...level,
       offset:0,
       seed,
-      turnRate:level.turnRate??DEFAULT_TURN_RATE,
+      turnRate:level.turnRate??GENERATOR_TURN_RATE,
       reactionMargin:PatternGenerator.catalog.generation.reactionMarginSeconds,
       clearanceMapSpeed:1,
       clearancePlayerSpeed:1
