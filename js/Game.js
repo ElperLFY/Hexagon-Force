@@ -509,7 +509,11 @@ export class Game {
 
       const seed=(level.seed^(Date.now()>>>0)^(Math.random()*0x100000000>>>0))>>>0;
       // Reuse the decoded soundtrack, but build a fresh beat-sensitive motif sequence per attempt.
-      const generationLevel={...level,clearanceMapSpeed:this.mods.mapSpeed};
+      const generationLevel={
+        ...level,
+        clearanceMapSpeed:this.mods.mapSpeed,
+        clearancePlayerSpeed:this.mods.playerSpeed
+      };
       const baseChart=await this.getChart(generationLevel,audioBuffer,seed);
       this.baseCharts[cacheKey]=baseChart;
       const run=baseChart
