@@ -5,7 +5,8 @@
   "description": "Two opposite openings drift together by one sector and back.",
   "tags": [
     "multi-opening",
-    "paired-lanes"
+    "paired-lanes",
+    "unidirectional"
   ],
   "weight": 1,
   "voidWeight": 1.4,
