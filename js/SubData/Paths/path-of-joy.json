@@ -238,7 +238,9 @@
         "b2": "#123b51",
         "w": "#061a28",
         "p": "#e9fbff"
-      }
+      },
+      "patternTestMapSpeed": 1,
+      "patternTestPlayerSpeed": 1
     }
   ]
 }
