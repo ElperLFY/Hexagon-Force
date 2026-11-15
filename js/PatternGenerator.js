@@ -1,4 +1,4 @@
-import {TAU,SIDE,K,TH,PART_DEPTH_SCALE,RP,HUB,PL,VOID} from './config.js';
+import {TAU,SIDE,K,TH,PART_DEPTH_SCALE,RP,HUB,PL,VOID,DEFAULT_TURN_RATE} from './config.js';
 
 // Deterministic PRNG: the same level seed produces the same chart.
 const mul=a=>()=>{
@@ -69,9 +69,9 @@ function playerPolygon(phi){
 // Restore at least one reachable opening after a randomized phrase change.
 function repairRows(rows,L,seed=null){
   let previous=seed;
-  const turnRate=L.turnRate??6.4;
+  const turnRate=L.turnRate??DEFAULT_TURN_RATE;
   const stepTime=SIDE/turnRate;
-  const reaction=L.reactionMargin??.04;
+  const reaction=L.reactionMargin??PatternGenerator.catalog?.generation?.reactionMarginSeconds??.04;
   const speed=L.speed||1;
   const baseThickness=L.wallThickness??TH;
 
@@ -368,9 +368,6 @@ export class PatternGenerator{
   static definitions=null;
   static loading=null;
   static PAT={};
-  static POST_LADDER=Object.freeze([]);
-  static POST_LADDER_FINAL=Object.freeze([]);
-  static POST_BAT=Object.freeze([]);
 
   // Load the human-editable pattern catalog once. The runtime only compiles
   // beat/sector data into the existing factory interface used by the game.
@@ -474,9 +471,6 @@ export class PatternGenerator{
       for(const id of catalog.patterns)compile(id);
       this.definitions=definitions;
       this.PAT=Object.freeze(compiled);
-      this.POST_LADDER=Object.freeze([...catalog.transitions.afterLadder.allowed]);
-      this.POST_LADDER_FINAL=Object.freeze([...catalog.transitions.afterLadder.finalAllowed]);
-      this.POST_BAT=Object.freeze([...catalog.transitions.afterBat.allowed]);
       this.catalog=catalog;
       return catalog;
     })();
@@ -487,15 +481,66 @@ export class PatternGenerator{
   constructor(L){
     this.L=L;
     this.rng=mul(L.seed);
-    this.lastVoidPattern=null;
     this.lastVoidOpenings=null;
-    this.postVoidLadderRemaining=0;
-    this.postVoidBatRemaining=0;
     this.recentPatterns=[];
-    // A single-opening (C-shaped) motif is followed by two non-C motifs
-    // whenever the active difficulty pool offers alternatives.
-    this.singleOpeningCooldown=0;
-    this.voidSingleOpeningCooldown=0;
+    this.activeTransition=null;
+    this.transitionRemaining=0;
+    this.lastDirectionalTag=null;
+    this.lastDirectionalDirection=null;
+  }
+
+  patternTags(name){
+    return PatternGenerator.definitions?.[name]?.tags??[];
+  }
+
+  transitionCandidates(names){
+    const rule=this.activeTransition;
+    if(!rule)return names;
+    const allowed=this.transitionRemaining===1&&Array.isArray(rule.finalAllowed)
+      ?rule.finalAllowed:rule.allowed;
+    const candidates=names.filter(name=>allowed?.includes(name));
+    return candidates.length?candidates:names;
+  }
+
+  recordTransition(name){
+    if(this.activeTransition){
+      this.transitionRemaining--;
+      if(this.transitionRemaining<=0){
+        this.activeTransition=null;
+        this.transitionRemaining=0;
+      }
+      return;
+    }
+    const rules=Object.values(PatternGenerator.catalog?.transitions??{});
+    const rule=rules.find(item=>item.triggerPatterns?.includes(name));
+    if(rule&&Number(rule.motifCount)>0){
+      this.activeTransition=rule;
+      this.transitionRemaining=Math.floor(Number(rule.motifCount));
+    }
+  }
+
+  directionFor(name,r){
+    const policy=PatternGenerator.catalog?.selection?.directionAlternation;
+    const tag=policy?.tag;
+    let direction=r()<.5?-1:1;
+    const tagged=Boolean(tag&&this.patternTags(name).includes(tag));
+    if(tagged&&this.lastDirectionalTag===tag&&direction===this.lastDirectionalDirection){
+      direction=-direction;
+    }
+    this.lastDirectionalTag=tagged?tag:null;
+    this.lastDirectionalDirection=tagged?direction:null;
+    return direction;
+  }
+
+  clearanceGapBeats(rowDepth,beatDuration){
+    const L=this.L,generation=PatternGenerator.catalog?.generation??{};
+    const levelSpeed=Math.max(.01,Number(L.speed)||1);
+    const mapSpeed=Math.max(.01,Number(L.clearanceMapSpeed??1)||1);
+    const reaction=Math.max(0,Number(L.reactionMargin??generation.reactionMarginSeconds??.04));
+    const nominalDepthBeats=rowDepth/(levelSpeed*beatDuration);
+    const actualDepthBeats=rowDepth/(levelSpeed*mapSpeed*beatDuration);
+    const pointerDepthBeats=(PL.tip-PL.back)/(levelSpeed*mapSpeed*beatDuration);
+    return Math.max(0,actualDepthBeats-nominalDepthBeats+pointerDepthBeats+reaction/beatDuration);
   }
 
   pool(x){
@@ -513,65 +558,69 @@ export class PatternGenerator{
     return [...new Set(names)].filter(name=>typeof PatternGenerator.PAT[name]==='function');
   }
 
-  isSingleOpening(name){
-    const definition=PatternGenerator.definitions?.[name];
-    return Boolean(definition?.tags?.includes('single-opening')||definition?.category==='single-opening');
-  }
-
-  choose(names,r,feel=null){
+  chooseWeighted(names,r,weightKey='weight',feel=null){
+    const selection=PatternGenerator.catalog?.selection??{};
     const levelWeights=this.L.patternWeights||{};
     const definitions=PatternGenerator.definitions??{};
-    const recent=this.recentPatterns.slice(-2);
-    const fresh=names.filter(name=>!recent.includes(name));
-    let candidates=fresh.length?fresh:names;
-
-    // Avoid a run of C-shaped motifs. Prefer an unused non-single-opening
-    // pattern during the two-motif cooldown; only fall back when the pool has
-    // no alternative at this difficulty.
-    if(this.singleOpeningCooldown>0){
-      const freshAlternatives=candidates.filter(name=>!this.isSingleOpening(name));
-      const anyAlternatives=names.filter(name=>!this.isSingleOpening(name));
-      if(freshAlternatives.length)candidates=freshAlternatives;
-      else if(anyAlternatives.length)candidates=anyAlternatives;
+    let candidates=this.transitionCandidates(names);
+    const historyLength=Math.max(0,Math.floor(Number(selection.recentPatternHistory??0)));
+    if(historyLength>0){
+      const recent=this.recentPatterns.slice(-historyLength);
+      const fresh=candidates.filter(name=>!recent.includes(name));
+      if(fresh.length)candidates=fresh;
     }
 
-    const multiLane=['solo2','solo3','alt3','bat','dwhirl','ladder','stair1','rain','doubleC','pairs'];
-    const rhythmic=['whirl','dwhirl','spin2','spin3','spin4','multiC','t321','zig'];
-    const dense=['ladder','burst','rain','stair1','stair2','wall'];
-    const weight=name=>{
-      let value=Math.max(.1,Number(levelWeights[name]??definitions[name]?.weight??1));
-      // The JSON tags define the movement family. Favor multi-opening and
-      // mixed silhouettes even when a level-specific weight favors a C motif.
-      value*=this.isSingleOpening(name) ? 0.55 : 1.15;
-      if(feel){
-        if(feel.syncopation>.28&&rhythmic.includes(name))value*=1.45;
-        if(feel.density>.52&&multiLane.includes(name))value*=1.25;
-        if(feel.variation>.18&&(rhythmic.includes(name)||multiLane.includes(name)))value*=1.2;
-        if(feel.peak>.78&&dense.includes(name))value*=1.28;
-        if(feel.density<.24&&['solo','stair','spin'].includes(name))value*=1.12;
+    for(const [tag,countValue] of Object.entries(selection.tagCooldowns??{})){
+      const count=Math.max(0,Math.floor(Number(countValue)||0));
+      if(!count)continue;
+      const recent=this.recentPatterns.slice(-count);
+      if(recent.some(name=>this.patternTags(name).includes(tag))){
+        const alternatives=candidates.filter(name=>!this.patternTags(name).includes(tag));
+        if(alternatives.length)candidates=alternatives;
       }
-      return value;
+    }
+
+    const weight=name=>{
+      let value=Number(levelWeights[name]??definitions[name]?.[weightKey]??1);
+      for(const tag of this.patternTags(name)){
+        const multiplier=selection.tagWeights?.[tag];
+        if(Number.isFinite(multiplier))value*=Math.max(0,multiplier);
+      }
+      for(const rule of selection.feelModifiers??[]){
+        if(!feel||!this.patternTags(name).includes(rule.tag))continue;
+        const signal=Number(feel[rule.signal]);
+        const threshold=Number(rule.threshold);
+        const matches=rule.comparison==='below'?signal<threshold:signal>threshold;
+        if(matches)value*=Number(rule.multiplier)||1;
+      }
+      return Math.max(Number(selection.minimumWeight??.1),Number.isFinite(value)?value:1);
     };
+
     const total=candidates.reduce((sum,name)=>sum+weight(name),0);
     let value=r()*total,chosen=candidates[candidates.length-1];
     for(const name of candidates){value-=weight(name);if(value<=0){chosen=name;break;}}
-    if(this.isSingleOpening(chosen))this.singleOpeningCooldown=2;
-    else this.singleOpeningCooldown=Math.max(0,this.singleOpeningCooldown-1);
     this.recentPatterns.push(chosen);
-    if(this.recentPatterns.length>4)this.recentPatterns.shift();
+    const historyLimit=Math.max(1,Math.floor(Number(selection.historyLimit??4)));
+    while(this.recentPatterns.length>historyLimit)this.recentPatterns.shift();
+    this.recordTransition(chosen);
     return chosen;
   }
 
-  poolAfter(_names,preset=PatternGenerator.POST_LADDER){
-    // Exit motifs are injected even when the stage's regular difficulty pool
-    // would not normally contain them.
-    return preset.filter(name=>typeof PatternGenerator.PAT[name]==='function');
+  choose(names,r,feel=null){
+    return this.chooseWeighted(names,r,'weight',feel);
+  }
+
+  chooseVoid(r){
+    return this.chooseWeighted(this.voidPool(),r,'voidWeight');
   }
 
   generate(S,bd,tg0,dur){
     const L=this.L,r=this.rng,rows=[],t0=L.offset;
     if(!(bd>0)||!(dur>0))return rows;
-    const quiet=L.intensityThreshold??(L.hard ? .065 : .1);
+    const generation=PatternGenerator.catalog?.generation??{};
+    const quiet=L.intensityThreshold??(L.hard
+      ?generation.hardQuietThreshold??.065
+      :generation.normalQuietThreshold??.1);
     let beatCursor=Math.max(0,Math.ceil((t0+2-tg0)/(4*bd)-1e-6)*4);
     let previousPattern=null;
     let postLadderRemaining=0;
@@ -611,63 +660,50 @@ export class PatternGenerator{
       const swingShift=syncopation>.57||(peakIndex%2===1&&peak>.48)?0.5:0;
       const patternBeat=b0+swingShift;
       const tb=tg0+patternBeat*bd;
-      const g=r()*6|0,d=r()<.5?1:-1;
+      const g=r()*6|0;
       const names=this.pool(x);
-      const enteringPostLadder=previousPattern==='ladder'||previousPattern==='zig';
-      const inPostLadder=enteringPostLadder||postLadderRemaining>0;
-      const enteringPostBat=previousPattern==='bat'||previousPattern==='pairs';
-      const inPostBat=enteringPostBat||postBatRemaining>0;
-      const ladderExitPreset=postLadderRemaining===1
-        ?PatternGenerator.POST_LADDER_FINAL:PatternGenerator.POST_LADDER;
-      const candidates=inPostLadder
-        ?this.poolAfter(names,ladderExitPreset)
-        :inPostBat
-          ?this.poolAfter(names,PatternGenerator.POST_BAT)
-          :names;
-      const name=this.choose(candidates,r,feel);
+      const name=this.choose(names,r,feel);
+      const d=this.directionFor(name,r);
       const pat=PatternGenerator.PAT[name](g,d,r);
-      if(name==='ladder'||name==='zig'){
-        postLadderRemaining=4;
-      }else if(enteringPostLadder){
-        postLadderRemaining=3;
-      }else if(postLadderRemaining>0){
-        postLadderRemaining--;
-      }
-      if(name==='bat'||name==='pairs'){
-        postBatRemaining=2;
-      }else if(enteringPostBat){
-        postBatRemaining=1;
-      }else if(postBatRemaining>0){
-        postBatRemaining--;
-      }
       const motifId=`${name}@${tb.toFixed(6)}`;
       const baseThickness=L.wallThickness??TH;
       const defaultSpan=baseThickness/((L.speed||1)*bd);
       const partSpan=(spanBeats,routeSpanBeats=null)=>spanBeats>0
         ?spanBeats*(routeSpanBeats===0?1:PART_DEPTH_SCALE)
         :defaultSpan;
+      const speed=L.speed||1;
+      const rowDepth=(spanBeats,routeSpanBeats=null)=>{
+        const span=partSpan(spanBeats,routeSpanBeats);
+        return spanBeats>0?Math.max(baseThickness,speed*bd*span):baseThickness;
+      };
+      const radialSpanBeats=(spanBeats,routeSpanBeats=null)=>
+        rowDepth(spanBeats,routeSpanBeats)/(speed*bd);
       const motifDuration=Math.max(...pat.map(([beat,,spanBeats=0,routeSpanBeats=null])=>
-        beat+partSpan(spanBeats,routeSpanBeats)
+        beat+radialSpanBeats(spanBeats,routeSpanBeats)
       ));
-      let end=0;
+      let requiredGapBeats=0;
       for(const [beat,gaps,spanBeats=0,routeSpanBeats=null] of pat){
-        const effectiveSpan=partSpan(spanBeats,routeSpanBeats);
+        const depth=rowDepth(spanBeats,routeSpanBeats);
         const row={
           t:tb+beat*bd,g:unique(gaps),
           motifId,motifName:name,motifStart:tb,motifEnd:tb+motifDuration*bd
         };
-        if(spanBeats>0)row.th=Math.max(baseThickness,(L.speed||1)*bd*effectiveSpan);
+        if(spanBeats>0)row.th=depth;
         if(Number.isFinite(routeSpanBeats)&&routeSpanBeats>=0){
-          row.routeDepth=(L.speed||1)*bd*routeSpanBeats;
+          row.routeDepth=speed*bd*routeSpanBeats;
         }
         rows.push(row);
-        end=Math.max(end,beat+effectiveSpan);
+        requiredGapBeats=Math.max(requiredGapBeats,this.clearanceGapBeats(depth,bd));
       }
-      previousPattern=name;
+      const minimumGap=Number(generation.minimumPatternGapBeats??.1);
+      const configuredGap=Number(L.patternGapBeats??generation.defaultPatternGapBeats??.62);
+      const safeGap=Math.max(minimumGap,configuredGap,requiredGapBeats);
       if(L.hard||L.continuousPatterns){
-        beatCursor=patternBeat+Math.max(.1,end+(L.patternGapBeats??.62));
+        beatCursor=patternBeat+Math.max(minimumGap,motifDuration+safeGap);
       }else{
-        beatCursor=patternBeat+Math.max(4,Math.ceil((end+.5)/4)*4);
+        const beatsPerBar=Number(generation.beatsPerBar??4);
+        const coarseGap=Math.max(safeGap,Number(generation.nonContinuousGapBeats??.5));
+        beatCursor=patternBeat+Math.max(beatsPerBar,Math.ceil((motifDuration+coarseGap)/beatsPerBar)*beatsPerBar);
       }
     }
     return this.repair(rows.filter(row=>row.t<dur-1).sort((a,b)=>a.t-b.t));
@@ -677,64 +713,13 @@ export class PatternGenerator{
     return repairRows(rows,this.L,seed);
   }
 
-  // Void uses a dedicated pattern pool, with the same C-pattern cooldown as
-  // the soundtrack-synchronised section so the endless phase stays varied.
+  // Void shares the catalog-driven family and transition policies with normal generation.
   voidPool(){
     return [...(PatternGenerator.catalog?.voidPool??[])];
   }
 
   chooseVoid(r){
-    let names=this.voidPool();
-    const enteringPostLadder=this.lastVoidPattern==='ladder'||this.lastVoidPattern==='zig';
-    const inPostLadder=enteringPostLadder||this.postVoidLadderRemaining>0;
-    const enteringPostBat=this.lastVoidPattern==='bat'||this.lastVoidPattern==='pairs';
-    const inPostBat=enteringPostBat||this.postVoidBatRemaining>0;
-    if(inPostLadder){
-      const ladderExitPreset=this.postVoidLadderRemaining===1
-        ?PatternGenerator.POST_LADDER_FINAL:PatternGenerator.POST_LADDER;
-      names=names.filter(name=>ladderExitPreset.includes(name));
-    }else if(inPostBat){
-      names=names.filter(name=>PatternGenerator.POST_BAT.includes(name));
-    }
-    if(names.length>1&&this.lastVoidPattern)names=names.filter(name=>name!==this.lastVoidPattern);
-    if(!names.length)names=this.voidPool();
-
-    // Keep the endless phase varied as well: one single-opening motif can be
-    // followed by up to two multi-opening/mixed motifs when alternatives exist.
-    if(this.voidSingleOpeningCooldown>0){
-      const alternatives=names.filter(name=>!this.isSingleOpening(name));
-      if(alternatives.length)names=alternatives;
-    }
-
-    const definitions=PatternGenerator.definitions??{};
-    const weight=name=>{
-      const base=Math.max(.1,Number(definitions[name]?.voidWeight??1));
-      return base*(this.isSingleOpening(name) ? 0.55 : 1.15);
-    };
-    const total=names.reduce((sum,name)=>sum+weight(name),0);
-    let value=r()*total,chosen=names[names.length-1];
-    for(const name of names){
-      value-=weight(name);
-      if(value<=0){chosen=name;break;}
-    }
-    if(this.isSingleOpening(chosen))this.voidSingleOpeningCooldown=2;
-    else this.voidSingleOpeningCooldown=Math.max(0,this.voidSingleOpeningCooldown-1);
-    this.lastVoidPattern=chosen;
-    if(chosen==='ladder'||chosen==='zig'){
-      this.postVoidLadderRemaining=4;
-    }else if(enteringPostLadder){
-      this.postVoidLadderRemaining=3;
-    }else if(this.postVoidLadderRemaining>0){
-      this.postVoidLadderRemaining--;
-    }
-    if(chosen==='bat'||chosen==='pairs'){
-      this.postVoidBatRemaining=2;
-    }else if(enteringPostBat){
-      this.postVoidBatRemaining=1;
-    }else if(this.postVoidBatRemaining>0){
-      this.postVoidBatRemaining--;
-    }
-    return chosen;
+    return this.chooseWeighted(this.voidPool(),r,'voidWeight');
   }
 
   // Continuous Void stream. Chunks begin at the exact time returned by the previous
@@ -744,10 +729,9 @@ export class PatternGenerator{
     if(!(bd>0)||!(bars>0)){this.voidNext=from;return rows;}
     const stop=from+bars*4*bd;
     let tb=from,guard=0;
-    while(tb<stop&&guard++<512){
-      const ramp=Math.min(1,Math.max(0,(tb-t0)/(L.voidRamp||150)));
-      const d=r()<.5?1:-1;
+    while(tb<stop&&guard++<(PatternGenerator.catalog?.generation?.maxVoidMotifsPerChunk??512)){
       const name=this.chooseVoid(r);
+      const d=this.directionFor(name,r);
       let g=r()*6|0;
 
       // Orient the next motif so its first Part retains at least one opening
@@ -777,25 +761,35 @@ export class PatternGenerator{
       const partSpan=(spanBeats,routeSpanBeats=null)=>spanBeats>0
         ?spanBeats*(routeSpanBeats===0?1:PART_DEPTH_SCALE)
         :defaultSpan;
+      const speed=L.speed||1,baseThickness=L.wallThickness??TH;
+      const rowDepth=(spanBeats,routeSpanBeats=null)=>{
+        const span=partSpan(spanBeats,routeSpanBeats);
+        return spanBeats>0?Math.max(baseThickness,speed*bd*span):baseThickness;
+      };
+      const radialSpanBeats=(spanBeats,routeSpanBeats=null)=>
+        rowDepth(spanBeats,routeSpanBeats)/(speed*bd);
       const motifDuration=Math.max(...pat.map(([beat,,spanBeats=0,routeSpanBeats=null])=>
-        beat+partSpan(spanBeats,routeSpanBeats)
+        beat+radialSpanBeats(spanBeats,routeSpanBeats)
       ));
-      let end=0;
+      let requiredGapBeats=0;
       for(const [beat,gaps,spanBeats=0,routeSpanBeats=null] of pat){
-        const effectiveSpan=partSpan(spanBeats,routeSpanBeats);
+        const depth=rowDepth(spanBeats,routeSpanBeats);
         const row={
           t:tb+beat*bd,g:unique(gaps),
           motifId,motifName:name,motifStart:tb,motifEnd:tb+motifDuration*bd
         };
-        if(spanBeats>0)row.th=Math.max(L.wallThickness??TH,(L.speed||1)*bd*effectiveSpan);
+        if(spanBeats>0)row.th=depth;
         if(Number.isFinite(routeSpanBeats)&&routeSpanBeats>=0){
-          row.routeDepth=(L.speed||1)*bd*routeSpanBeats;
+          row.routeDepth=speed*bd*routeSpanBeats;
         }
         rows.push(row);
-        end=Math.max(end,beat+effectiveSpan);
+        requiredGapBeats=Math.max(requiredGapBeats,this.clearanceGapBeats(depth,bd));
       }
       this.lastVoidOpenings=unique(pat[pat.length-1]?.[1]??[]);
-      tb+=(end+(L.voidGapBeats??.32))*bd;
+      const generation=PatternGenerator.catalog?.generation??{};
+      const configuredGap=Number(L.voidGapBeats??generation.defaultVoidGapBeats??.32);
+      const minimumGap=Number(generation.minimumPatternGapBeats??.1);
+      tb+=(motifDuration+Math.max(configuredGap,minimumGap,requiredGapBeats))*bd;
     }
     this.voidNext=tb;
     const repaired=this.repair(rows.sort((a,b)=>a.t-b.t),prev);
