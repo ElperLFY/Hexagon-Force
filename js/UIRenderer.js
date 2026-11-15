@@ -48,35 +48,38 @@ export class UIRenderer{
     this.text(right,W-inset,h*.49,size,p.p,'right');
   }
   title(g,p){
-    const c=this.c,W=this.W,H=this.H,U=this.U;
-    // Neutral, geometric title backdrop matching the supplied menu reference.
+    const c=this.c,W=this.W,H=this.H,U=this.U,L=g.level;
+    const now=g.time(),elapsed=Math.max(0,now-(L?.offset??0));
+    const pulse=.5+.5*Math.sin(now*2.15+(L?.id??0)*.017);
+    const rotation=(L?.rotSpeed??.35)*elapsed*.09;
+
+    // The Renderer has already drawn the selected level's live arena, moving
+    // preview walls and pointer. These orbit rails add depth without hiding it.
     c.save();
-    c.fillStyle='#252525';
-    c.fillRect(0,0,W,H);
-    this.polygon([[0,0],[W*.30,0],[W*.46,H],[0,H]],'#292929');
-    this.polygon([[W*.30,0],[W*.72,0],[W*.58,H],[W*.46,H]],'#242424');
-    this.polygon([[W*.72,0],[W,H*.22],[W,H],[W*.58,H]],'#2b2b2b');
+    c.globalAlpha=.16;
+    this.ring(W*.5,H*.52,U*1.32,rotation,p.b1,Math.max(2,U*.006));
+    c.globalAlpha=.10;
+    this.ring(W*.5,H*.52,U*1.08,-rotation*1.45,p.w,Math.max(1,U*.004));
     c.restore();
 
-    const neutral={b1:'#858585',b2:'#b0b0b0',w:'#999999',p:'#f5f5f5'};
-    // Only the right-hand quit plaque belongs on the title screen.
-    this.mirroredPanel(W*.78,0,W*.22,H*.06,neutral.b1,'#555555',H*.018);
-    this.text('ESC — QUIT',W*.985,H*.03,Math.min(U*.075,W*.023),neutral.p,'right');
+    this.header(p,'TAB — HIGH SCORES','ESC — QUIT');
 
-    this.text('SUPER',W*.5,H*.30,U*.31,neutral.p);
-    this.text('HEXAGON',W*.5,H*.445,U*.215,neutral.p);
+    // Original HEXBEAT identity: restrained typography over the moving stage,
+    // rather than a static poster or a replica of another game's title screen.
+    this.text('HEXBEAT',W*.5,H*.285,U*(.235+.006*pulse),p.p);
+    this.text('RHYTHM  /  ROTATION  /  SURVIVAL',W*.5,H*.365,U*.032,p.w);
 
-    const buttonY=H*.62,buttonH=H*.085,buttonW=W*.31,buttonX=(W-buttonW)/2;
-    // Large side controls are visual level arrows; level browsing begins after Space.
-    const arrowW=W*.16,arrowH=H*.14,arrowY=H*.59,arrowCut=U*.07;
-    this.panel(W*.08,arrowY,arrowW,arrowH,'#858585','#555555',arrowCut);
-    this.mirroredPanel(W*.76,arrowY,arrowW,arrowH,'#858585','#555555',arrowCut);
-    this.chevron(W*.16,arrowY+arrowH*.5,U*.082,-1,'#050505');
-    this.chevron(W*.84,arrowY+arrowH*.5,U*.082,1,'#050505');
-    this.panel(buttonX,buttonY,buttonW,buttonH,'#999999','#555555',H*.025);
-    this.text('START GAME',W*.5,buttonY+buttonH*.5,U*.071,'#d8d8d8');
-    this.text('PRESS SPACE TO SELECT',W*.5,H*.835,U*.050,neutral.p);
-    if(g.msg)this.text(g.msg,W*.5,H*.965,U*.022,neutral.p);
+    const hintY=H*.775;
+    this.text('A / D   ·   LEFT / RIGHT  —  SHIFT THE STAGE',
+      W*.5,hintY,U*.025,p.w);
+    const startSize=U*(.055+.003*pulse);
+    this.panel(W*.285,H*.825,W*.43,H*.082,p.b1,'rgba(0,0,0,.58)',H*.025);
+    this.text('PRESS SPACE TO START',W*.5,H*.866,startSize,p.p);
+
+    if(!g.activePath?.levels?.length){
+      this.text('NEW LEVELS COMING SOON',W*.5,H*.94,U*.027,p.w);
+    }
+    if(g.msg)this.text(g.msg,W*.5,H*.975,U*.022,p.w);
   }
   selection(g,p){
     const W=this.W,H=this.H,U=this.U,now=performance.now()/1000;

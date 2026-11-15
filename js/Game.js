@@ -20,6 +20,7 @@ export class Game {
     const defaultIndex=this.paths.findIndex(path=>path.id===pathRegistry.defaultPathId);
     this.pathIndex=savedPathIndex>=0?savedPathIndex:Math.max(0,defaultIndex);
     this.lv=this.firstAvailableLevelIndex();
+    this.titlePreviewStarted=performance.now();
     this.phi = 0;
     this.tF = 0;
     this.msg = '';
@@ -175,6 +176,7 @@ export class Game {
     this.msg=unlocked?'':'LOCKED';
     this.audio.playSound('menuselect');
     this.persistProgress();
+    if(this.state==='gate')this.titlePreviewStarted=performance.now();
     if(this.state==='menu'){
       if(unlocked)this.preview();
       else{
@@ -199,6 +201,7 @@ export class Game {
     this.pathIndex=this.paths.indexOf(path);
     this.lv=Number.isInteger(startIndex)&&startIndex>=0&&startIndex<path.levels.length
       ?startIndex:this.firstAvailableLevelIndex(path);
+    this.titlePreviewStarted=performance.now();
     this.msg=path.levels.length?'':'NEW LEVELS COMING SOON';
     this.audio.playSound('menuselect');
     this.persistProgress();
@@ -224,9 +227,12 @@ export class Game {
   }
 
   time() {
-    if (this.state === 'play'&&this.level) return this.audio.time(this.level);
-    if (this.live) return this.tF;
-    return performance.now() / 1e3;
+    if(this.state==='play'&&this.level)return this.audio.time(this.level);
+    if(this.live)return this.tF;
+    if(this.state==='gate'&&this.level){
+      return this.level.offset+(performance.now()-this.titlePreviewStarted)/1000;
+    }
+    return performance.now()/1e3;
   }
 
   // Play the selected level as background music in the menu or after a win.
@@ -280,10 +286,11 @@ export class Game {
     this.audio.playSound('menuchoose');
 
     if(state==='gate'){
-      this.state='menu';
+      // The title screen is also the background level selector: Space starts
+      // the currently previewed stage directly, without a redundant menu stop.
       this.audio.unlock().then(()=>{
         void this.audio.preloadCues();
-        this.preview();
+        this.play();
       });
       return;
     }
@@ -314,7 +321,7 @@ export class Game {
   }
 
   nav(direction) {
-    if(this.state!=='menu')return;
+    if(this.state!=='menu'&&this.state!=='gate')return;
     const step=Math.sign(direction);
     if(!step)return;
     if(this.levels.length){
@@ -454,7 +461,9 @@ export class Game {
       if(y>.89&&x>.32&&x<.68){this.toggleSettings();return;}
       if(y<.075&&x<.4){this.toggleHighScores();return;}
       if(y<.075&&x>.6){this.quit();return;}
-      if(y>.56&&y<.73&&x>.30&&x<.70){this.confirm();return;}
+      if(y>.78&&y<.94&&x>.27&&x<.73){this.confirm();return;}
+      if(x<.12){this.nav(-1);return;}
+      if(x>.88){this.nav(1);return;}
       return;
     }
     if(state==='menu'){

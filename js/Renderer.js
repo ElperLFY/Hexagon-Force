@@ -41,6 +41,49 @@ export class Renderer{
     this.U=Math.min(this.W,this.H)*.46;
   }
 
+  // A harmless stream of preview walls makes the title backdrop feel like a
+  // live stage. Sector 0 stays open for the preview pointer; no collision logic
+  // is run until the player presses Space.
+  titlePreviewChart(L,t){
+    const beatDur=.5;
+    const gapBeats=Math.max(.4,Math.min(1.4,L.patternGapBeats??.7));
+    const spacing=beatDur*(1.55+gapBeats*.35);
+    const elapsed=Math.max(0,t-L.offset);
+    const current=Math.floor(elapsed/spacing);
+    const seed=(Number(L.seed??L.id??1)>>>0)||1;
+    const rows=[];
+
+    for(let index=Math.max(0,current-2);index<current+19;index++){
+      let hash=Math.imul((seed^Math.imul(index+1,0x9e3779b1))>>>0,0x45d9f3b);
+      hash^=hash>>>16;
+      hash=Math.imul(hash,0x45d9f3b);
+      hash^=hash>>>16;
+      const gaps=[0,1+(Math.abs(hash)%5)];
+      if(index%3===1){
+        const third=(1+((hash>>>8)%5)+2)%6;
+        if(!gaps.includes(third))gaps.push(third);
+      }
+      const mask=Array.from({length:6},(_,sector)=>!gaps.includes(sector));
+      rows.push({
+        t:L.offset+(index+1)*spacing,
+        g:gaps,
+        w:mask,
+        th:L.wallThickness??TH
+      });
+    }
+
+    return {
+      rows,beatDur,tg0:L.offset,bpm:120,speed:L.speed??1,
+      rot(time,level){
+        const elapsed=Math.max(0,time-level.offset);
+        const omega=level.rotSpeed??.35;
+        const amplitude=level.rotAmp??.8;
+        const beats=level.rotBeats??16;
+        return omega*elapsed+amplitude*Math.sin(elapsed*TAU/(beats*beatDur));
+      }
+    };
+  }
+
   text(s,x,y,size,col,al='center'){
     const c=this.c;
     c.font=`900 ${size}px Orbitron,'Trebuchet MS',Arial,sans-serif`;
@@ -211,6 +254,8 @@ export class Renderer{
   draw(g){
     const L=g.level,t=g.time(),ch=g.chart,{W,H,U}=this;
     const fx=g.fx,c=this.c;
+    const titlePreview=g.state==='gate';
+    const sceneChart=titlePreview?this.titlePreviewChart(L,t):ch;
     c.globalCompositeOperation='source-over';
     this.mapMul=g.modsLocked?1:(g.mods?g.mods.mapSpeed:1);
     this.hubLvl=g.vis?g.vis.get(VIS.hub.band):0;
@@ -224,7 +269,11 @@ export class Renderer{
     const turn=Number.isFinite(g.playerOmega)
       ?clamp(g.playerOmega/Math.max(.001,maxOmega),-1,1)
       :(g.input?(g.input.R-g.input.L):0);
-    this.scene(L,t,ch,g.live,g.phi,fx,turn);
+    this.scene(
+      L,t,sceneChart,g.live||titlePreview,
+      titlePreview?Math.sin((t-L.offset)*.18)*.025:g.phi,
+      fx,turn
+    );
 
     if(fx){
       c.restore();c.fillStyle='#fff';c.globalAlpha=.55*Math.exp(-fx.tau*9);
