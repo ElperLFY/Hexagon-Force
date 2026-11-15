@@ -702,7 +702,7 @@ export class PatternGenerator{
     names.forEach((name,index)=>{
       const direction=this.directionFor(name,this.rng);
       const startSector=index%SECTOR_COUNT;
-      const events=PatternGenerator.PAT[name](startSector,direction,this.rng);
+      const events=PatternGenerator.PAT[name](startSector,direction,()=>.5);
       if(!events?.length)throw new Error('Pattern factory returned no Parts: '+name);
 
       const motifId='test-'+String(index+1).padStart(2,'0')+'-'+name;
