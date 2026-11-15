@@ -211,6 +211,34 @@
         "wallLightness": 22,
         "foregroundLightness": 96
       }
+    },
+    {
+      "id": 999,
+      "number": 5,
+      "name": "PATTERN TEST · ALL 25",
+      "offset": 0,
+      "speed": 1,
+      "seed": 999,
+      "goalSeconds": 120,
+      "wallThickness": 0.09,
+      "chartMode": "pattern-sequence",
+      "patternSequenceTest": true,
+      "patternTestBeatDuration": 1,
+      "patternTestBeatStep": 0.1,
+      "patternTestMaxBeatDuration": 5,
+      "patternTestGapBeats": 0.62,
+      "music": false,
+      "optional": true,
+      "unlock": {
+        "type": "always"
+      },
+      "palette": {
+        "type": "fixed",
+        "b1": "#1b5369",
+        "b2": "#123b51",
+        "w": "#061a28",
+        "p": "#e9fbff"
+      }
     }
   ]
 }
