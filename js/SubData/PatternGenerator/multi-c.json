@@ -7,10 +7,11 @@
     "single-opening",
     "spiral",
     "c-shaped",
-    "unidirectional"
+    "unidirectional",
+    "long-unidirectional"
   ],
-  "weight": 0.72,
-  "voidWeight": 0.58,
+  "weight": 0.65,
+  "voidWeight": 0.45,
   "directionMode": "relative",
   "parts": [
     {
