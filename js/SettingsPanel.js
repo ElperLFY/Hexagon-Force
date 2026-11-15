@@ -111,6 +111,12 @@ export class SettingsPanel{
     const description=document.createElement('span');
     description.className='hb-setting__description';description.textContent=definition.description??'';
     copy.append(title,description);
+    if(definition.warning){
+      const warning=document.createElement('span');
+      warning.className='hb-setting__warning';
+      warning.textContent=definition.warning;
+      copy.append(warning);
+    }
 
     const control=document.createElement('div');
     control.className='hb-setting__control';
@@ -228,7 +234,7 @@ export class SettingsPanel{
   setValue(id,value){
     const definition=this.setting(id);
     if(!definition||definition.disabled||definition.type==='status')return;
-    if(this.game.modsLocked&&['modMenuEnabled','mapSpeed','playerSpeed'].includes(id))return;
+
     if(definition.type==='range')value=this.clampSetting(id,value);
     if(definition.type==='select'&&!definition.options.includes(value))return;
     if(definition.type==='toggle')value=Boolean(value);
@@ -247,7 +253,7 @@ export class SettingsPanel{
 
   applyModifiers(){
     if(!this.config)return;
-    const enabled=!this.game.modsLocked&&this.values.modMenuEnabled!==false;
+    const enabled=this.values.modMenuEnabled!==false;
     this.game.mods.mapSpeed=enabled?this.values.mapSpeed:1;
     this.game.mods.playerSpeed=enabled?this.values.playerSpeed:1;
     try{localStorage.setItem('hxm',JSON.stringify(this.game.mods));}catch(error){}
@@ -266,30 +272,16 @@ export class SettingsPanel{
       const row=this.root.querySelector('[data-setting-row="'+definition.id+'"]');
       const field=this.root.querySelector('[data-setting="'+definition.id+'"]');
       const output=this.root.querySelector('[data-setting-value="'+definition.id+'"]');
-      const isModSetting=['modMenuEnabled','mapSpeed','playerSpeed'].includes(definition.id);
-      const locked=this.game.modsLocked&&isModSetting;
-      const dependencyHidden=Boolean(definition.requires&&this.values[definition.requires]!==true&&!locked);
+      const dependencyHidden=Boolean(definition.requires&&this.values[definition.requires]!==true);
       if(field){
         if(definition.type==='range'||definition.type==='select')field.value=String(this.values[definition.id]);
         if(definition.type==='toggle')field.checked=Boolean(this.values[definition.id]);
-        field.disabled=Boolean(definition.disabled||dependencyHidden||locked);
+        field.disabled=Boolean(definition.disabled||dependencyHidden);
       }
       if(output)output.textContent=this.formatValue(definition,this.values[definition.id]);
       if(row){
         row.hidden=dependencyHidden;
-        row.classList.toggle('is-disabled',Boolean(definition.disabled||dependencyHidden||locked));
-        let lockStatus=row.querySelector('[data-mod-lock]');
-        if(locked){
-          if(!lockStatus){
-            lockStatus=document.createElement('span');
-            lockStatus.className='hb-setting__status hb-setting__status--locked';
-            lockStatus.dataset.modLock='true';
-            row.querySelector('.hb-setting__control')?.append(lockStatus);
-          }
-          if(lockStatus)lockStatus.textContent='LOCKED';
-        }else if(lockStatus){
-          lockStatus.remove();
-        }
+        row.classList.toggle('is-disabled',Boolean(definition.disabled||dependencyHidden));
       }
     }
   }
