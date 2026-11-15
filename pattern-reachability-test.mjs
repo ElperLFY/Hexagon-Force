@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import {SIDE,TAU,TH,PART_DEPTH_SCALE,RP,PL} from './js/config.js';
+import {SIDE,TAU,TH,PART_DEPTH_SCALE,RP,PL,DEFAULT_TURN_RATE} from './js/config.js';
 import {Chart,PatternGenerator} from './js/PatternGenerator.js';
 import {buildPathRegistry} from './js/Paths.js';
 
@@ -22,7 +22,7 @@ function simulate(name,direction,level,bd,bpm,repeat=3){
   const L={
     ...level,
     speed:level.speed??1,
-    turnRate:level.turnRate??6.4,
+    turnRate:level.turnRate??DEFAULT_TURN_RATE,
     reactionMargin:level.reactionMargin??.04
   };
   const speed=L.speed;
@@ -115,7 +115,13 @@ for(const level of LEVELS){
   const bd=source.beatDur??60/(source.bpm??116);
   const bpm=source.bpm??116;
   const speed=level.speed??1;
-  const testLevel={...level,turnRate:level.turnRate??6.4,reactionMargin:level.reactionMargin??.04};
+  const testLevel={
+    ...level,
+    turnRate:level.turnRate??DEFAULT_TURN_RATE,
+    reactionMargin:level.reactionMargin??PatternGenerator.catalog.generation.reactionMarginSeconds,
+    clearanceMapSpeed:1,
+    clearancePlayerSpeed:1
+  };
   const stepBins=Math.floor((testLevel.turnRate*DT)/(TAU/ANGLE_BINS));
   for(let seed=1;seed<=6;seed++){
     const generator=new PatternGenerator({...testLevel,seed});
@@ -161,3 +167,89 @@ for(const level of LEVELS){
   }
 }
 console.log('Void reachability OK: 4 levels × 6 seeds × 3 chained chunks.');
+
+
+// Exercise the normal music-driven generator, not only isolated pattern
+// factories. These profiles intentionally repeat so selection variety and
+// pattern-to-pattern collision clearance are tested without relying on songs.
+function simulateGeneratedSequence(rows,level,bd,bpm,label){
+  if(!rows.length)throw new Error(`No generated rows for ${label}`);
+  const speed=level.speed??1;
+  const maxDepth=Math.max(level.wallThickness??TH,...rows.map(row=>row.th??level.wallThickness??TH));
+  const chart=new Chart(rows,bd,0,bpm,30,speed,level.wallThickness??TH);
+  const stepBins=Math.max(1,Math.floor(((level.turnRate??DEFAULT_TURN_RATE)*DT)/(TAU/ANGLE_BINS)));
+  const endTime=rows.at(-1).t+(maxDepth+PL.tip-PL.back)/speed+.2;
+  let reachable=new Uint8Array(ANGLE_BINS).fill(1);
+  for(let t=rows[0].t-.5+DT;t<=endTime+1e-9;t+=DT){
+    const free=new Uint8Array(ANGLE_BINS);
+    for(let i=0;i<ANGLE_BINS;i++){
+      if(!chart.collision(t,i*TAU/ANGLE_BINS)?.type)free[i]=1;
+    }
+    const next=new Uint8Array(ANGLE_BINS);
+    for(let from=0;from<ANGLE_BINS;from++){
+      if(!reachable[from])continue;
+      for(let delta=-stepBins;delta<=stepBins;delta++){
+        const to=norm(from+delta,ANGLE_BINS);
+        if(!free[to])continue;
+        let clear=true;
+        for(let k=1;k<Math.abs(delta);k++){
+          if(!free[norm(from+Math.sign(delta)*k,ANGLE_BINS)]){clear=false;break;}
+        }
+        if(clear)next[to]=1;
+      }
+    }
+    if(!next.some(Boolean)){
+      const active=rows.filter(row=>{
+        const enters=row.t-(PL.tip-RP)/speed;
+        const leaves=row.t+((row.th??TH)+RP-PL.back)/speed;
+        return t>=enters-1e-6&&t<=leaves+1e-6;
+      }).map(row=>({
+        time:+row.t.toFixed(3),g:row.g,pattern:row.motifName,
+        motif:row.motifId,route:row.route,routeReachable:row.routeReachable
+      }));
+      throw new Error(`Generated sequence closed every route: ${label}, t=${t.toFixed(3)}, active=${JSON.stringify(active)}`);
+    }
+    reachable=next;
+  }
+}
+
+const repeatedProfiles=[
+  beat=>.35,
+  beat=>.42+.3*Math.sin(beat*Math.PI/2),
+  beat=>[.18,.82,.12,.74,.22,.91,.16,.67][Math.floor(beat*2)%8]
+];
+const sequenceFailures=[];
+for(const level of LEVELS){
+  const source=JSON.parse(fs.readFileSync(`./MusicData/${level.id}.json`,'utf8'));
+  const bd=source.beatDur??60/(source.bpm??116);
+  const bpm=source.bpm??116;
+  for(let profileIndex=0;profileIndex<repeatedProfiles.length;profileIndex++){
+    const seed=(level.seed??level.id)^((profileIndex+1)*0x51ED);
+    const testLevel={
+      ...level,
+      offset:0,
+      seed,
+      turnRate:level.turnRate??DEFAULT_TURN_RATE,
+      reactionMargin:PatternGenerator.catalog.generation.reactionMarginSeconds,
+      clearanceMapSpeed:1,
+      clearancePlayerSpeed:1
+    };
+    const generator=new PatternGenerator(testLevel);
+    const rows=generator.generate(repeatedProfiles[profileIndex],bd,0,18);
+    const motifs=[...new Map(rows.map(row=>[row.motifId,row.motifName])).values()];
+    const cTag='c-shaped';
+    for(let index=0;index<motifs.length;index++){
+      const tags=PatternGenerator.definitions[motifs[index]]?.tags??[];
+      if(tags.includes(cTag)&&motifs.slice(Math.max(0,index-2),index)
+        .some(name=>(PatternGenerator.definitions[name]?.tags??[]).includes(cTag))){
+        sequenceFailures.push({level:level.id,profile:profileIndex,sequence:motifs});
+        break;
+      }
+    }
+    simulateGeneratedSequence(rows,testLevel,bd,bpm,`level ${level.id}, profile ${profileIndex}, seed ${seed}`);
+  }
+}
+if(sequenceFailures.length){
+  throw new Error(`C-shaped cooldown failed: ${JSON.stringify(sequenceFailures)}`);
+}
+console.log(`Generated sequence reachability OK: ${LEVELS.length} levels × ${repeatedProfiles.length} repeating audio profiles.`);
