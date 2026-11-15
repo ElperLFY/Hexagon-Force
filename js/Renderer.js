@@ -213,7 +213,7 @@ export class Renderer{
     const L=g.level,t=g.time(),ch=g.chart,{W,H,U}=this;
     const fx=g.fx,c=this.c;
     c.globalCompositeOperation='source-over';
-    this.mapMul=g.modsLocked?1:(g.mods?g.mods.mapSpeed:1);
+    this.mapMul=g.mods?g.mods.mapSpeed:1;
     this.hubLvl=g.vis?g.vis.get(VIS.hub.band):0;
     this.camLvl=g.vis?g.vis.get(VIS.cam.band):0;
     if(fx){
