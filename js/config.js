@@ -19,7 +19,7 @@ export const VOID={
   alpha:[.3,.92],    // darkness at the far end: [at the start, at full strength] -> never fully black
   chunkBars:16,       // rows are generated this many bars at a time...
   ahead:8,          // ...and always at least this many seconds in advance
-  noise:{file:'wn01.wav',gain:.38,fade:1.5} // looped from the flip until you die (gain is relative to the volume slider)
+  noise:{file:'wn01h.wav',gain:.38,fade:1.5} // looped from the flip until you die (gain is relative to the volume slider)
 };
 
 // Music visualizer. The live audio is analysed every frame (frequency bands, like a spectrum analyser) and the
