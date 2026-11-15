@@ -1,4 +1,4 @@
-export const TAU=Math.PI*2,SIDE=TAU/6,K=1.1547,RP=.27,HUB=.18,TH=.09,PW=.035,PART_DEPTH_SCALE=.9;
+export const TAU=Math.PI*2,SECTOR_COUNT=6,SIDE=TAU/SECTOR_COUNT,K=1.1547,RP=.27,HUB=.18,TH=.09,PW=.035,PART_DEPTH_SCALE=.9;
 // Gameplay speed matches the original control feel; generation stays conservative.
 export const DEFAULT_TURN_RATE=8.5,GENERATOR_TURN_RATE=6.4;
 export const PL={tip:RP+.045,back:RP-.03,half:.035};
