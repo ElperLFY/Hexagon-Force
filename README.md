@@ -1,11 +1,6 @@
 # HEXBEAT — Pattern Generator
 
 This document describes the current chart format and how to extend the generator safely.
-Pattern names and definitions below follow the text of JiminP's Steam guide,
-**[Super Hexagon 101: Know your Patterns](https://steamcommunity.com/sharedfiles/filedetails/?id=121153531)**.
-The guide itself warns that its list may omit patterns or contain inaccuracies.
-The guide's embedded diagrams are not available from the page's readable HTML export.
-Do not infer exact visual thickness or silhouettes from the text descriptions alone.
 
 ## 1. Vocabulary
 
